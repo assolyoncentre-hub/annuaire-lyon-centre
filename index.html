@@ -182,16 +182,9 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .field .hint { margin-top: 4px; font-size: 13px; color: var(--muted); }
 #ed-form textarea { min-height: 70px; }
 .people { display: grid; gap: 8px; }
-.person { display: grid; grid-template-columns: 1fr 1fr auto auto auto; gap: 6px; align-items: center; }
-.person input { padding: 9px 10px; }
-.icon-btn { width: 34px; height: 38px; border: 1.5px solid var(--border); border-radius: 6px; background: #fff; cursor: pointer; font-size: 15px; color: var(--text); }
-.icon-btn:hover { border-color: var(--text); }
-.icon-btn:disabled { opacity: .35; cursor: default; }
 .add-person { justify-self: start; background: none; border: 0; padding: 4px 0; color: var(--brand); font: 600 13px/1 Montserrat, sans-serif; cursor: pointer; }
 .btn-danger { background: #c62828; border-color: #c62828; color: #fff; }
-@media (max-width: 520px) { .person { grid-template-columns: repeat(6, 1fr); padding-bottom: 8px; border-bottom: 1px solid var(--border); }
-  .person input { grid-column: span 3; } .person .icon-btn { grid-column: span 2; width: 100%; }
-  .row { grid-template-columns: auto 1fr; } .row .ops { grid-column: 2; } }
+@media (max-width: 520px) { .row { grid-template-columns: auto 1fr; } .row .ops { grid-column: 2; } }
 .card:has(.contact[open]) { position: relative; z-index: 3; border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
 
 /* Connexion et messages (site public) */
@@ -205,14 +198,30 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .google-btn svg { width: 18px; height: 18px; }
 .account { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-top: 20px; color: var(--muted); font-size: 14px; }
 .link-btn { padding: 0; border: 0; background: none; color: var(--brand); font: 600 14px/1 Montserrat, sans-serif; cursor: pointer; }
-.person { grid-template-columns: 1fr 1fr 1.4fr auto auto auto; }
-@media (max-width: 520px) { .person { grid-template-columns: repeat(6, 1fr); } .person input[type=email] { grid-column: span 6; } }
+/* Fenêtres de l'administration plus larges que le formulaire de contact public */
+#editor .modal { max-width: 760px; }
+/* Personne d'une liste : poignée pour réordonner, contenu, poubelle */
+.people { gap: 10px; }
+.person { display: grid; grid-template-columns: 28px 1fr 42px; gap: 8px; align-items: center; background: var(--surface); border-radius: 8px; }
+.person .grip { width: 28px; height: 44px; display: grid; place-items: center; color: var(--muted); cursor: grab; touch-action: none; border-radius: 6px; }
+.person .grip:hover { background: var(--tint); color: var(--text); }
+.person .grip svg { width: 14px; height: 20px; }
+.person.dragging { position: relative; z-index: 3; box-shadow: 0 14px 28px -12px rgba(0, 40, 80, .4); }
+.trash { width: 42px; height: 44px; display: grid; place-items: center; border: 1.5px solid var(--border); border-radius: 6px; background: #fff; color: #a3261c; cursor: pointer; }
+.trash:hover { border-color: #a3261c; }
+.trash svg { width: 18px; height: 18px; }
 /* Contact existant (non modifiable ici : sa fiche se modifie dans l'onglet Contacts) */
-.person.linked { grid-template-columns: 1fr auto auto auto; }
-.person .who { min-width: 0; padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 6px; background: var(--bg);
+.person .who { min-width: 0; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: 6px; background: var(--bg);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .person .who span { margin-left: 8px; color: var(--muted); font-size: 14px; }
-@media (max-width: 520px) { .person.linked { grid-template-columns: repeat(6, 1fr); } .person .who { grid-column: span 6; } }
+/* Nouveau contact : champs à remplir dans un cadre */
+.person .fields { display: grid; grid-template-columns: 1fr 1fr 1.5fr; gap: 8px; padding: 10px; border: 1.5px dashed var(--brand); border-radius: 8px; background: #f7fbff; }
+.person .fields .new { grid-column: 1 / -1; font: 700 11px/1 Montserrat, sans-serif; letter-spacing: .12em; text-transform: uppercase; color: var(--brand); }
+.person .fields input { min-width: 0; padding: 11px 12px; }
+@media (max-width: 520px) {
+  .person .who span { display: block; margin: 2px 0 0; overflow: hidden; text-overflow: ellipsis; }
+  .person .fields { grid-template-columns: 1fr 1fr; } .person .fields input[type=email] { grid-column: 1 / -1; }
+}
 /* Choix d'un contact existant */
 .people-add { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
 .picker { position: relative; flex: 1 1 240px; }

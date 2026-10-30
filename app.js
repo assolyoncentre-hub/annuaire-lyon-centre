@@ -407,10 +407,10 @@ $("editor").addEventListener("click", e => { if (e.target === $("editor")) close
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("editor").hidden) closeEditor(); });
 
 // Liste de personnes : contacts existants (affichés, non modifiables ici) ou nouveaux (prénom, nom, e-mail à saisir),
-// avec monter, descendre, retirer. Un contact existant se choisit dans la liste déroulante.
-const moveBtns = '<button type="button" class="icon-btn" data-mv="-1" aria-label="Monter">↑</button>' +
-  '<button type="button" class="icon-btn" data-mv="1" aria-label="Descendre">↓</button>' +
-  '<button type="button" class="icon-btn" data-rm aria-label="Retirer">✕</button>';
+// avec une poignée pour changer l'ordre et une poubelle pour retirer. Un contact existant se choisit dans la liste déroulante.
+const TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>';
+const gripBtn = '<span class="grip" aria-label="Déplacer" title="Glisser pour changer l\'ordre">' + GRIP + "</span>";
+const trashBtn = '<button type="button" class="trash" data-rm aria-label="Retirer" title="Retirer">' + TRASH + "</button>";
 // Même règle que la liste des contacts : sans e-mail, on rattache à la personne de même nom qui en a un
 const personKey = r => r.email ? "@" + String(r.email).toLowerCase() : (persons().find(x => nameKey(x) === nameKey(r))?.key || nameKey(r));
 const linkedRow = p => {
@@ -418,15 +418,13 @@ const linkedRow = p => {
   const key = personKey(p), email = p.email || persons().find(x => x.key === key)?.email || "";
   p = { ...p, email };
   return '<div class="person linked" data-key="' + esc(key) + '" data-prenom="' + esc(p.prenom || "") +
-  '" data-nom="' + esc(p.nom || "") + '" data-email="' + esc(p.email || "") + '"><div class="who" title="' + esc(fullName(p) + (p.email ? " · " + p.email : "")) + '">' +
-  esc(fullName(p)) + "<span>" + (p.email ? esc(p.email) : "pas d'e-mail") + "</span></div>" + moveBtns + "</div>";
+  '" data-nom="' + esc(p.nom || "") + '" data-email="' + esc(p.email || "") + '">' + gripBtn + '<div class="who" title="' + esc(fullName(p) + (p.email ? " · " + p.email : "")) + '">' +
+  esc(fullName(p)) + "<span>" + (p.email ? esc(p.email) : "pas d'e-mail") + "</span></div>" + trashBtn + "</div>";
 };
-const personRow = p => '<div class="person"><input placeholder="Prénom" aria-label="Prénom" value="' + esc(p?.prenom || "") + '">' +
+const personRow = p => '<div class="person">' + gripBtn + '<div class="fields"><div class="new">Nouveau contact</div>' +
+  '<input placeholder="Prénom" aria-label="Prénom" value="' + esc(p?.prenom || "") + '">' +
   '<input placeholder="Nom" aria-label="Nom" value="' + esc(p?.nom || "") + '">' +
-  '<input type="email" placeholder="E-mail (privé)" aria-label="E-mail" value="' + esc(p?.email || "") + '">' +
-  '<button type="button" class="icon-btn" data-mv="-1" aria-label="Monter">↑</button>' +
-  '<button type="button" class="icon-btn" data-mv="1" aria-label="Descendre">↓</button>' +
-  '<button type="button" class="icon-btn" data-rm aria-label="Retirer">✕</button></div>';
+  '<input type="email" placeholder="E-mail (privé)" aria-label="E-mail" value="' + esc(p?.email || "") + '"></div>' + trashBtn + "</div>";
 const peopleField = (label, list) => '<div class="field"><label>' + label + '</label><div class="people">' +
   (list || []).map(linkedRow).join("") +
   '<div class="people-add"><div class="picker"><input type="search" class="pick" placeholder="Choisir un contact existant…" aria-label="Choisir un contact existant" autocomplete="off">' +
@@ -446,7 +444,6 @@ function pick(input, key) {
   const box = input.closest(".people");
   box.querySelector(".people-add").insertAdjacentHTML("beforebegin", linkedRow(p));
   input.value = ""; input.nextElementSibling.hidden = true;
-  refreshArrows(box);
 }
 $("ed-form").addEventListener("input", e => { if (e.target.classList.contains("pick")) suggest(e.target); });
 $("ed-form").addEventListener("focusin", e => { if (e.target.classList.contains("pick")) suggest(e.target); });
@@ -462,22 +459,30 @@ $("ed-form").addEventListener("keydown", e => {
   } else if (e.key === "Enter") { e.preventDefault(); if (items[i]) pick(e.target, items[i].dataset.key); }
   else if (e.key === "Escape" && !sug.hidden) { e.preventDefault(); e.stopPropagation(); sug.hidden = true; }
 });
-function refreshArrows(box) {
-  const rows = [...box.querySelectorAll(".person")];
-  rows.forEach((r, i) => { r.querySelector('[data-mv="-1"]').disabled = i === 0; r.querySelector('[data-mv="1"]').disabled = i === rows.length - 1; });
-}
 $("ed-form").addEventListener("click", e => {
   const box = e.target.closest(".people"); if (!box) return;
-  const row = e.target.closest(".person");
   if (e.target.closest(".add-person")) { box.querySelector(".people-add").insertAdjacentHTML("beforebegin", personRow(null)); [...box.querySelectorAll(".person")].pop().querySelector("input")?.focus(); }
-  else if (e.target.closest("[data-rm]")) row.remove();
-  else if (e.target.closest("[data-mv]")) {
-    const up = e.target.closest("[data-mv]").dataset.mv === "-1";
-    if (up && row.previousElementSibling?.classList.contains("person")) row.previousElementSibling.before(row);
-    if (!up && row.nextElementSibling?.classList.contains("person")) row.nextElementSibling.after(row);
-  }
-  refreshArrows(box);
+  else if (e.target.closest("[data-rm]")) e.target.closest(".person").remove();
 });
+// Changer l'ordre en faisant glisser la poignée : la ligne prend la place de celle survolée
+let pDrag = null;
+$("ed-form").addEventListener("pointerdown", e => {
+  const g = e.target.closest(".grip"); if (!g || e.button > 0) return;
+  e.preventDefault();
+  pDrag = g.closest(".person");
+  pDrag.classList.add("dragging");
+  document.body.classList.add("is-dragging");
+});
+document.addEventListener("pointermove", e => {
+  if (!pDrag) return;
+  const rows = [...pDrag.parentElement.querySelectorAll(".person")].filter(r => r !== pDrag);
+  const next = rows.find(r => { const b = r.getBoundingClientRect(); return e.clientY < b.top + b.height / 2; });
+  if (next) { if (pDrag.nextElementSibling !== next) next.before(pDrag); }
+  else if (rows.length) rows[rows.length - 1].after(pDrag);
+});
+const endPDrag = () => { if (!pDrag) return; pDrag.classList.remove("dragging"); document.body.classList.remove("is-dragging"); pDrag = null; };
+document.addEventListener("pointerup", endPDrag);
+document.addEventListener("pointercancel", endPDrag);
 const readPeople = f => [...f.querySelectorAll(".person")].map(r => {
   if (r.classList.contains("linked")) return { prenom: r.dataset.prenom, nom: r.dataset.nom, email: r.dataset.email || null };
   const [a, b, c] = r.querySelectorAll("input"); return { prenom: a.value.trim(), nom: b.value.trim(), email: c.value.trim().toLowerCase() || null };
@@ -516,7 +521,6 @@ function editService(s) {
       await refresh();
       toast(s ? "Service enregistré." : "Service ajouté.");
     });
-  refreshArrows($("ed-form").querySelector(".people"));
 }
 function deleteService(s) {
   openEditor("Supprimer le service", s.name, '<p style="margin:0">Le service « ' + esc(s.name) + ' » et ses contacts seront supprimés de l\'annuaire. Cette action est définitive.</p>',
@@ -619,7 +623,6 @@ function editPole(p) {
       await refresh();
       toast(p ? "Pôle enregistré." : "Pôle ajouté.");
     });
-  refreshArrows($("ed-form").querySelector(".people"));
 }
 function deletePole(p) {
   const n = services.filter(s => s.pole === p.name).length;
