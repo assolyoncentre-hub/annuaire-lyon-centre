@@ -137,6 +137,13 @@ $("grid").addEventListener("pointerleave", e => {
   const d = e.target.querySelector(".contact[open]");
   if (d) d.open = false;
 }, true);
+// Au clavier : la section se replie quand le focus quitte la carte (sauf vers le formulaire de message qu'elle ouvre)
+$("grid").addEventListener("focusout", e => {
+  const card = e.target.closest(".card"), to = e.relatedTarget;
+  if (!card || (to && (card.contains(to) || $("modal").contains(to)))) return;
+  const d = card.querySelector(".contact[open]");
+  if (d) d.open = false;
+});
 $("m-cancel").addEventListener("click", closeModal);
 $("modal").addEventListener("click", e => { if (e.target === $("modal")) closeModal(); });
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("modal").hidden) closeModal(); });
