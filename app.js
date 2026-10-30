@@ -413,6 +413,12 @@ function openEditor(kicker, title, html, onSave, saveLabel = "Enregistrer", dang
 }
 function closeEditor() { setPageInert(false); $("editor").hidden = true; document.body.classList.remove("locked"); }
 $("editor").addEventListener("click", e => { if (e.target === $("editor")) closeEditor(); });
+// Le titre de la fenêtre suit le nom saisi (service, pôle ou contact)
+$("ed-form").addEventListener("input", e => {
+  if (e.target.id === "ed-name") $("ed-title").textContent = e.target.value.trim() || e.target.dataset.empty;
+  else if (e.target.id === "pe-prenom" || e.target.id === "pe-nom")
+    $("ed-title").textContent = fullName({ prenom: $("pe-prenom").value.trim(), nom: $("pe-nom").value.trim() }) || "Nouveau contact";
+});
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("editor").hidden) closeEditor(); });
 
 // Liste de personnes : contacts existants (affichés, non modifiables ici) ou nouveaux (prénom, nom, e-mail à saisir),
@@ -580,7 +586,7 @@ function newId(name, taken) {
 function editService(s) {
   const opts = poleNames().map(n => '<option' + (s?.pole === n ? " selected" : "") + ">" + esc(n) + "</option>").join("");
   openEditor(s ? "Modifier le service" : "Ajouter un service", s ? s.name : "Nouveau service",
-    '<div class="field w-2-3"><label for="ed-name">Nom du service</label><input id="ed-name" value="' + esc(s?.name || "") + '"></div>' +
+    '<div class="field w-2-3"><label for="ed-name">Nom du service</label><input id="ed-name" data-empty="Nouveau service" value="' + esc(s?.name || "") + '"></div>' +
     '<div class="field w-fit"><label for="ed-pole">Pôle</label><select id="ed-pole">' + opts + "</select></div>" +
     '<div class="field"><label for="ed-desc">Description <span class="opt">(facultatif)</span></label><textarea id="ed-desc">' + esc(s?.description || "") + "</textarea>" +
     '</div>' +
@@ -690,7 +696,7 @@ function deletePerson(p) {
 function editPole(p) {
   const next = Math.max(0, ...Object.values(poles).map(x => Number(x.ordre) || 0)) + 10;
   openEditor(p ? "Modifier le pôle" : "Ajouter un pôle", p ? p.name : "Nouveau pôle",
-    '<div class="field w-2-3"><label for="ed-name">Nom du pôle</label><input id="ed-name" value="' + esc(p?.name || "") + '"></div>' +
+    '<div class="field w-2-3"><label for="ed-name">Nom du pôle</label><input id="ed-name" data-empty="Nouveau pôle" value="' + esc(p?.name || "") + '"></div>' +
     '<div class="field w-1-2"><label for="ed-ordre">Numéro d\'ordre</label><input id="ed-ordre" type="number" step="1" value="' + esc(p ? (p.ordre ?? "") : next) + '"></div>' +
     peopleField("Responsables du pôle", p ? respOf[p._id] : []),
     async f => {
