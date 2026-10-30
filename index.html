@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="googlebot" content="noindex, nofollow">
+<title>Annuaire des propositions – Église Lyon Centre</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Montserrat:wght@500;600;700&family=Phudu:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --brand: #0060aa; --brand-ink: #ffffff; --accent: #ff7e29;
+  --bg: #f4f7fb; --surface: #ffffff; --text: #0b1b2b; --muted: #5b6b7c; --border: #dde5ee;
+  --glass: rgba(244, 247, 251, .75); --tint: rgba(0, 96, 170, .08);
+  --btn: #000000; --btn-ink: #ffffff;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 16px/1.55 "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif; }
+.hero { background: var(--brand); color: var(--brand-ink); position: relative; overflow: hidden; }
+.hero::after { content: ""; position: absolute; right: -120px; top: -160px; width: 420px; height: 420px;
+  border-radius: 50%; border: 56px solid rgba(255, 255, 255, .07); pointer-events: none; }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 16px; }
+.hero .wrap { padding-top: 40px; padding-bottom: 44px; position: relative; z-index: 1; }
+.brand { font: 700 17px/1.2 Montserrat, sans-serif; letter-spacing: .16em; text-transform: uppercase; }
+h1 { margin: 14px 0 8px; font: 700 clamp(40px, 8vw, 72px)/.95 Phudu, Montserrat, sans-serif;
+  text-transform: uppercase; letter-spacing: .01em; }
+.sub { margin: 0; max-width: 34em; opacity: .9; }
+.bar { position: sticky; top: 0; z-index: 5; background: var(--glass);
+  backdrop-filter: blur(1em); -webkit-backdrop-filter: blur(1em); border-bottom: 1px solid var(--border); }
+/* Sur mobile, la recherche et les filtres défilent avec la page */
+@media (max-width: 640px) { .bar { position: static; } }
+.filterbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding-top: 14px; padding-bottom: 14px; }
+.label { font: 700 12px/1 Montserrat, sans-serif; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.filters { display: flex; flex-wrap: wrap; gap: 8px; }
+.search { flex: 1 1 100%; width: 100%; padding: 12px 16px 12px 42px; border: 1.5px solid var(--border); border-radius: 999px;
+  background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' fill='none' stroke='%235b6b7c' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='8' cy='8' r='6'/%3E%3Cpath d='m17 17-4.5-4.5'/%3E%3C/svg%3E") no-repeat 16px center;
+  color: var(--text); font: 16px/1.2 "DM Sans", system-ui, sans-serif; outline: none; }
+.search:focus { border-color: var(--brand); }
+.chip { border: 1.5px solid var(--border); background: var(--surface); color: var(--text);
+  border-radius: 999px; padding: 7px 14px; font: 600 13px/1 Montserrat, sans-serif; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 8px; transition: border-color .15s, background .15s; }
+.chip:hover { border-color: var(--brand); }
+.chip .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c); }
+.chip .n { color: var(--muted); font-weight: 500; }
+.chip[aria-pressed="true"] { background: var(--brand); border-color: var(--brand); color: var(--brand-ink); }
+.chip[aria-pressed="true"] .n { color: inherit; opacity: .8; }
+.chip[aria-pressed="true"] .dot { background: var(--brand-ink); }
+main.wrap { padding-top: 24px; padding-bottom: 56px; }
+.resp { margin: 0 0 20px; padding: 14px 18px; border-radius: 16px; background: var(--tint); }
+.resp strong { font: 700 12px/1 Montserrat, sans-serif; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--brand); display: block; margin-bottom: 6px; }
+.count { margin: 0 0 16px; color: var(--muted); font: 600 12px/1 Montserrat, sans-serif;
+  letter-spacing: .14em; text-transform: uppercase; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px; }
+/* Toutes les rangées prennent la hauteur de la carte la plus haute (sauf sur mobile, une seule colonne) */
+@media (min-width: 560px) { .grid { grid-auto-rows: 1fr; } }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 20px;
+  display: flex; flex-direction: column; gap: 10px; transition: transform .15s, box-shadow .15s; }
+.card:hover { transform: translateY(-2px); box-shadow: 0 12px 28px -16px rgba(0, 60, 110, .35); }
+.tag { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px;
+  border-radius: 999px; background: var(--tint); color: var(--text);
+  font: 600 11px/1 Montserrat, sans-serif; letter-spacing: .1em; text-transform: uppercase; }
+.tag::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--c); }
+.card h2 { margin: 0; font: 700 26px/1.05 Phudu, Montserrat, sans-serif; text-transform: uppercase; color: var(--brand); }
+.card .desc { margin: 0; font-size: 15px; line-height: 1.5; color: var(--text); }
+/* Section « Contact » dépliable : la liste s'ouvre par-dessus la grille pour ne pas changer la hauteur des cartes */
+/* La zone cliquable couvre toute la largeur et tout le bas de la carte */
+.contact { margin: auto -20px -20px; position: relative; }
+.contact summary { position: relative; padding: 18px 20px 20px; border-radius: 0 0 19px 19px; transition: background .15s;
+  list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between;
+  font: 600 12px/1 Montserrat, sans-serif; letter-spacing: .12em; text-transform: uppercase; color: var(--brand); }
+.contact summary::-webkit-details-marker { display: none; }
+.contact summary::before { content: ""; position: absolute; top: 0; left: 20px; right: 20px; border-top: 1px solid var(--border); }
+.contact summary:hover { background: var(--tint); }
+.contact[open] summary { border-radius: 0; }
+/* Séparateur, « Contact » et flèche visibles seulement au survol de la carte (appareils avec souris) ;
+   toujours visibles sur écran tactile, section ouverte ou navigation clavier */
+@media (hover: hover) {
+  .contact summary::before, .contact summary > span, .contact summary::after { opacity: 0; transition: opacity .15s, transform .15s; }
+  .card:hover .contact summary::before, .card:hover .contact summary > span, .card:hover .contact summary::after,
+  .contact[open] summary::before, .contact[open] summary > span, .contact[open] summary::after,
+  .contact summary:focus-visible::before, .contact summary:focus-visible > span, .contact summary:focus-visible::after { opacity: 1; }
+}
+.contact summary::after { content: ""; width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor;
+  transform: translateY(-2px) rotate(45deg); transition: transform .15s; }
+.contact[open] summary::after { transform: translateY(2px) rotate(-135deg); }
+.contact ul { position: absolute; left: -1px; right: -1px; top: calc(100% + 1px); z-index: 1; margin: 0; padding: 12px 20px;
+  list-style: none; background: var(--surface); border: 1px solid var(--border); border-radius: 0 0 20px 20px;
+  box-shadow: 0 16px 28px -14px rgba(0, 40, 80, .35); color: var(--text); font-size: 15px; }
+.contact ul li + li { margin-top: 4px; }
+.contact .msg { margin-top: 12px; width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 10px 16px; border: 0; border-radius: 6px; background: var(--btn); color: var(--btn-ink); cursor: pointer;
+  font: 600 13px/1 Montserrat, sans-serif; letter-spacing: .02em; transition: filter .15s; }
+.contact .msg:hover { opacity: .85; }
+.contact .msg svg { width: 16px; height: 16px; }
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 16px); opacity: 0; pointer-events: none; z-index: 30;
+  max-width: calc(100% - 32px); padding: 12px 18px; border-radius: 12px; background: var(--text); color: var(--bg);
+  font-size: 14px; box-shadow: 0 12px 28px -12px rgba(0, 0, 0, .4); transition: opacity .2s, transform .2s; }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+/* Formulaire de contact */
+.modal-bg { position: fixed; inset: 0; z-index: 20; background: rgba(8, 20, 35, .45); display: flex; align-items: center; justify-content: center; padding: 16px; }
+.modal-bg[hidden] { display: none; }
+.modal { width: 100%; max-width: 520px; max-height: calc(100vh - 32px); overflow: auto; background: var(--surface); border-radius: 12px;
+  box-shadow: 0 30px 60px -20px rgba(0, 30, 60, .45); }
+.modal-head { background: var(--brand); color: #fff; padding: 22px 24px 20px; border-radius: 12px 12px 0 0; }
+.modal-head .kicker { font: 700 12px/1 Montserrat, sans-serif; letter-spacing: .14em; text-transform: uppercase; opacity: .85; }
+.modal-head h2 { margin: 8px 0 6px; font: 700 30px/1 Phudu, Montserrat, sans-serif; text-transform: uppercase; }
+.modal-head p { margin: 0; font-size: 15px; opacity: .92; }
+.modal form { padding: 20px 24px 24px; display: grid; gap: 14px; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.field label { display: block; margin-bottom: 6px; font: 600 12px/1 Montserrat, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.field label .opt { text-transform: none; letter-spacing: 0; font-weight: 500; }
+.field input, .field textarea { width: 100%; padding: 11px 12px; border: 1.5px solid var(--border); border-radius: 6px; background: #fff;
+  font: 16px/1.4 "DM Sans", sans-serif; color: var(--text); outline: none; }
+.field input:focus, .field textarea:focus { border-color: var(--brand); }
+.field textarea { min-height: 130px; resize: vertical; }
+.actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }
+.btn { padding: 12px 20px; border-radius: 6px; font: 600 14px/1 Montserrat, sans-serif; cursor: pointer; border: 1.5px solid #000; }
+.btn-ghost { background: #fff; color: #000; }
+.btn-primary { background: #000; color: #fff; }
+.btn:hover { opacity: .85; }
+body.locked { overflow: hidden; }
+@media (max-width: 520px) { .row2 { grid-template-columns: 1fr; } .actions .btn { flex: 1; } }
+/* Administration */
+/* Pied de page */
+body { min-height: 100vh; display: flex; flex-direction: column; }
+.site-footer { margin-top: auto; background: var(--text); color: rgba(255, 255, 255, .78); font-size: 14px; }
+.site-footer .wrap { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 24px; padding-top: 22px; padding-bottom: 22px; }
+.site-footer strong { color: #fff; font: 700 13px/1 Montserrat, sans-serif; letter-spacing: .14em; text-transform: uppercase; }
+.admin-link { padding: 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.admin-link:hover { color: #fff; }
+.admin-link[hidden] { display: none; }
+.back-link { margin: 20px 0 0; padding: 0; border: 0; background: none; color: var(--brand); font: 600 14px/1 Montserrat, sans-serif; cursor: pointer; }
+.view[hidden] { display: none; }
+.admin-top { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 20px 0 8px; }
+#add-btn { margin-left: auto; }
+.tabs { display: flex; gap: 8px; }
+.tab { padding: 9px 16px; border: 1.5px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text);
+  font: 600 13px/1 Montserrat, sans-serif; cursor: pointer; }
+.tab[aria-selected="true"] { background: var(--brand); border-color: var(--brand); color: #fff; }
+.admin-tools { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 12px 0 16px; }
+.admin-tools .search { flex: 1 1 260px; width: auto; }
+.btn-sm { padding: 9px 14px; font-size: 13px; }
+.list { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.row { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; padding: 14px 18px; border-top: 1px solid var(--border); }
+.row:first-child { border-top: 0; }
+.row .title { font-weight: 700; }
+.row .meta { color: var(--muted); font-size: 14px; display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; margin-top: 2px; }
+.row .ops { display: flex; gap: 8px; }
+.row .ord { display: inline-block; min-width: 34px; color: var(--muted); font: 600 13px/1 Montserrat, sans-serif; }
+.empty { padding: 24px 18px; color: var(--muted); }
+.row { grid-template-columns: auto 1fr auto; }
+.handle { width: 28px; height: 36px; display: grid; place-items: center; border: 0; background: none; color: var(--muted);
+  cursor: grab; touch-action: none; border-radius: 6px; }
+.handle:hover { background: var(--tint); color: var(--text); }
+.handle svg { width: 14px; height: 20px; }
+.no-drag .handle { visibility: hidden; }
+.group { position: relative; }
+.list.drag-on { overflow: visible; }
+.row { background: var(--surface); }
+.row.dragging { position: relative; z-index: 3; border-radius: 10px; border-top-color: transparent;
+  box-shadow: 0 18px 36px -12px rgba(0, 40, 80, .35), 0 2px 6px rgba(0, 40, 80, .08); }
+.row.dropping { transition: transform .18s ease, box-shadow .18s ease; }
+body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select: none; }
+.group-head { padding: 10px 18px; background: var(--bg); border-top: 1px solid var(--border);
+  font: 700 12px/1 Montserrat, sans-serif; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.group-head:first-child { border-top: 0; }
+.group > .row:first-child { border-top: 1px solid var(--border); }
+/* Texte descriptif sur une ligne, coupé par des points de suspension */
+.row > div:nth-child(2) { min-width: 0; }
+.row .meta { flex-wrap: nowrap; }
+.row .meta > span { flex: none; }
+.row .meta > .ell { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.drag-hint { margin: -6px 0 12px; font-size: 13px; color: var(--muted); }
+.denied { margin: 40px 0; padding: 24px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+.field select { width: 100%; padding: 11px 12px; border: 1.5px solid var(--border); border-radius: 6px; background: #fff;
+  font: 16px/1.4 "DM Sans", sans-serif; color: var(--text); }
+.field .hint { margin-top: 4px; font-size: 13px; color: var(--muted); }
+#ed-form textarea { min-height: 70px; }
+.people { display: grid; gap: 8px; }
+.person { display: grid; grid-template-columns: 1fr 1fr auto auto auto; gap: 6px; align-items: center; }
+.person input { padding: 9px 10px; }
+.icon-btn { width: 34px; height: 38px; border: 1.5px solid var(--border); border-radius: 6px; background: #fff; cursor: pointer; font-size: 15px; color: var(--text); }
+.icon-btn:hover { border-color: var(--text); }
+.icon-btn:disabled { opacity: .35; cursor: default; }
+.add-person { justify-self: start; background: none; border: 0; padding: 4px 0; color: var(--brand); font: 600 13px/1 Montserrat, sans-serif; cursor: pointer; }
+.btn-danger { background: #c62828; border-color: #c62828; color: #fff; }
+@media (max-width: 520px) { .person { grid-template-columns: repeat(6, 1fr); padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  .person input { grid-column: span 3; } .person .icon-btn { grid-column: span 2; width: 100%; }
+  .row { grid-template-columns: auto 1fr; } .row .ops { grid-column: 2; } }
+.card:has(.contact[open]) { position: relative; z-index: 3; border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+
+/* Connexion et messages (site public) */
+.login { margin: 40px auto; max-width: 460px; padding: 28px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; text-align: center; }
+.login h2 { margin: 0 0 8px; font: 700 26px/1.1 Phudu, Montserrat, sans-serif; text-transform: uppercase; color: var(--brand); }
+.login p { margin: 0 0 20px; color: var(--muted); }
+.google-btn { display: inline-flex; align-items: center; gap: 10px; padding: 12px 20px; border: 1.5px solid var(--border); border-radius: 6px;
+  background: #fff; color: var(--text); font: 600 15px/1 Montserrat, sans-serif; cursor: pointer; }
+.google-btn:hover { border-color: var(--text); }
+.google-btn svg { width: 18px; height: 18px; }
+.account { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-top: 20px; color: var(--muted); font-size: 14px; }
+.link-btn { padding: 0; border: 0; background: none; color: var(--brand); font: 600 14px/1 Montserrat, sans-serif; cursor: pointer; }
+.person { grid-template-columns: 1fr 1fr 1.4fr auto auto auto; }
+@media (max-width: 520px) { .person input[type=email] { grid-column: span 6; } }
+.msg-row { padding: 14px 18px; border-top: 1px solid var(--border); }
+.msg-row:first-child { border-top: 0; }
+.msg-row .meta { color: var(--muted); font-size: 13px; display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.msg-row p { margin: 6px 0 0; white-space: pre-wrap; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font: 600 11px/1.4 Montserrat, sans-serif; }
+.badge.ok { background: #e3f4ea; color: #1d6b43; } .badge.ko { background: #fde8e6; color: #a3261c; }
+.account .back-link { margin: 0; }
+.account { margin-top: 20px; }
+.hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="wrap">
+    <div class="brand">Église Lyon Centre</div>
+    <h1 id="h1">Annuaire des propositions</h1>
+  </div>
+</header>
+<div id="dir-view" class="view">
+<div class="bar"><div class="wrap filterbar"><input type="search" id="q" class="search" placeholder="Rechercher un service, un pôle…" aria-label="Rechercher" autocomplete="off"><span class="label">Filtrer par pôle</span><div class="filters" id="filters"></div></div></div>
+<main class="wrap">
+  <div id="resp"></div>
+  <p class="count" id="count"></p>
+  <div class="grid" id="grid"></div>
+</main>
+</div>
+<div id="admin-view" class="view" hidden>
+  <main class="wrap">
+    <div id="admin-login" class="login" hidden>
+      <h2>Administration</h2>
+      <p>Connectez-vous avec le compte Google d'un administrateur de l'annuaire.</p>
+      <button type="button" class="google-btn" id="google-btn"><svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.9 6.1C12.5 13.6 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.6c0-1.6-.1-3.1-.4-4.6H24v9h12.4c-.5 2.9-2.2 5.3-4.6 6.9l7.5 5.8c4.4-4.1 6.8-10.1 6.8-17.1z"/><path fill="#FBBC05" d="M10.6 28.6c-.5-1.4-.8-2.9-.8-4.6s.3-3.2.8-4.6l-7.9-6.1C1 16.6 0 20.2 0 24s1 7.4 2.7 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.5-5.8c-2.1 1.4-4.8 2.3-8.4 2.3-6.2 0-11.5-4.1-13.4-9.9l-7.9 6.1C6.6 42.6 14.6 48 24 48z"/></svg>Se connecter avec Google</button>
+    </div>
+    <div id="admin-denied" class="denied" hidden>
+      <strong>Accès réservé.</strong> Le compte <span id="denied-email"></span> n'est pas administrateur de l'annuaire.
+      <div class="account"><button type="button" class="link-btn" id="logout-2">Se déconnecter</button></div>
+    </div>
+    <div id="admin-body" hidden>
+      <div class="account"><button type="button" class="back-link" id="back-link">← Retour à l'annuaire</button>
+        <span>Connecté : <span id="me-email"></span> · <button type="button" class="link-btn" id="logout">Se déconnecter</button></span></div>
+      <div class="admin-top">
+        <div class="tabs" role="tablist">
+          <button type="button" class="tab" role="tab" id="tab-services" aria-selected="true">Services</button>
+          <button type="button" class="tab" role="tab" id="tab-poles" aria-selected="false">Pôles</button>
+          <button type="button" class="tab" role="tab" id="tab-messages" aria-selected="false">Messages</button>
+        </div>
+        <button type="button" class="btn btn-primary btn-sm" id="add-btn">Ajouter un service</button>
+      </div>
+      <div class="admin-tools">
+        <input type="search" id="aq" class="search" placeholder="Filtrer la liste…" aria-label="Filtrer la liste" autocomplete="off">
+      </div>
+      <p class="drag-hint" id="drag-hint"></p>
+      <div class="list" id="admin-list"></div>
+    </div>
+  </main>
+</div>
+<footer class="site-footer">
+  <div class="wrap">
+    <span>© <span id="year"></span> <strong>Église Lyon Centre</strong></span>
+    <button type="button" class="admin-link" id="admin-link">Administration</button>
+  </div>
+</footer>
+<div class="modal-bg" id="modal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="m-title">
+    <div class="modal-head">
+      <div class="kicker">Contacter</div>
+      <h2 id="m-title"></h2>
+      <p id="m-people"></p>
+    </div>
+    <form id="m-form">
+      <div class="row2">
+        <div class="field"><label for="m-prenom">Mon prénom</label><input id="m-prenom" name="prenom" required autocomplete="given-name"></div>
+        <div class="field"><label for="m-nom">Mon nom</label><input id="m-nom" name="nom" required autocomplete="family-name"></div>
+      </div>
+      <div class="field"><label for="m-email">Mon adresse e-mail</label><input id="m-email" name="email" type="email" required autocomplete="email"></div>
+      <div class="field"><label for="m-tel">Mon téléphone <span class="opt">(facultatif)</span></label><input id="m-tel" name="tel" type="tel" autocomplete="tel" placeholder="06 12 34 56 78"></div>
+      <div class="field"><label for="m-msg">Message</label><textarea id="m-msg" name="message" required placeholder="Votre message…"></textarea></div>
+      <div class="hp" aria-hidden="true"><label>Site <input name="site" tabindex="-1" autocomplete="off"></label></div>
+      <div class="actions"><button type="button" class="btn btn-ghost" id="m-cancel">Annuler</button><button type="submit" class="btn btn-primary" id="m-send">Envoyer</button></div>
+    </form>
+  </div>
+</div>
+<div class="modal-bg" id="editor" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="ed-title">
+    <div class="modal-head">
+      <div class="kicker" id="ed-kicker"></div>
+      <h2 id="ed-title"></h2>
+    </div>
+    <form id="ed-form" novalidate></form>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="api.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
