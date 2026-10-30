@@ -101,6 +101,9 @@ function toast(msg) {
 
 // Formulaire de contact : envoyé par la fonction serveur « envoyer-message »
 let lastFocus = null, modalService = null;
+// Pendant qu'une fenêtre est ouverte, le reste de la page est inactif : Tab reste dans la fenêtre
+const setPageInert = on => [document.querySelector(".hero"), $("dir-view"), $("admin-view"), document.querySelector(".site-footer")]
+  .forEach(el => { if (el) el.inert = on; });
 function openModal(s) {
   modalService = s;
   $("m-title").textContent = s.name || "";
@@ -110,8 +113,10 @@ function openModal(s) {
   $("modal").hidden = false;
   document.body.classList.add("locked");
   $("m-prenom").focus();
+  setPageInert(true);
 }
 function closeModal() {
+  setPageInert(false);
   $("modal").hidden = true;
   document.body.classList.remove("locked");
   lastFocus?.focus?.();
@@ -404,8 +409,9 @@ function openEditor(kicker, title, html, onSave, saveLabel = "Enregistrer", dang
   $("editor").hidden = false;
   document.body.classList.add("locked");
   f.querySelector("input, textarea, select, button")?.focus();
+  setPageInert(true);
 }
-function closeEditor() { $("editor").hidden = true; document.body.classList.remove("locked"); }
+function closeEditor() { setPageInert(false); $("editor").hidden = true; document.body.classList.remove("locked"); }
 $("editor").addEventListener("click", e => { if (e.target === $("editor")) closeEditor(); });
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("editor").hidden) closeEditor(); });
 
