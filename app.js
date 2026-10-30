@@ -48,7 +48,7 @@ const status = msg => { $("count").textContent = msg; };
 const MAIL_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>';
 
 const contactList = s => (contactsOf[s._id] ? peopleOf(s).map(p => "<li>" + esc(p) + "</li>").join("") : '<li class="loading">Chargement…</li>') +
-  '<li><button type="button" class="msg">' + MAIL_ICON + (nbContacts(s) > 1 ? "Leur envoyer un message" : "Lui envoyer un message") + "</button></li>";
+  '<li><button type="button" class="msg">' + MAIL_ICON + "Message" + "</button></li>";
 function contact(s) {
   if (!nbContacts(s)) return "";
   return '<details class="contact"><summary><span>' + (nbContacts(s) > 1 ? "Leaders" : "Leader") + '</span></summary><ul>' + contactList(s) + "</ul></details>";
