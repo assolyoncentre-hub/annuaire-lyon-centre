@@ -206,7 +206,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .account { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-top: 20px; color: var(--muted); font-size: 14px; }
 .link-btn { padding: 0; border: 0; background: none; color: var(--brand); font: 600 14px/1 Montserrat, sans-serif; cursor: pointer; }
 .person { grid-template-columns: 1fr 1fr 1.4fr auto auto auto; }
-@media (max-width: 520px) { .person input[type=email] { grid-column: span 6; } }
+@media (max-width: 520px) { .person { grid-template-columns: repeat(6, 1fr); } .person input[type=email] { grid-column: span 6; } }
 .msg-row { padding: 14px 18px; border-top: 1px solid var(--border); }
 .msg-row:first-child { border-top: 0; }
 .msg-row .meta { color: var(--muted); font-size: 13px; display: flex; flex-wrap: wrap; gap: 4px 12px; }
