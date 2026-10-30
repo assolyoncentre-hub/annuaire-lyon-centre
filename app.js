@@ -230,7 +230,8 @@ function renderAdmin() {
     $("admin-list").innerHTML = messages.filter(m => adminMatch([m.prenom, m.nom, m.email, m.message, m.services?.name].join(" "))).map(m =>
       '<div class="msg-row"><div class="meta"><strong>' + esc(m.prenom + " " + m.nom) + "</strong><span>" + esc(m.email) + "</span>" +
       (m.telephone ? "<span>" + esc(m.telephone) + "</span>" : "") + "<span>" + esc(m.services?.name || "Service supprimé") + "</span><span>" + fmt(m.created_at) + "</span>" +
-      (m.envoye ? '<span class="badge ok">Envoyé</span>' : '<span class="badge ko" title="' + esc(m.erreur || "") + '">Non envoyé</span>') + "</div><p>" + esc(m.message) + "</p></div>"
+      (m.envoye ? '<span class="badge ok">Envoyé</span>' : '<span class="badge ko">Non envoyé</span>') + "</div>" +
+      (!m.envoye && m.erreur ? '<p class="msg-error">' + esc(m.erreur) + "</p>" : "") + "<p>" + esc(m.message) + "</p></div>"
     ).join("") || '<div class="empty">Aucun message.</div>';
     $("admin-list").classList.add("no-drag");
     $("drag-hint").textContent = "Les 100 derniers messages reçus par le formulaire.";
