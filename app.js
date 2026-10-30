@@ -598,11 +598,8 @@ function editService(s) {
       const pole = f.querySelector("#ed-pole").value;
       const data = { id: s ? s._id : newId(name, services.map(x => x._id)), name, pole_id: poles[pole]?._id ?? null,
         description: f.querySelector("#ed-desc").value.trim(), ordre: s?.ordre ?? null };
-      if (!s || s.pole !== pole) {
-        // En fin de pôle ; si le pôle n'a jamais été réordonné, le tri alphabétique s'applique
-        const ords = services.filter(x => x.pole === pole && Number.isFinite(x.ordre)).map(x => x.ordre);
-        data.ordre = ords.length ? Math.max(...ords) + 10 : null;
-      }
+      // Nouveau service (ou changement de pôle) : en dernière position du pôle
+      if (!s || s.pole !== pole) data.ordre = await lastOrder("services", services.filter(x => x.pole === pole && x._id !== s?._id).sort(bySvc));
       await api.saveService(data, people);
       await refresh();
       toast(s ? "Service enregistré." : "Service ajouté.");
@@ -692,19 +689,28 @@ function deletePerson(p) {
     }, "Supprimer", true);
 }
 
+// Numéro d'ordre pour placer un élément après tous les autres. Si certains n'ont pas encore de numéro
+// (triés par ordre alphabétique), on numérote d'abord toute la liste dans l'ordre affiché.
+async function lastOrder(kind, list) {
+  if (list.some(x => !Number.isFinite(x.ordre))) {
+    await api.reorder(kind, list.map((x, i) => ({ id: x._id, ordre: (i + 1) * 10 })));
+    return (list.length + 1) * 10;
+  }
+  return Math.max(0, ...list.map(x => x.ordre)) + 10;
+}
+
 // --- Pôles ---
 function editPole(p) {
-  const next = Math.max(0, ...Object.values(poles).map(x => Number(x.ordre) || 0)) + 10;
   openEditor(p ? "Modifier le pôle" : "Ajouter un pôle", p ? p.name : "Nouveau pôle",
     '<div class="field w-2-3"><label for="ed-name">Nom du pôle</label><input id="ed-name" data-empty="Nouveau pôle" value="' + esc(p?.name || "") + '"></div>' +
-    '<div class="field w-1-2"><label for="ed-ordre">Numéro d\'ordre</label><input id="ed-ordre" type="number" step="1" value="' + esc(p ? (p.ordre ?? "") : next) + '"></div>' +
     peopleField("Responsables du pôle", p ? respOf[p._id] : []),
     async f => {
       const name = f.querySelector("#ed-name").value.trim();
       if (!name) return invalid(f, "#ed-name", "Le nom du pôle est obligatoire.");
       if (poles[name] && poles[name]._id !== p?._id) return invalid(f, "#ed-name", "Un pôle porte déjà ce nom.");
-      const o = f.querySelector("#ed-ordre").value.trim();
-      const data = { id: p ? p._id : newId(name, Object.values(poles).map(x => x._id)), name, ordre: o === "" ? null : Number(o) };
+      // L'ordre se règle avec les poignées de la liste ; un nouveau pôle se place en dernier
+      const ordre = p ? p.ordre ?? null : await lastOrder("poles", poleNames().map(n => poles[n]));
+      const data = { id: p ? p._id : newId(name, Object.values(poles).map(x => x._id)), name, ordre };
       await api.savePole(data, readPeople(f));
       await refresh();
       toast(p ? "Pôle enregistré." : "Pôle ajouté.");
