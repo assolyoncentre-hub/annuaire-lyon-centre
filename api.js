@@ -19,9 +19,17 @@ window.makeApi = function () {
     async sendMessage(m) {
       const { data, error } = await sb.functions.invoke("envoyer-message", { body: m });
       if (error) {
-        let msg = "L'envoi a échoué. Merci de réessayer plus tard.";
-        try { msg = (await error.context.json()).erreur || msg; } catch {}
-        throw new Error(msg);
+        // Message de la fonction si elle a répondu, sinon détail technique (pour le diagnostic)
+        const ctx = error.context, base = "L'envoi a échoué. Merci de réessayer plus tard.";
+        let detail = error.message || error.name || "";
+        if (ctx && typeof ctx.json === "function") {
+          let body = null;
+          try { body = await ctx.clone().json(); } catch {}
+          if (body?.erreur) throw new Error(body.erreur);
+          detail = "HTTP " + ctx.status + (body ? " " + (body.message || body.msg || body.code || JSON.stringify(body)) : "");
+        }
+        console.error("envoyer-message :", error);
+        throw new Error(base + (detail ? " (" + detail + ")" : ""));
       }
       return data;
     },
