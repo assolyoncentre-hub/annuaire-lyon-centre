@@ -495,23 +495,72 @@ $("ed-form").addEventListener("click", e => {
   if (e.target.closest(".add-person")) { box.querySelector(".people-add").insertAdjacentHTML("beforebegin", personRow(null)); [...box.querySelectorAll(".person")].pop().querySelector("input")?.focus(); }
   else if (e.target.closest("[data-rm]")) e.target.closest(".person").remove();
 });
-// Changer l'ordre en faisant glisser la poignée : la ligne prend la place de celle survolée
+// Changer l'ordre en faisant glisser la poignée, comme dans les listes de l'administration :
+// la ligne suit le pointeur (soulevée, avec une ombre) et les autres glissent pour lui faire place
 let pDrag = null;
+function placeP() {
+  const { row, box, grab, y } = pDrag;
+  row.style.transform = "translateY(" + (y - box.getBoundingClientRect().top - grab - row.offsetTop) + "px) scale(1.015)";
+}
+function moveP() {
+  const { row, box, grab, y } = pDrag;
+  const center = y - box.getBoundingClientRect().top - grab + row.offsetHeight / 2;
+  const others = [...box.querySelectorAll(".person")].filter(r => r !== row);
+  const next = others.find(r => r.offsetTop + r.offsetHeight / 2 > center) || box.querySelector(".people-add");
+  if (row.nextElementSibling !== next) {
+    const before = new Map(others.map(r => [r, r.offsetTop]));
+    next.before(row);
+    for (const r of others) {
+      const d = before.get(r) - r.offsetTop;
+      if (!d) continue;
+      r.style.transition = "none";
+      r.style.transform = "translateY(" + d + "px)";
+      r.offsetHeight; // applique la position de départ avant d'animer
+      r.style.transition = "transform .18s ease";
+      r.style.transform = "";
+    }
+  }
+  placeP();
+}
+// Défilement automatique de la fenêtre quand on approche de son bord
+function pScroll() {
+  if (!pDrag) return;
+  const m = pDrag.row.closest(".modal"), b = m.getBoundingClientRect(), y = pDrag.y;
+  const step = y < b.top + 50 ? -8 : y > b.bottom - 50 ? 8 : 0;
+  if (step) { m.scrollTop += step; moveP(); }
+  pDrag.raf = requestAnimationFrame(pScroll);
+}
 $("ed-form").addEventListener("pointerdown", e => {
   const g = e.target.closest(".grip"); if (!g || e.button > 0) return;
   e.preventDefault();
-  pDrag = g.closest(".person");
-  pDrag.classList.add("dragging");
+  const row = g.closest(".person");
+  pDrag = { row, box: row.parentElement, grab: e.clientY - row.getBoundingClientRect().top, y: e.clientY };
+  row.classList.add("dragging");
   document.body.classList.add("is-dragging");
+  placeP();
+  pDrag.raf = requestAnimationFrame(pScroll);
 });
 document.addEventListener("pointermove", e => {
-  if (!pDrag) return;
-  const rows = [...pDrag.parentElement.querySelectorAll(".person")].filter(r => r !== pDrag);
-  const next = rows.find(r => { const b = r.getBoundingClientRect(); return e.clientY < b.top + b.height / 2; });
-  if (next) { if (pDrag.nextElementSibling !== next) next.before(pDrag); }
-  else if (rows.length) rows[rows.length - 1].after(pDrag);
+  if (!pDrag || pDrag.ending) return;
+  pDrag.y = e.clientY;
+  moveP();
 });
-const endPDrag = () => { if (!pDrag) return; pDrag.classList.remove("dragging"); document.body.classList.remove("is-dragging"); pDrag = null; };
+async function endPDrag() {
+  if (!pDrag || pDrag.ending) return;
+  const { row, box, raf } = pDrag;
+  cancelAnimationFrame(raf);
+  pDrag.ending = true;
+  document.body.classList.remove("is-dragging");
+  // Dépose : la ligne rejoint sa place, puis l'ombre s'efface
+  row.classList.add("dropping");
+  row.style.transform = "";
+  await sleep(180);
+  row.classList.remove("dragging");
+  await sleep(180);
+  row.classList.remove("dropping");
+  box.querySelectorAll(".person").forEach(r => { r.style.transition = ""; r.style.transform = ""; });
+  pDrag = null;
+}
 document.addEventListener("pointerup", endPDrag);
 document.addEventListener("pointercancel", endPDrag);
 const readPeople = f => [...f.querySelectorAll(".person")].map(r => {
