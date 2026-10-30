@@ -51,7 +51,7 @@ const contactList = s => (contactsOf[s._id] ? peopleOf(s).map(p => "<li>" + esc(
   '<li><button type="button" class="msg">' + MAIL_ICON + (nbContacts(s) > 1 ? "Leur envoyer un message" : "Lui envoyer un message") + "</button></li>";
 function contact(s) {
   if (!nbContacts(s)) return "";
-  return '<details class="contact"><summary><span>Contact</span></summary><ul>' + contactList(s) + "</ul></details>";
+  return '<details class="contact"><summary><span>' + (nbContacts(s) > 1 ? "Leaders" : "Leader") + '</span></summary><ul>' + contactList(s) + "</ul></details>";
 }
 
 function render() {
