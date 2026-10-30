@@ -226,8 +226,14 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
   .person .fields { grid-template-columns: 1fr 1fr; } .person .fields input[type=email] { grid-column: 1 / -1; }
 }
 /* Choix d'un contact existant */
-.people-add { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
-.picker { position: relative; flex: 1 1 240px; }
+/* Ajout d'un contact : aligné sur la colonne des contacts (entre la poignée et la poubelle) */
+.people-add { display: grid; grid-template-columns: 28px 1fr 42px; gap: 8px; align-items: center; }
+.people-add > * { grid-column: 2; }
+.people-add .add-person { justify-self: start; }
+.picker { position: relative; }
+/* Fiche d'un service : nom sur deux tiers, pôle sur la moitié de la largeur (pleine largeur sur téléphone) */
+.field.w-2-3 { width: 66.667%; } .field.w-1-2 { width: 50%; }
+@media (max-width: 520px) { .field.w-2-3, .field.w-1-2 { width: auto; } }
 .picker input { width: 100%; padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 6px; font: 15px/1.4 "DM Sans", sans-serif; color: var(--text); outline: none; }
 .picker input:focus { border-color: var(--brand); }
 /* Positionnée par rapport à l'écran pour pouvoir dépasser de la fenêtre (placée au-dessus du champ si la place manque en dessous) */

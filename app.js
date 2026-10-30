@@ -580,8 +580,8 @@ function newId(name, taken) {
 function editService(s) {
   const opts = poleNames().map(n => '<option' + (s?.pole === n ? " selected" : "") + ">" + esc(n) + "</option>").join("");
   openEditor(s ? "Modifier le service" : "Ajouter un service", s ? s.name : "Nouveau service",
-    '<div class="field"><label for="ed-name">Nom du service</label><input id="ed-name" value="' + esc(s?.name || "") + '"></div>' +
-    '<div class="field"><label for="ed-pole">Pôle</label><select id="ed-pole">' + opts + "</select></div>" +
+    '<div class="field w-2-3"><label for="ed-name">Nom du service</label><input id="ed-name" value="' + esc(s?.name || "") + '"></div>' +
+    '<div class="field w-1-2"><label for="ed-pole">Pôle</label><select id="ed-pole">' + opts + "</select></div>" +
     '<div class="field"><label for="ed-desc">Description <span class="opt">(facultatif)</span></label><textarea id="ed-desc">' + esc(s?.description || "") + "</textarea>" +
     '<div class="hint">Idéalement une phrase courte, sur deux lignes au plus.</div></div>' +
     peopleField("Contacts", s ? contactsOf[s._id] : []),
