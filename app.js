@@ -449,8 +449,10 @@ function suggest(input) {
   sug.hidden = false;
   placeSuggest(input);
 }
+const smallScreen = () => matchMedia("(max-width: 520px)").matches;
 function placeSuggest(input) {
   const sug = input.nextElementSibling, r = input.getBoundingClientRect();
+  if (smallScreen()) { sug.style.cssText = ""; return; }
   const below = innerHeight - r.bottom - 8, above = r.top - 8, h = Math.min(260, sug.scrollHeight);
   const up = below < h && above > below;
   sug.style.left = r.left + "px";
@@ -470,7 +472,12 @@ function pick(input, key) {
   input.value = ""; input.nextElementSibling.hidden = true;
 }
 $("ed-form").addEventListener("input", e => { if (e.target.classList.contains("pick")) suggest(e.target); });
-$("ed-form").addEventListener("focusin", e => { if (e.target.classList.contains("pick")) suggest(e.target); });
+$("ed-form").addEventListener("focusin", e => {
+  if (!e.target.classList.contains("pick")) return;
+  suggest(e.target);
+  // Téléphone : le champ remonte en haut de la fenêtre pour laisser la place à la liste au-dessus du clavier
+  if (smallScreen()) setTimeout(() => e.target.scrollIntoView({ block: "start", behavior: "smooth" }), 300);
+});
 $("ed-form").addEventListener("focusout", e => { if (e.target.classList.contains("pick")) setTimeout(() => { e.target.nextElementSibling.hidden = true; }, 150); });
 $("ed-form").addEventListener("mousedown", e => { const b = e.target.closest(".suggest button"); if (b) { e.preventDefault(); pick(b.closest(".picker").querySelector(".pick"), b.dataset.key); } });
 $("ed-form").addEventListener("keydown", e => {
