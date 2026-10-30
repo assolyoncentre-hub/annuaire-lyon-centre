@@ -494,7 +494,17 @@ async function loadPublic() {
   try { await loadPublic(); render(); }
   catch { status("Impossible de charger l'annuaire pour le moment. Merci de réessayer plus tard."); }
   const s = await api.session().catch(() => null);
-  try { if (sessionStorage.getItem("annuaire-admin")) { sessionStorage.removeItem("annuaire-admin"); if (s) location.hash = "admin"; } } catch {}
+  // Retour de Google : en cas d'échec, Supabase renvoie l'erreur dans l'adresse (?error_description=…)
+  const params = new URLSearchParams(location.search + "&" + location.hash.replace(/^#/, ""));
+  const authError = params.get("error_description") || params.get("error");
+  let fromLogin = false;
+  try { fromLogin = !!sessionStorage.getItem("annuaire-admin"); sessionStorage.removeItem("annuaire-admin"); } catch {}
+  if (authError) {
+    history.replaceState(null, "", location.pathname);
+    $("login-error").textContent = "La connexion a échoué : " + authError;
+    $("login-error").hidden = false;
+  }
+  if ((fromLogin && s) || authError) location.hash = "admin";
   await onSession(s);
   render();
   api.onAuth(async s2 => { if ((s2?.user?.id || null) !== (session?.user?.id || null)) { await onSession(s2); render(); } });
