@@ -234,6 +234,8 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 /* Fiche d'un service : nom sur deux tiers, pôle sur la moitié de la largeur (pleine largeur sur téléphone) */
 .field.w-2-3 { width: 66.667%; } .field.w-1-2 { width: 50%; }
 @media (max-width: 520px) { .field.w-2-3, .field.w-1-2 { width: auto; } }
+/* Liste du pôle : aussi large que le nom de pôle le plus long */
+.field.w-fit select { width: auto; max-width: 100%; }
 .picker input { width: 100%; padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 6px; font: 15px/1.4 "DM Sans", sans-serif; color: var(--text); outline: none; }
 .picker input:focus { border-color: var(--brand); }
 /* Positionnée par rapport à l'écran pour pouvoir dépasser de la fenêtre (placée au-dessus du champ si la place manque en dessous) */
@@ -271,6 +273,9 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
   *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; scroll-behavior: auto !important; }
   .card:hover { transform: none; }
 }
+/* Listes déroulantes : flèche dessinée, à distance du bord droit (la flèche native de Safari est collée au bord) */
+.field select { -webkit-appearance: none; appearance: none; padding-right: 44px; background-repeat: no-repeat; background-position: right 16px center; background-size: 12px 8px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none' stroke='%235b6b7c' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5l5 5 5-5'/%3E%3C/svg%3E"); }
 </style>
 </head>
 <body>
