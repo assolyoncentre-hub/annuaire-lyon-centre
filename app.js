@@ -583,7 +583,7 @@ function editService(s) {
     '<div class="field w-2-3"><label for="ed-name">Nom du service</label><input id="ed-name" value="' + esc(s?.name || "") + '"></div>' +
     '<div class="field w-fit"><label for="ed-pole">Pôle</label><select id="ed-pole">' + opts + "</select></div>" +
     '<div class="field"><label for="ed-desc">Description <span class="opt">(facultatif)</span></label><textarea id="ed-desc">' + esc(s?.description || "") + "</textarea>" +
-    '<div class="hint">Idéalement une phrase courte, sur deux lignes au plus.</div></div>' +
+    '</div>' +
     peopleField("Contacts", s ? contactsOf[s._id] : []),
     async f => {
       const name = f.querySelector("#ed-name").value.trim();
