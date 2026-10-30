@@ -406,7 +406,21 @@ function closeEditor() { $("editor").hidden = true; document.body.classList.remo
 $("editor").addEventListener("click", e => { if (e.target === $("editor")) closeEditor(); });
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("editor").hidden) closeEditor(); });
 
-// Liste de personnes modifiable : prénom, nom, monter, descendre, retirer
+// Liste de personnes : contacts existants (affichés, non modifiables ici) ou nouveaux (prénom, nom, e-mail à saisir),
+// avec monter, descendre, retirer. Un contact existant se choisit dans la liste déroulante.
+const moveBtns = '<button type="button" class="icon-btn" data-mv="-1" aria-label="Monter">↑</button>' +
+  '<button type="button" class="icon-btn" data-mv="1" aria-label="Descendre">↓</button>' +
+  '<button type="button" class="icon-btn" data-rm aria-label="Retirer">✕</button>';
+// Même règle que la liste des contacts : sans e-mail, on rattache à la personne de même nom qui en a un
+const personKey = r => r.email ? "@" + String(r.email).toLowerCase() : (persons().find(x => nameKey(x) === nameKey(r))?.key || nameKey(r));
+const linkedRow = p => {
+  // Une ligne sans e-mail reprend celui de la fiche du contact, s'il en a un
+  const key = personKey(p), email = p.email || persons().find(x => x.key === key)?.email || "";
+  p = { ...p, email };
+  return '<div class="person linked" data-key="' + esc(key) + '" data-prenom="' + esc(p.prenom || "") +
+  '" data-nom="' + esc(p.nom || "") + '" data-email="' + esc(p.email || "") + '"><div class="who" title="' + esc(fullName(p) + (p.email ? " · " + p.email : "")) + '">' +
+  esc(fullName(p)) + "<span>" + (p.email ? esc(p.email) : "pas d'e-mail") + "</span></div>" + moveBtns + "</div>";
+};
 const personRow = p => '<div class="person"><input placeholder="Prénom" aria-label="Prénom" value="' + esc(p?.prenom || "") + '">' +
   '<input placeholder="Nom" aria-label="Nom" value="' + esc(p?.nom || "") + '">' +
   '<input type="email" placeholder="E-mail (privé)" aria-label="E-mail" value="' + esc(p?.email || "") + '">' +
@@ -414,8 +428,40 @@ const personRow = p => '<div class="person"><input placeholder="Prénom" aria-la
   '<button type="button" class="icon-btn" data-mv="1" aria-label="Descendre">↓</button>' +
   '<button type="button" class="icon-btn" data-rm aria-label="Retirer">✕</button></div>';
 const peopleField = (label, list) => '<div class="field"><label>' + label + '</label><div class="people">' +
-  (list || []).map(p => personRow(typeof p === "string" ? { prenom: p, nom: "" } : p)).join("") +
-  '<button type="button" class="add-person">+ Ajouter une personne</button></div></div>';
+  (list || []).map(linkedRow).join("") +
+  '<div class="people-add"><div class="picker"><input type="search" class="pick" placeholder="Choisir un contact existant…" aria-label="Choisir un contact existant" autocomplete="off">' +
+  '<div class="suggest" hidden></div></div><button type="button" class="add-person">+ Créer un nouveau contact</button></div></div></div>';
+// Suggestions : contacts qui ne sont pas déjà dans la liste, dont un mot commence par chaque mot tapé
+function suggest(input) {
+  const box = input.closest(".people"), sug = input.nextElementSibling;
+  const taken = new Set([...box.querySelectorAll(".person.linked")].map(r => r.dataset.key));
+  const t = norm(input.value).split(/\s+/).filter(Boolean);
+  const list = persons().filter(p => !taken.has(p.key) && t.every(x => words([p.prenom, p.nom, p.email].join(" ")).some(w => w.startsWith(x)))).slice(0, 30);
+  sug.innerHTML = list.length ? list.map((p, i) => '<button type="button" data-key="' + esc(p.key) + '"' + (i ? "" : ' class="on"') + ">" + esc(fullName(p)) +
+    "<span>" + esc(p.email || "pas d'e-mail") + "</span></button>").join("") : '<div class="none">Aucun contact trouvé. Utilisez « Créer un nouveau contact ».</div>';
+  sug.hidden = false;
+}
+function pick(input, key) {
+  const p = persons().find(x => x.key === key); if (!p) return;
+  const box = input.closest(".people");
+  box.querySelector(".people-add").insertAdjacentHTML("beforebegin", linkedRow(p));
+  input.value = ""; input.nextElementSibling.hidden = true;
+  refreshArrows(box);
+}
+$("ed-form").addEventListener("input", e => { if (e.target.classList.contains("pick")) suggest(e.target); });
+$("ed-form").addEventListener("focusin", e => { if (e.target.classList.contains("pick")) suggest(e.target); });
+$("ed-form").addEventListener("focusout", e => { if (e.target.classList.contains("pick")) setTimeout(() => { e.target.nextElementSibling.hidden = true; }, 150); });
+$("ed-form").addEventListener("mousedown", e => { const b = e.target.closest(".suggest button"); if (b) { e.preventDefault(); pick(b.closest(".picker").querySelector(".pick"), b.dataset.key); } });
+$("ed-form").addEventListener("keydown", e => {
+  if (!e.target.classList.contains("pick")) return;
+  const sug = e.target.nextElementSibling, items = [...sug.querySelectorAll("button")], i = items.findIndex(b => b.classList.contains("on"));
+  if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+    e.preventDefault(); if (!items.length) return;
+    const j = (i + (e.key === "ArrowDown" ? 1 : -1) + items.length) % items.length;
+    items.forEach((b, k) => b.classList.toggle("on", k === j)); items[j].scrollIntoView({ block: "nearest" });
+  } else if (e.key === "Enter") { e.preventDefault(); if (items[i]) pick(e.target, items[i].dataset.key); }
+  else if (e.key === "Escape" && !sug.hidden) { e.preventDefault(); e.stopPropagation(); sug.hidden = true; }
+});
 function refreshArrows(box) {
   const rows = [...box.querySelectorAll(".person")];
   rows.forEach((r, i) => { r.querySelector('[data-mv="-1"]').disabled = i === 0; r.querySelector('[data-mv="1"]').disabled = i === rows.length - 1; });
@@ -423,7 +469,7 @@ function refreshArrows(box) {
 $("ed-form").addEventListener("click", e => {
   const box = e.target.closest(".people"); if (!box) return;
   const row = e.target.closest(".person");
-  if (e.target.closest(".add-person")) { e.target.closest(".add-person").insertAdjacentHTML("beforebegin", personRow(null)); box.querySelector(".person:last-of-type input")?.focus(); }
+  if (e.target.closest(".add-person")) { box.querySelector(".people-add").insertAdjacentHTML("beforebegin", personRow(null)); [...box.querySelectorAll(".person")].pop().querySelector("input")?.focus(); }
   else if (e.target.closest("[data-rm]")) row.remove();
   else if (e.target.closest("[data-mv]")) {
     const up = e.target.closest("[data-mv]").dataset.mv === "-1";
@@ -433,6 +479,7 @@ $("ed-form").addEventListener("click", e => {
   refreshArrows(box);
 });
 const readPeople = f => [...f.querySelectorAll(".person")].map(r => {
+  if (r.classList.contains("linked")) return { prenom: r.dataset.prenom, nom: r.dataset.nom, email: r.dataset.email || null };
   const [a, b, c] = r.querySelectorAll("input"); return { prenom: a.value.trim(), nom: b.value.trim(), email: c.value.trim().toLowerCase() || null };
 }).filter(p => p.prenom || p.nom);
 function invalid(f, sel, msg) { toast(msg); f.querySelector(sel)?.focus(); return false; }

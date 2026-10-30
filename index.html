@@ -207,6 +207,24 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .link-btn { padding: 0; border: 0; background: none; color: var(--brand); font: 600 14px/1 Montserrat, sans-serif; cursor: pointer; }
 .person { grid-template-columns: 1fr 1fr 1.4fr auto auto auto; }
 @media (max-width: 520px) { .person { grid-template-columns: repeat(6, 1fr); } .person input[type=email] { grid-column: span 6; } }
+/* Contact existant (non modifiable ici : sa fiche se modifie dans l'onglet Contacts) */
+.person.linked { grid-template-columns: 1fr auto auto auto; }
+.person .who { min-width: 0; padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 6px; background: var(--bg);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.person .who span { margin-left: 8px; color: var(--muted); font-size: 14px; }
+@media (max-width: 520px) { .person.linked { grid-template-columns: repeat(6, 1fr); } .person .who { grid-column: span 6; } }
+/* Choix d'un contact existant */
+.people-add { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.picker { position: relative; flex: 1 1 240px; }
+.picker input { width: 100%; padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 6px; font: 15px/1.4 "DM Sans", sans-serif; color: var(--text); outline: none; }
+.picker input:focus { border-color: var(--brand); }
+.suggest { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 2; max-height: 260px; overflow: auto; background: #fff;
+  border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 16px 28px -14px rgba(0, 40, 80, .35); }
+.suggest button { display: block; width: 100%; padding: 9px 12px; border: 0; background: none; text-align: left; cursor: pointer;
+  font: 15px/1.3 "DM Sans", sans-serif; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.suggest button span { margin-left: 8px; color: var(--muted); font-size: 13px; }
+.suggest button:hover, .suggest button.on { background: var(--tint); }
+.suggest .none { padding: 9px 12px; color: var(--muted); font-size: 14px; }
 @media (max-width: 520px) { .tabs { width: 100%; } .tab { flex: 1 1 0; min-width: 0; padding: 9px 4px; } }
 /* Fiche contact : services et pôles cochés */
 .checks { max-height: 280px; overflow: auto; padding: 6px 12px 10px; border: 1.5px solid var(--border); border-radius: 6px; background: #fff; }
