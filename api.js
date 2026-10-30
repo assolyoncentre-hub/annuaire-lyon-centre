@@ -48,8 +48,8 @@ window.makeApi = function () {
     // Administration (refusé par la base pour tout autre compte)
     async loadAdmin() {
       const [contacts, responsables] = await Promise.all([
-        sb.from("contacts").select("service_id, prenom, nom, email, position").order("position").then(ok),
-        sb.from("pole_responsables").select("pole_id, prenom, nom, email, position").order("position").then(ok),
+        sb.from("contacts").select("id, service_id, prenom, nom, email, position").order("position").then(ok),
+        sb.from("pole_responsables").select("id, pole_id, prenom, nom, email, position").order("position").then(ok),
       ]);
       return { contacts, responsables };
     },
@@ -66,6 +66,16 @@ window.makeApi = function () {
       if (people.length) await sb.from("pole_responsables").insert(people.map((x, i) => ({ ...x, pole_id: p.id, position: i }))).then(ok);
     },
     deletePole: id => sb.from("poles").delete().eq("id", id).then(ok),
+    // Une personne = ses lignes dans contacts (par service) et pole_responsables (par pôle) :
+    // on supprime les lignes retirées, met à jour les autres et ajoute les nouvelles
+    async savePerson(fields, plan) {
+      for (const [kind, table] of [["contacts", "contacts"], ["responsables", "pole_responsables"]]) {
+        const { del = [], keep = [], add = [] } = plan[kind] || {};
+        if (del.length) await sb.from(table).delete().in("id", del).then(ok);
+        if (keep.length) await sb.from(table).update(fields).in("id", keep).then(ok);
+        if (add.length) await sb.from(table).insert(add.map(r => ({ ...fields, ...r }))).then(ok);
+      }
+    },
     async reorder(kind, rows) {
       for (const r of rows) await sb.from(kind).update({ ordre: r.ordre }).eq("id", r.id).then(ok);
     },

@@ -6,6 +6,8 @@ let services = [], poles = {}, active = null, terms = [], shown = [];
 // Les noms ne font pas partie de la liste publique : ils sont chargés à la demande, au clic
 // (toute la liste, e-mails compris, seulement pour les administrateurs)
 let contactsOf = {}, respOf = {};
+// Administration : lignes brutes (avec leur id) des contacts de services et des responsables de pôles
+let contactRows = [], respRows = [];
 
 // Recherche plein texte sans accents ni casse, tous les mots doivent apparaître
 const norm = s => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
@@ -168,6 +170,7 @@ async function loadAdmin() {
   const group = (rows, key) => rows.reduce((m, r) => ((m[r[key]] ||= []).push({ prenom: r.prenom, nom: r.nom, email: r.email || "" }), m), {});
   contactsOf = group(contacts, "service_id");
   respOf = group(responsables, "pole_id");
+  contactRows = contacts; respRows = responsables;
   messages = await api.messages().catch(() => []);
 }
 async function refresh() {
@@ -199,19 +202,20 @@ $("admin-link").addEventListener("click", () => {
   route();
 });
 $("google-btn").onclick = () => api.signIn();
-$("logout").onclick = $("logout-2").onclick = async () => { await api.signOut(); isAdmin = false; session = null; contactsOf = {}; respOf = {}; route(); render(); };
+$("logout").onclick = $("logout-2").onclick = async () => { await api.signOut(); isAdmin = false; session = null; contactsOf = {}; respOf = {}; contactRows = []; respRows = []; route(); render(); };
 
 const poleNames = () => Object.keys(poles).sort(byPole);
 const isPoleTab = () => adminTab === "poles";
 function setTab(t) {
   adminTab = t;
-  for (const k of ["services", "poles", "messages"]) $("tab-" + k).setAttribute("aria-selected", String(t === k));
+  for (const k of ["services", "poles", "contacts", "messages"]) $("tab-" + k).setAttribute("aria-selected", String(t === k));
   $("add-btn").hidden = t === "messages";
-  $("add-btn").textContent = t === "services" ? "Ajouter un service" : "Ajouter un pôle";
+  $("add-btn").textContent = { services: "Ajouter un service", poles: "Ajouter un pôle", contacts: "Ajouter un contact" }[t] || "";
   renderAdmin();
 }
 $("tab-services").onclick = () => setTab("services");
 $("tab-poles").onclick = () => setTab("poles");
+$("tab-contacts").onclick = () => setTab("contacts");
 $("tab-messages").onclick = async () => { messages = await api.messages().catch(() => messages); setTab("messages"); };
 $("aq").addEventListener("input", e => { adminTerms = norm(e.target.value).split(/\s+/).filter(Boolean); renderAdmin(); });
 const adminMatch = text => { const w = words(text); return adminTerms.every(t => w.some(x => x.startsWith(t))); };
@@ -225,6 +229,20 @@ function renderAdmin() {
   $("tab-services").textContent = "Services (" + services.length + ")";
   $("tab-poles").textContent = "Pôles (" + Object.keys(poles).length + ")";
   $("tab-messages").textContent = "Messages (" + messages.length + ")";
+  $("tab-contacts").textContent = "Contacts (" + persons().length + ")";
+  if (adminTab === "contacts") {
+    const list = persons().filter(p => adminMatch([p.prenom, p.nom, p.email, ...personRoles(p)].join(" ")));
+    $("admin-list").innerHTML = list.length ? '<div class="group">' + list.map(p => {
+      const roles = personRoles(p);
+      return '<div class="row" data-id="' + esc(p.key) + '"><span></span><div><div class="title">' + esc(fullName(p)) + "</div>" +
+        '<div class="meta"><span>' + (p.email ? esc(p.email) : "Pas d'e-mail") + '</span><span class="ell" title="' + esc(roles.join(", ")) + '">' + esc(roles.join(", ")) + "</span></div></div>" +
+        '<div class="ops"><button type="button" class="btn btn-ghost btn-sm" data-act="edit">Modifier</button>' +
+        '<button type="button" class="btn btn-ghost btn-sm" data-act="del">Supprimer</button></div></div>';
+    }).join("") + "</div>" : '<div class="empty">Aucun contact.</div>';
+    $("admin-list").classList.add("no-drag");
+    $("drag-hint").textContent = "Un contact peut être rattaché à plusieurs services et être responsable de pôle.";
+    return;
+  }
   if (adminTab === "messages") {
     const fmt = d => new Date(d).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" });
     $("admin-list").innerHTML = messages.filter(m => adminMatch([m.prenom, m.nom, m.email, m.message, m.services?.name].join(" "))).map(m =>
@@ -354,12 +372,16 @@ document.addEventListener("pointercancel", endDrag);
 $("admin-list").addEventListener("click", e => {
   const b = e.target.closest("[data-act]"); if (!b) return;
   const id = b.closest(".row").dataset.id;
+  if (adminTab === "contacts") {
+    const p = persons().find(x => x.key === id); if (!p) return;
+    return b.dataset.act === "edit" ? editPerson(p) : deletePerson(p);
+  }
   const item = isPoleTab() ? Object.values(poles).find(p => p._id === id) : services.find(s => s._id === id);
   if (!item) return;
   if (b.dataset.act === "edit") (isPoleTab() ? editPole : editService)(item);
   else (isPoleTab() ? deletePole : deleteService)(item);
 });
-$("add-btn").onclick = () => isPoleTab() ? editPole(null) : editService(null);
+$("add-btn").onclick = () => adminTab === "contacts" ? editPerson(null) : isPoleTab() ? editPole(null) : editService(null);
 
 // --- Éditeur (fenêtre) ---
 function openEditor(kicker, title, html, onSave, saveLabel = "Enregistrer", danger = false) {
@@ -452,6 +474,85 @@ function editService(s) {
 function deleteService(s) {
   openEditor("Supprimer le service", s.name, '<p style="margin:0">Le service « ' + esc(s.name) + ' » et ses contacts seront supprimés de l\'annuaire. Cette action est définitive.</p>',
     async () => { await api.deleteService(s._id); await refresh(); toast("Service supprimé."); }, "Supprimer", true);
+}
+
+// --- Contacts ---
+// Une même personne peut figurer dans plusieurs services et comme responsable de pôle : on la reconnaît
+// à son e-mail, ou à défaut à ses prénom et nom (une ligne sans e-mail rejoint la personne de même nom qui en a un)
+const nameKey = r => "#" + norm((r.prenom || "") + " " + (r.nom || "")).replace(/\s+/g, " ").trim();
+function persons() {
+  const all = [...contactRows.map(r => ({ ...r, kind: "contacts" })), ...respRows.map(r => ({ ...r, kind: "responsables" }))];
+  const emailOfName = {};
+  for (const r of all) if (r.email) (emailOfName[nameKey(r)] ||= new Set()).add(r.email.toLowerCase());
+  const map = new Map();
+  for (const r of all) {
+    const known = emailOfName[nameKey(r)];
+    const key = r.email ? "@" + r.email.toLowerCase() : known?.size === 1 ? "@" + [...known][0] : nameKey(r);
+    if (!map.has(key)) map.set(key, { key, prenom: r.prenom, nom: r.nom, email: r.email || "", contacts: [], responsables: [] });
+    const p = map.get(key);
+    if (!p.email && r.email) p.email = r.email;
+    p[r.kind].push(r);
+  }
+  return [...map.values()].sort((a, b) => byName(a.nom || "", b.nom || "") || byName(a.prenom || "", b.prenom || ""));
+}
+const svcById = id => services.find(s => s._id === id);
+const poleById = id => Object.values(poles).find(p => p._id === id);
+function personRoles(p) {
+  const svc = [...new Set(p.contacts.map(r => r.service_id))].map(id => svcById(id)?.name).filter(Boolean).sort(byName);
+  const pl = [...new Set(p.responsables.map(r => r.pole_id))].map(id => poleById(id)?.name).filter(Boolean).map(n => "Responsable " + n);
+  return [...svc, ...pl];
+}
+function editPerson(p) {
+  const mine = new Set(p ? p.contacts.map(r => r.service_id) : []), myPoles = new Set(p ? p.responsables.map(r => r.pole_id) : []);
+  const box = (name, value, label, on) => '<label><input type="checkbox" name="' + name + '" value="' + esc(value) + '"' + (on ? " checked" : "") + ">" + esc(label) + "</label>";
+  const svcBoxes = poleNames().map(n => {
+    const list = services.filter(s => s.pole === n).sort(bySvc);
+    return list.length ? '<div class="grp">' + esc(n) + "</div>" + list.map(s => box("svc", s._id, s.name, mine.has(s._id))).join("") : "";
+  }).join("") + (services.some(s => !s.pole) ? '<div class="grp">Sans pôle</div>' + services.filter(s => !s.pole).map(s => box("svc", s._id, s.name, mine.has(s._id))).join("") : "");
+  const poleBoxes = poleNames().map(n => box("pole", poles[n]._id, n, myPoles.has(poles[n]._id))).join("");
+  openEditor(p ? "Modifier le contact" : "Ajouter un contact", p ? fullName(p) : "Nouveau contact",
+    '<div class="row2"><div class="field"><label for="pe-prenom">Prénom</label><input id="pe-prenom" value="' + esc(p?.prenom || "") + '"></div>' +
+    '<div class="field"><label for="pe-nom">Nom</label><input id="pe-nom" value="' + esc(p?.nom || "") + '"></div></div>' +
+    '<div class="field"><label for="pe-email">E-mail <span class="opt">(privé : reçoit les messages du formulaire)</span></label><input id="pe-email" type="email" value="' + esc(p?.email || "") + '"></div>' +
+    '<div class="field"><label>Contact des services</label><div class="checks">' + svcBoxes + "</div></div>" +
+    '<div class="field"><label>Responsable des pôles</label><div class="checks">' + poleBoxes + "</div></div>",
+    async f => {
+      const prenom = f.querySelector("#pe-prenom").value.trim(), nom = f.querySelector("#pe-nom").value.trim();
+      const email = f.querySelector("#pe-email").value.trim().toLowerCase();
+      if (!prenom && !nom) return invalid(f, "#pe-prenom", "Indiquez au moins un prénom ou un nom.");
+      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return invalid(f, "#pe-email", "Adresse e-mail invalide.");
+      const checked = name => [...f.querySelectorAll('input[name="' + name + '"]:checked')].map(i => i.value);
+      const svcIds = checked("svc"), poleIds = checked("pole");
+      if (!svcIds.length && !poleIds.length) return toast("Cochez au moins un service ou un pôle."), false;
+      if (!p) {
+        const key = email ? "@" + email : nameKey({ prenom, nom });
+        if (persons().some(x => x.key === key)) return invalid(f, email ? "#pe-email" : "#pe-prenom", "Ce contact existe déjà : modifiez sa fiche.");
+      }
+      // Une ligne par service (et par pôle) coché : les existantes sont mises à jour, les autres créées en fin de liste
+      const plan = (rows, wanted, col, all) => {
+        const keep = [], del = [], seen = new Set();
+        for (const r of rows) (wanted.includes(r[col]) && !seen.has(r[col]) ? (seen.add(r[col]), keep) : del).push(r.id);
+        const add = wanted.filter(id => !seen.has(id)).map(id => ({ [col]: id,
+          position: Math.max(-1, ...all.filter(r => r[col] === id).map(r => r.position ?? 0)) + 1 }));
+        return { keep, del, add };
+      };
+      await api.savePerson({ prenom, nom, email: email || null }, {
+        contacts: plan(p?.contacts || [], svcIds, "service_id", contactRows),
+        responsables: plan(p?.responsables || [], poleIds, "pole_id", respRows),
+      });
+      await refresh();
+      toast(p ? "Contact enregistré." : "Contact ajouté.");
+    });
+}
+function deletePerson(p) {
+  const roles = personRoles(p);
+  openEditor("Supprimer le contact", fullName(p), '<p style="margin:0">Cette personne sera retirée' +
+    (roles.length ? " de : " + esc(roles.join(", ")) : "") + ". Cette action est définitive.</p>",
+    async () => {
+      await api.savePerson({}, { contacts: { del: p.contacts.map(r => r.id) }, responsables: { del: p.responsables.map(r => r.id) } });
+      await refresh();
+      toast("Contact supprimé.");
+    }, "Supprimer", true);
 }
 
 // --- Pôles ---
