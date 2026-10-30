@@ -240,7 +240,6 @@ function renderAdmin() {
         '<button type="button" class="btn btn-ghost btn-sm" data-act="del">Supprimer</button></div></div>';
     }).join("") + "</div>" : '<div class="empty">Aucun contact.</div>';
     $("admin-list").classList.add("no-drag");
-    $("drag-hint").textContent = "Un contact peut être rattaché à plusieurs services et être responsable de pôle.";
     return;
   }
   if (adminTab === "messages") {
@@ -252,7 +251,6 @@ function renderAdmin() {
       (!m.envoye && m.erreur ? '<p class="msg-error">' + esc(m.erreur) + "</p>" : "") + "<p>" + esc(m.message) + "</p></div>"
     ).join("") || '<div class="empty">Aucun message.</div>';
     $("admin-list").classList.add("no-drag");
-    $("drag-hint").textContent = "Les 100 derniers messages reçus par le formulaire.";
     return;
   }
   const ops = '<div class="ops"><button type="button" class="btn btn-ghost btn-sm" data-act="edit">Modifier</button>' +
@@ -279,8 +277,6 @@ function renderAdmin() {
   }
   $("admin-list").innerHTML = html || '<div class="empty">Aucun élément.</div>';
   $("admin-list").classList.toggle("no-drag", adminTerms.length > 0);
-  $("drag-hint").textContent = adminTerms.length ? "Videz le filtre pour réordonner avec les poignées."
-    : isPoleTab() ? "Glissez la poignée ⋮⋮ pour changer l'ordre des pôles." : "Glissez la poignée ⋮⋮ pour changer l'ordre des services dans leur pôle.";
 }
 
 // --- Réordonner à la souris (ou au doigt) avec la poignée ---
@@ -438,7 +434,22 @@ function suggest(input) {
   sug.innerHTML = list.length ? list.map((p, i) => '<button type="button" data-key="' + esc(p.key) + '"' + (i ? "" : ' class="on"') + ">" + esc(fullName(p)) +
     "<span>" + esc(p.email || "pas d'e-mail") + "</span></button>").join("") : '<div class="none">Aucun contact trouvé. Utilisez « Créer un nouveau contact ».</div>';
   sug.hidden = false;
+  placeSuggest(input);
 }
+function placeSuggest(input) {
+  const sug = input.nextElementSibling, r = input.getBoundingClientRect();
+  const below = innerHeight - r.bottom - 8, above = r.top - 8, h = Math.min(260, sug.scrollHeight);
+  const up = below < h && above > below;
+  sug.style.left = r.left + "px";
+  sug.style.width = r.width + "px";
+  sug.style.maxHeight = Math.min(260, Math.max(120, up ? above : below)) + "px";
+  sug.style.top = up ? "" : r.bottom + 4 + "px";
+  sug.style.bottom = up ? innerHeight - r.top + 4 + "px" : "";
+}
+// La liste suit le champ quand la fenêtre défile ou change de taille
+const followPick = () => { const i = document.querySelector("#ed-form .pick"); if (i && !i.nextElementSibling.hidden) placeSuggest(i); };
+document.addEventListener("scroll", followPick, true);
+addEventListener("resize", followPick);
 function pick(input, key) {
   const p = persons().find(x => x.key === key); if (!p) return;
   const box = input.closest(".people");
