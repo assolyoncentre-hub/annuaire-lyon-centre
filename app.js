@@ -78,8 +78,8 @@ function render() {
   const resp = ap && respNames(ap);
   $("resp").innerHTML = resp && resp.length
     ? '<p class="resp" style="--c:' + color(active) + '"><strong>' + (resp.length > 1 ? "Responsables" : "Responsable") + ' du pôle :</strong> ' + resp.map(esc).join(", ") + "</p>" : "";
-  status(!services.length ? "Aucun service pour l'instant."
-    : list.length ? list.length + " service" + (list.length > 1 ? "s" : "") : "Aucun résultat pour cette recherche.");
+  status(!services.length ? "Aucun staff pour l'instant."
+    : list.length ? list.length + " staff" + (list.length > 1 ? "s" : "") : "Aucun résultat pour cette recherche.");
   shown = list;
   $("grid").innerHTML = list.map((s, i) =>
     '<article class="card" data-i="' + i + '" style="--c:' + color(s.pole || "") + '">' +
@@ -222,7 +222,7 @@ function setTab(t) {
   adminTab = t;
   for (const k of ["services", "poles", "contacts", "messages"]) $("tab-" + k).setAttribute("aria-selected", String(t === k));
   $("add-btn").hidden = t === "messages";
-  $("add-btn").textContent = { services: "Ajouter un service", poles: "Ajouter un pôle", contacts: "Ajouter un contact" }[t] || "";
+  $("add-btn").textContent = { services: "Ajouter un staff", poles: "Ajouter un pôle", contacts: "Ajouter un contact" }[t] || "";
   renderAdmin();
 }
 $("tab-services").onclick = () => setTab("services");
@@ -238,7 +238,7 @@ let drag = null, renderPending = false;
 function renderAdmin() {
   if ($("admin-body").hidden) return;
   if (drag) { renderPending = true; return; }
-  $("tab-services").textContent = "Services (" + services.length + ")";
+  $("tab-services").textContent = "Staffs (" + services.length + ")";
   $("tab-poles").textContent = "Pôles (" + Object.keys(poles).length + ")";
   $("tab-messages").textContent = "Messages (" + messages.length + ")";
   $("tab-contacts").textContent = "Contacts (" + persons().length + ")";
@@ -258,7 +258,7 @@ function renderAdmin() {
     const fmt = d => new Date(d).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" });
     $("admin-list").innerHTML = messages.filter(m => adminMatch([m.prenom, m.nom, m.email, m.message, m.services?.name].join(" "))).map(m =>
       '<div class="msg-row"><div class="meta"><strong>' + esc(m.prenom + " " + m.nom) + "</strong><span>" + esc(m.email) + "</span>" +
-      (m.telephone ? "<span>" + esc(m.telephone) + "</span>" : "") + "<span>" + esc(m.services?.name || "Service supprimé") + "</span><span>" + fmt(m.created_at) + "</span>" +
+      (m.telephone ? "<span>" + esc(m.telephone) + "</span>" : "") + "<span>" + esc(m.services?.name || "Staff supprimé") + "</span><span>" + fmt(m.created_at) + "</span>" +
       (m.envoye ? '<span class="badge ok">Envoyé</span>' : '<span class="badge ko">Non envoyé</span>') + "</div>" +
       (!m.envoye && m.erreur ? '<p class="msg-error">' + esc(m.erreur) + "</p>" : "") + "<p>" + esc(m.message) + "</p></div>"
     ).join("") || '<div class="empty">Aucun message.</div>';
@@ -274,7 +274,7 @@ function renderAdmin() {
       .map(p => {
         const n = services.filter(s => s.pole === p.name).length, r = respNames(p);
         return '<div class="row" data-id="' + esc(p._id) + '">' + handle + '<div><div class="title">' + esc(p.name) + "</div>" +
-          '<div class="meta"><span>' + n + " service" + (n > 1 ? "s" : "") + "</span>" + (r.length ? '<span class="ell" title="' + esc("Responsables : " + r.join(", ")) + '">Responsables : ' + r.map(esc).join(", ") + "</span>" : "") + "</div></div>" + ops + "</div>";
+          '<div class="meta"><span>' + n + " staff" + (n > 1 ? "s" : "") + "</span>" + (r.length ? '<span class="ell" title="' + esc("Responsables : " + r.join(", ")) + '">Responsables : ' + r.map(esc).join(", ") + "</span>" : "") + "</div></div>" + ops + "</div>";
       });
     html = rows.length ? '<div class="group" data-kind="poles">' + rows.join("") + "</div>" : "";
   } else {
@@ -585,15 +585,15 @@ function newId(name, taken) {
 }
 function editService(s) {
   const opts = poleNames().map(n => '<option' + (s?.pole === n ? " selected" : "") + ">" + esc(n) + "</option>").join("");
-  openEditor(s ? "Modifier le service" : "Ajouter un service", s ? s.name : "Nouveau service",
-    '<div class="field w-2-3"><label for="ed-name">Nom du service</label><input id="ed-name" data-empty="Nouveau service" value="' + esc(s?.name || "") + '"></div>' +
+  openEditor(s ? "Modifier le staff" : "Ajouter un staff", s ? s.name : "Nouveau staff",
+    '<div class="field w-2-3"><label for="ed-name">Nom du staff</label><input id="ed-name" data-empty="Nouveau staff" value="' + esc(s?.name || "") + '"></div>' +
     '<div class="field w-fit"><label for="ed-pole">Pôle</label><select id="ed-pole">' + opts + "</select></div>" +
     '<div class="field"><label for="ed-desc">Description <span class="opt">(facultatif)</span></label><textarea id="ed-desc">' + esc(s?.description || "") + "</textarea>" +
     '</div>' +
     peopleField("Contacts", s ? contactsOf[s._id] : []),
     async f => {
       const name = f.querySelector("#ed-name").value.trim();
-      if (!name) return invalid(f, "#ed-name", "Le nom du service est obligatoire.");
+      if (!name) return invalid(f, "#ed-name", "Le nom du staff est obligatoire.");
       const people = readPeople(f);
       const pole = f.querySelector("#ed-pole").value;
       const data = { id: s ? s._id : newId(name, services.map(x => x._id)), name, pole_id: poles[pole]?._id ?? null,
@@ -602,12 +602,12 @@ function editService(s) {
       if (!s || s.pole !== pole) data.ordre = await lastOrder("services", services.filter(x => x.pole === pole && x._id !== s?._id).sort(bySvc));
       await api.saveService(data, people);
       await refresh();
-      toast(s ? "Service enregistré." : "Service ajouté.");
+      toast(s ? "Staff enregistré." : "Staff ajouté.");
     });
 }
 function deleteService(s) {
-  openEditor("Supprimer le service", s.name, '<p style="margin:0">Le service « ' + esc(s.name) + ' » et ses contacts seront supprimés de l\'annuaire. Cette action est définitive.</p>',
-    async () => { await api.deleteService(s._id); await refresh(); toast("Service supprimé."); }, "Supprimer", true);
+  openEditor("Supprimer le staff", s.name, '<p style="margin:0">Le staff « ' + esc(s.name) + ' » et ses contacts seront supprimés de l\'annuaire. Cette action est définitive.</p>',
+    async () => { await api.deleteService(s._id); await refresh(); toast("Staff supprimé."); }, "Supprimer", true);
 }
 
 // --- Contacts ---
@@ -648,7 +648,7 @@ function editPerson(p) {
     '<div class="row2"><div class="field"><label for="pe-prenom">Prénom</label><input id="pe-prenom" value="' + esc(p?.prenom || "") + '"></div>' +
     '<div class="field"><label for="pe-nom">Nom</label><input id="pe-nom" value="' + esc(p?.nom || "") + '"></div></div>' +
     '<div class="field"><label for="pe-email">E-mail <span class="opt">(privé : reçoit les messages du formulaire)</span></label><input id="pe-email" type="email" value="' + esc(p?.email || "") + '"></div>' +
-    '<div class="field"><label>Contact des services</label><div class="checks">' + svcBoxes + "</div></div>" +
+    '<div class="field"><label>Contact des staffs</label><div class="checks">' + svcBoxes + "</div></div>" +
     '<div class="field"><label>Responsable des pôles</label><div class="checks">' + poleBoxes + "</div></div>",
     async f => {
       const prenom = f.querySelector("#pe-prenom").value.trim(), nom = f.querySelector("#pe-nom").value.trim();
@@ -657,7 +657,7 @@ function editPerson(p) {
       if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return invalid(f, "#pe-email", "Adresse e-mail invalide.");
       const checked = name => [...f.querySelectorAll('input[name="' + name + '"]:checked')].map(i => i.value);
       const svcIds = checked("svc"), poleIds = checked("pole");
-      if (!svcIds.length && !poleIds.length) return toast("Cochez au moins un service ou un pôle."), false;
+      if (!svcIds.length && !poleIds.length) return toast("Cochez au moins un staff ou un pôle."), false;
       if (!p) {
         const key = email ? "@" + email : nameKey({ prenom, nom });
         if (persons().some(x => x.key === key)) return invalid(f, email ? "#pe-email" : "#pe-prenom", "Ce contact existe déjà : modifiez sa fiche.");
@@ -718,7 +718,7 @@ function editPole(p) {
 }
 function deletePole(p) {
   const n = services.filter(s => s.pole === p.name).length;
-  if (n) return toast("Impossible : " + n + " service" + (n > 1 ? "s sont" : " est") + " encore rattaché" + (n > 1 ? "s" : "") + " à ce pôle.");
+  if (n) return toast("Impossible : " + n + " staff" + (n > 1 ? "s sont" : " est") + " encore rattaché" + (n > 1 ? "s" : "") + " à ce pôle.");
   openEditor("Supprimer le pôle", p.name, '<p style="margin:0">Le pôle « ' + esc(p.name) + ' » sera supprimé. Cette action est définitive.</p>',
     async () => { await api.deletePole(p._id); await refresh(); toast("Pôle supprimé."); }, "Supprimer", true);
 }
