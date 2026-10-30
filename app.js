@@ -77,7 +77,7 @@ function render() {
   if (ap && !respOf[ap._id]) loadDoc("responsables", ap._id, respOf).then(render, () => {});
   const resp = ap && respNames(ap);
   $("resp").innerHTML = resp && resp.length
-    ? '<p class="resp" style="--c:' + color(active) + '"><strong>Responsables du pôle :</strong> ' + resp.map(esc).join(", ") + "</p>" : "";
+    ? '<p class="resp" style="--c:' + color(active) + '"><strong>' + (resp.length > 1 ? "Responsables" : "Responsable") + ' du pôle :</strong> ' + resp.map(esc).join(", ") + "</p>" : "";
   status(!services.length ? "Aucun service pour l'instant."
     : list.length ? list.length + " service" + (list.length > 1 ? "s" : "") : "Aucun résultat pour cette recherche.");
   shown = list;
