@@ -29,7 +29,11 @@ async function loadDoc(col, id, cache) {
 
 // Chaque mot cherché doit être le début d'un mot (« bastien » ne trouve pas « Sébastien »)
 const words = s => norm(s).split(/[^a-z0-9]+/).filter(Boolean);
-const matches = s => {
+// Recherche par nom de personne : faite par la base dès 2 lettres ; elle renvoie les staffs et pôles concernés
+let nameHits = { services: new Set(), poles: new Set() };
+const byPerson = s => nameHits.services.has(s._id) || nameHits.poles.has(poles[s.pole]?._id);
+const matches = s => byPerson(s) || textMatches(s);
+const textMatches = s => {
   const hay = words([s.name, s.pole, s.description].join(" "));
   return terms.every(t => hay.some(w => w.startsWith(t)));
 };
@@ -463,7 +467,7 @@ function suggest(input) {
   const box = input.closest(".people"), sug = input.nextElementSibling;
   const taken = new Set([...box.querySelectorAll(".person.linked")].map(r => r.dataset.key));
   const t = norm(input.value).split(/\s+/).filter(Boolean);
-  const list = persons().filter(p => !taken.has(p.key) && t.every(x => words([p.prenom, p.nom, p.email].join(" ")).some(w => w.startsWith(x)))).slice(0, 30);
+  const list = persons().filter(p => !taken.has(p.key) && t.every(x => words([p.prenom, p.nom, p.email].join(" ")).some(w => w.startsWith(x))));
   sug.innerHTML = list.length ? list.map((p, i) => '<button type="button" data-key="' + esc(p.key) + '"' + (i ? "" : ' class="on"') + ">" + esc(fullName(p)) +
     "<span>" + esc(p.email || "pas d'e-mail") + "</span></button>").join("") : '<div class="none">Aucun contact trouvé. Utilisez « Créer un nouveau contact ».</div>';
   sug.hidden = false;
@@ -740,7 +744,21 @@ function deletePole(p) {
     async () => { await api.deletePole(p._id); await refresh(); toast("Pôle supprimé."); }, "Supprimer", true);
 }
 
-$("q").addEventListener("input", e => { terms = norm(e.target.value).split(/\s+/).filter(Boolean); render(); });
+let searchTimer, searchSeq = 0;
+$("q").addEventListener("input", e => {
+  const q = e.target.value;
+  terms = norm(q).split(/\s+/).filter(Boolean);
+  render();
+  clearTimeout(searchTimer);
+  const seq = ++searchSeq;
+  if (terms.join("").length < 2) { nameHits = { services: new Set(), poles: new Set() }; return render(); }
+  searchTimer = setTimeout(async () => {
+    const rows = await api.searchPeople(q).catch(() => []);
+    if (seq !== searchSeq) return; // une frappe plus récente a eu lieu entre-temps
+    nameHits = { services: new Set(rows.map(r => r.service_id).filter(Boolean)), poles: new Set(rows.map(r => r.pole_id).filter(Boolean)) };
+    render();
+  }, 250);
+});
 
 async function loadPublic() {
   const data = await api.loadPublic();

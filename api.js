@@ -16,6 +16,8 @@ window.makeApi = function () {
     },
     contacts: id => sb.rpc("annuaire_contacts", { p_service: id }).then(ok),
     responsables: id => sb.rpc("annuaire_responsables", { p_pole: id }).then(ok),
+    // Staffs et pôles dont un leader porte ce nom (la base ne renvoie jamais les noms eux-mêmes)
+    searchPeople: q => sb.rpc("annuaire_recherche", { q }).then(ok),
     async sendMessage(m) {
       const { data, error } = await sb.functions.invoke("envoyer-message", { body: m });
       if (error) {
