@@ -205,7 +205,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 /* Personne d'une liste : poignée pour réordonner, contenu, poubelle */
 /* Colonnes partagées par toutes les lignes (sous-grille) : la colonne des contacts prend la largeur
    du texte le plus long affiché, sans dépasser la fenêtre */
-.people { gap: 10px; position: relative; grid-template-columns: 28px minmax(0, max-content) 42px; justify-content: start; column-gap: 8px; }
+.people { gap: 10px; position: relative; grid-template-columns: 28px minmax(min(320px, calc(100% - 78px)), max-content) 42px; justify-content: start; column-gap: 8px; }
 .person { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; gap: 8px; align-items: center; background: var(--surface); border-radius: 8px; }
 .person .grip { width: 28px; height: 44px; display: grid; place-items: center; color: var(--muted); cursor: grab; touch-action: none; border-radius: 6px; }
 .person .grip:hover { background: var(--tint); color: var(--text); }
@@ -233,7 +233,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .people-add { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; gap: 8px; align-items: center; }
 .people-add > * { grid-column: 2; }
 .people-add .add-person { justify-self: start; }
-.picker { position: relative; min-width: min(100%, 320px); }
+.picker { position: relative; min-width: 0; }
 /* Fiche d'un service : nom sur deux tiers, pôle sur la moitié de la largeur (pleine largeur sur téléphone) */
 .field.w-2-3 { width: 66.667%; } .field.w-1-2 { width: 50%; }
 @media (max-width: 520px) { .field.w-2-3, .field.w-1-2 { width: auto; } }
