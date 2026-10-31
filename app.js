@@ -36,7 +36,7 @@ const matches = s => {
 
 // Civilité : liste déroulante Madame / Monsieur (vide = non renseignée)
 const civSelect = (id, value, label) => '<select' + (id ? ' id="' + id + '"' : "") + ' class="civ" aria-label="' + (label || "Civilité") + '"><option value="">' + (id ? "—" : "Civilité") + "</option>" +
-  ["Madame", "Monsieur"].map(c => "<option" + (c === value ? " selected" : "") + ">" + c + "</option>").join("") + "</select>";
+  [["Madame", "Mme"], ["Monsieur", "M."]].map(([c, abr]) => '<option value="' + c + '"' + (c === value ? " selected" : "") + ">" + abr + "</option>").join("") + "</select>";
 // « A », « A et B », « A, B et C »
 const andList = a => a.length > 1 ? a.slice(0, -1).join(", ") + " et " + a[a.length - 1] : a.join("");
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
