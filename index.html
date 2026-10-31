@@ -146,7 +146,15 @@ body { min-height: 100vh; display: flex; flex-direction: column; }
   font: 600 13px/1 Montserrat, sans-serif; letter-spacing: .08em; text-transform: uppercase; cursor: pointer; transition: background .15s, border-color .15s; }
 .admin-link:hover { background: rgba(255, 255, 255, .12); border-color: #fff; }
 .admin-link:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+.admin-link { display: inline-flex; align-items: center; gap: 8px; }
+.admin-link svg { width: 16px; height: 16px; flex: none; }
 .admin-link[hidden] { display: none; }
+/* Téléphone : l'icône seule, dans un rond (le nom reste lu par les lecteurs d'écran) */
+@media (max-width: 520px) {
+  .admin-link { width: 42px; height: 42px; padding: 0; justify-content: center; }
+  .admin-link span { display: none; }
+  .admin-link svg { width: 20px; height: 20px; }
+}
 .back-link { margin: 20px 0 0; padding: 0; border: 0; background: none; color: var(--brand); font: 600 14px/1 Montserrat, sans-serif; cursor: pointer; }
 .view[hidden] { display: none; }
 .admin-top { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 20px 0 8px; }
@@ -328,7 +336,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 <header class="hero">
   <div class="wrap">
     <div class="top"><div class="brand">Église Lyon Centre</div>
-      <button type="button" class="admin-link" id="admin-link">Connexion</button></div>
+      <button type="button" class="admin-link" id="admin-link" aria-label="Connexion"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg><span id="admin-label">Connexion</span></button></div>
     <h1 id="h1">Annuaire des propositions</h1>
     <nav class="switch" id="switch" aria-label="Annuaires" hidden>
       <a href="#" id="sw-prop">Propositions</a><a href="#leaders" id="sw-serv">Leaders</a>

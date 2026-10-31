@@ -240,7 +240,8 @@ function route() {
   $("admin-view").hidden = !admin;
   $("h1").textContent = serv ? "Annuaire des leaders" : admin ? "Administration" : "Annuaire des propositions";
   // En haut à droite : « Connexion », ou « Administration » pour un administrateur connecté ; masqué dans l'administration
-  $("admin-link").textContent = isAdmin ? "Administration" : "Connexion";
+  $("admin-label").textContent = isAdmin ? "Administration" : "Connexion";
+  $("admin-link").setAttribute("aria-label", $("admin-label").textContent);
   $("admin-link").hidden = h === "#admin";
   // Onglets entre les deux annuaires, pour tout le monde (sauf dans l'administration) ;
   // « Leaders » sans être administrateur affiche l'écran de connexion
