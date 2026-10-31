@@ -34,6 +34,9 @@ const matches = s => {
   return terms.every(t => hay.some(w => w.startsWith(t)));
 };
 
+// Civilité : liste déroulante Madame / Monsieur (vide = non renseignée)
+const civSelect = (id, value, label) => '<select' + (id ? ' id="' + id + '"' : "") + ' class="civ" aria-label="' + (label || "Civilité") + '"><option value="">' + (id ? "—" : "Civilité") + "</option>" +
+  ["Madame", "Monsieur"].map(c => "<option" + (c === value ? " selected" : "") + ">" + c + "</option>").join("") + "</select>";
 // « A », « A et B », « A, B et C »
 const andList = a => a.length > 1 ? a.slice(0, -1).join(", ") + " et " + a[a.length - 1] : a.join("");
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -118,7 +121,7 @@ function openModal(t) {
   lastFocus = document.activeElement;
   $("modal").hidden = false;
   document.body.classList.add("locked");
-  $("m-prenom").focus();
+  $("m-civ").focus();
   setPageInert(true);
 }
 function closeModal() {
@@ -167,7 +170,7 @@ $("m-form").addEventListener("submit", async e => {
   const f = e.target, btn = $("m-send");
   btn.disabled = true;
   try {
-    const r = await api.sendMessage({ [modalTarget.pole ? "pole_id" : "service_id"]: modalTarget.id, prenom: f.prenom.value, nom: f.nom.value,
+    const r = await api.sendMessage({ [modalTarget.pole ? "pole_id" : "service_id"]: modalTarget.id, civilite: f.civilite.value, prenom: f.prenom.value, nom: f.nom.value,
       email: f.email.value, telephone: f.tel.value, message: f.message.value, site: f.site.value });
     closeModal();
     toast(r?.envoye === false ? "Merci ! Votre message est enregistré, l'équipe le transmettra." : "Merci ! Votre message a bien été envoyé.");
@@ -189,7 +192,7 @@ async function onSession(s) {
 }
 async function loadAdmin() {
   const { contacts, responsables } = await api.loadAdmin();
-  const group = (rows, key) => rows.reduce((m, r) => ((m[r[key]] ||= []).push({ prenom: r.prenom, nom: r.nom, email: r.email || "" }), m), {});
+  const group = (rows, key) => rows.reduce((m, r) => ((m[r[key]] ||= []).push({ civilite: r.civilite || "", prenom: r.prenom, nom: r.nom, email: r.email || "" }), m), {});
   contactsOf = group(contacts, "service_id");
   respOf = group(responsables, "pole_id");
   contactRows = contacts; respRows = responsables;
@@ -268,7 +271,7 @@ function renderAdmin() {
   if (adminTab === "messages") {
     const fmt = d => new Date(d).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" });
     $("admin-list").innerHTML = messages.filter(m => adminMatch([m.prenom, m.nom, m.email, m.message, m.services?.name, m.poles?.name].join(" "))).map(m =>
-      '<div class="msg-row"><div class="meta"><strong>' + esc(m.prenom + " " + m.nom) + "</strong><span>" + esc(m.email) + "</span>" +
+      '<div class="msg-row"><div class="meta"><strong>' + esc([m.civilite, m.prenom, m.nom].filter(Boolean).join(" ")) + "</strong><span>" + esc(m.email) + "</span>" +
       (m.telephone ? "<span>" + esc(m.telephone) + "</span>" : "") + "<span>" + esc(m.services?.name || (m.poles ? "Responsables du pôle " + m.poles.name : m.pole_id ? "Pôle supprimé" : "Staff supprimé")) + "</span><span>" + fmt(m.created_at) + "</span>" +
       (m.envoye ? '<span class="badge ok">Envoyé</span>' : '<span class="badge ko">Non envoyé</span>') + "</div>" +
       (!m.envoye && m.erreur ? '<p class="msg-error">' + esc(m.erreur) + "</p>" : "") + "<p>" + esc(m.message) + "</p></div>"
@@ -441,13 +444,13 @@ const trashBtn = '<button type="button" class="trash" data-rm aria-label="Retire
 const personKey = r => r.email ? "@" + String(r.email).toLowerCase() : (persons().find(x => nameKey(x) === nameKey(r))?.key || nameKey(r));
 const linkedRow = p => {
   // Une ligne sans e-mail reprend celui de la fiche du contact, s'il en a un
-  const key = personKey(p), email = p.email || persons().find(x => x.key === key)?.email || "";
-  p = { ...p, email };
+  const key = personKey(p), fiche = persons().find(x => x.key === key);
+  p = { ...p, email: p.email || fiche?.email || "", civilite: p.civilite || fiche?.civilite || "" };
   return '<div class="person linked" data-key="' + esc(key) + '" data-prenom="' + esc(p.prenom || "") +
-  '" data-nom="' + esc(p.nom || "") + '" data-email="' + esc(p.email || "") + '">' + gripBtn + '<div class="who" title="' + esc(fullName(p) + (p.email ? " · " + p.email : "")) + '">' +
+  '" data-nom="' + esc(p.nom || "") + '" data-email="' + esc(p.email || "") + '" data-civilite="' + esc(p.civilite || "") + '">' + gripBtn + '<div class="who" title="' + esc(fullName(p) + (p.email ? " · " + p.email : "")) + '">' +
   esc(fullName(p)) + "<span>" + (p.email ? esc(p.email) : "pas d'e-mail") + "</span></div>" + trashBtn + "</div>";
 };
-const personRow = p => '<div class="person">' + gripBtn + '<div class="fields"><div class="new">Nouveau contact</div>' +
+const personRow = p => '<div class="person">' + gripBtn + '<div class="fields"><div class="new">Nouveau contact</div>' + civSelect("", p?.civilite) +
   '<input placeholder="Prénom" aria-label="Prénom" value="' + esc(p?.prenom || "") + '">' +
   '<input placeholder="Nom" aria-label="Nom" value="' + esc(p?.nom || "") + '">' +
   '<input type="email" placeholder="E-mail (privé)" aria-label="E-mail" value="' + esc(p?.email || "") + '"></div>' + trashBtn + "</div>";
@@ -581,8 +584,9 @@ async function endPDrag() {
 document.addEventListener("pointerup", endPDrag);
 document.addEventListener("pointercancel", endPDrag);
 const readPeople = f => [...f.querySelectorAll(".person")].map(r => {
-  if (r.classList.contains("linked")) return { prenom: r.dataset.prenom, nom: r.dataset.nom, email: r.dataset.email || null };
-  const [a, b, c] = r.querySelectorAll("input"); return { prenom: a.value.trim(), nom: b.value.trim(), email: c.value.trim().toLowerCase() || null };
+  if (r.classList.contains("linked")) return { civilite: r.dataset.civilite || null, prenom: r.dataset.prenom, nom: r.dataset.nom, email: r.dataset.email || null };
+  const [a, b, c] = r.querySelectorAll("input");
+  return { civilite: r.querySelector(".civ").value || null, prenom: a.value.trim(), nom: b.value.trim(), email: c.value.trim().toLowerCase() || null };
 }).filter(p => p.prenom || p.nom);
 function invalid(f, sel, msg) { toast(msg); f.querySelector(sel)?.focus(); return false; }
 
@@ -633,9 +637,10 @@ function persons() {
   for (const r of all) {
     const known = emailOfName[nameKey(r)];
     const key = r.email ? "@" + r.email.toLowerCase() : known?.size === 1 ? "@" + [...known][0] : nameKey(r);
-    if (!map.has(key)) map.set(key, { key, prenom: r.prenom, nom: r.nom, email: r.email || "", contacts: [], responsables: [] });
+    if (!map.has(key)) map.set(key, { key, civilite: "", prenom: r.prenom, nom: r.nom, email: r.email || "", contacts: [], responsables: [] });
     const p = map.get(key);
     if (!p.email && r.email) p.email = r.email;
+    if (!p.civilite && r.civilite) p.civilite = r.civilite;
     p[r.kind].push(r);
   }
   return [...map.values()].sort((a, b) => byName(a.nom || "", b.nom || "") || byName(a.prenom || "", b.prenom || ""));
@@ -656,6 +661,7 @@ function editPerson(p) {
   }).join("") + (services.some(s => !s.pole) ? '<div class="grp">Sans pôle</div>' + services.filter(s => !s.pole).map(s => box("svc", s._id, s.name, mine.has(s._id))).join("") : "");
   const poleBoxes = poleNames().map(n => box("pole", poles[n]._id, n, myPoles.has(poles[n]._id))).join("");
   openEditor(p ? "Modifier le contact" : "Ajouter un contact", p ? fullName(p) : "Nouveau contact",
+    '<div class="field w-fit"><label for="pe-civ">Civilité</label>' + civSelect("pe-civ", p?.civilite) + "</div>" +
     '<div class="row2"><div class="field"><label for="pe-prenom">Prénom</label><input id="pe-prenom" value="' + esc(p?.prenom || "") + '"></div>' +
     '<div class="field"><label for="pe-nom">Nom</label><input id="pe-nom" value="' + esc(p?.nom || "") + '"></div></div>' +
     '<div class="field"><label for="pe-email">E-mail <span class="opt">(privé : reçoit les messages du formulaire)</span></label><input id="pe-email" type="email" value="' + esc(p?.email || "") + '"></div>' +
@@ -681,7 +687,7 @@ function editPerson(p) {
           position: Math.max(-1, ...all.filter(r => r[col] === id).map(r => r.position ?? 0)) + 1 }));
         return { keep, del, add };
       };
-      await api.savePerson({ prenom, nom, email: email || null }, {
+      await api.savePerson({ civilite: f.querySelector("#pe-civ").value || null, prenom, nom, email: email || null }, {
         contacts: plan(p?.contacts || [], svcIds, "service_id", contactRows),
         responsables: plan(p?.responsables || [], poleIds, "pole_id", respRows),
       });

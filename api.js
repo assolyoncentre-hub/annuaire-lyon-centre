@@ -48,8 +48,8 @@ window.makeApi = function () {
     // Administration (refusé par la base pour tout autre compte)
     async loadAdmin() {
       const [contacts, responsables] = await Promise.all([
-        sb.from("contacts").select("id, service_id, prenom, nom, email, position").order("position").then(ok),
-        sb.from("pole_responsables").select("id, pole_id, prenom, nom, email, position").order("position").then(ok),
+        sb.from("contacts").select("id, service_id, civilite, prenom, nom, email, position").order("position").then(ok),
+        sb.from("pole_responsables").select("id, pole_id, civilite, prenom, nom, email, position").order("position").then(ok),
       ]);
       return { contacts, responsables };
     },
