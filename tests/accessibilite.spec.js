@@ -25,8 +25,8 @@ test("écran de connexion et administration", async ({ open, page }) => {
   expect(await audit(page)).toEqual([]);
 });
 
-test("annuaire des serviteurs @mobile", async ({ open, page }) => {
-  await open({ user: ADMIN, hash: "#serviteurs" });
+test("annuaire des leaders @mobile", async ({ open, page }) => {
+  await open({ user: ADMIN, hash: "#leaders" });
   await expect(page.locator(".serv-card").first()).toBeVisible();
   expect(await audit(page)).toEqual([]);
 });

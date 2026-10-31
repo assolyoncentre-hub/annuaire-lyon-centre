@@ -1,7 +1,7 @@
-// Annuaire des serviteurs : réservé aux administrateurs, une carte par personne avec téléphone et e-mail.
+// Annuaire des leaders : réservé aux administrateurs, une carte par personne avec téléphone et e-mail.
 const { test, expect, ADMIN, calls } = require("./helpers");
 
-test("visiteur : onglets visibles, « Serviteurs » demande de se connecter", async ({ open, page }) => {
+test("visiteur : onglets visibles, « Leaders » demande de se connecter", async ({ open, page }) => {
   await open();
   await expect(page.locator("#switch")).toBeVisible();
   await expect(page.locator("#sw-prop")).toHaveAttribute("aria-current", "page");
@@ -11,7 +11,7 @@ test("visiteur : onglets visibles, « Serviteurs » demande de se connecter", as
   await expect(page.locator("#login-title")).toHaveText("Accès réservé");
   await expect(page.locator("#login-top")).toBeHidden();
   await expect(page.locator("#serv-view")).toBeHidden();
-  await expect(page.locator("#h1")).toHaveText("Annuaire des serviteurs");
+  await expect(page.locator("#h1")).toHaveText("Annuaire des leaders");
   await page.click("#google-btn");
   expect(await calls(page, "signIn")).toHaveLength(1);
   await page.click("#sw-prop");
@@ -23,7 +23,7 @@ test("visiteur : onglets visibles, « Serviteurs » demande de se connecter", as
 });
 
 test("compte non administrateur : accès refusé", async ({ open, page }) => {
-  await open({ user: { email: "autre@example.org", admin: false }, hash: "#serviteurs" });
+  await open({ user: { email: "autre@example.org", admin: false }, hash: "#leaders" });
   await expect(page.locator("#admin-denied")).toBeVisible();
   await expect(page.locator("#serv-view")).toBeHidden();
 });
@@ -34,7 +34,7 @@ test("administrateur : cartes par lettre, rôles, liens d'appel et d'e-mail, fil
   await expect(page.locator("#sw-prop")).toHaveAttribute("aria-current", "page");
   await page.click("#sw-serv");
   await expect(page.locator("#sw-serv")).toHaveAttribute("aria-current", "page");
-  await expect(page.locator("#scount")).toHaveText("16 serviteurs");
+  await expect(page.locator("#scount")).toHaveText("16 leaders");
   // Lettres du nom de famille, sans la particule (« de Laforêt » à L, « do Carmo » à C)
   await expect(page.locator(".letter")).toHaveText(["A", "B", "C", "D", "G", "L", "M", "R", "V"]);
   const damien = page.locator(".serv-card", { hasText: "Damien" });
@@ -53,7 +53,7 @@ test("administrateur : cartes par lettre, rôles, liens d'appel et d'e-mail, fil
   await expect(page.locator(".serv-card", { hasText: "ALLARD" }).locator(".coords a")).toHaveCount(1);
 
   await page.locator("#sfilters .chip", { hasText: "Jeunes" }).click();
-  await expect(page.locator("#scount")).toHaveText("3 serviteurs");
+  await expect(page.locator("#scount")).toHaveText("3 leaders");
   await page.locator("#sfilters .chip", { hasText: "Jeunes" }).click();
   await page.fill("#sq", "sacris");
   await expect(page.locator(".serv-card")).toHaveCount(1);
@@ -93,12 +93,12 @@ test("téléphone : saisi dans la fiche d'un contact, gardé en enregistrant un 
   expect(people.find(p => p.prenom === "Tanya").telephone).toBe("06 39 98 70 08");
   expect(people.find(p => p.prenom === "Lucie").telephone).toBe("06 39 98 75 26");
 
-  await page.evaluate(() => { location.hash = "serviteurs"; });
+  await page.evaluate(() => { location.hash = "leaders"; });
   await expect(page.locator(".serv-card", { hasText: "MARTIN" }).locator(".coords a")).toHaveAttribute("href", "tel:+33639987526");
 });
 
 test("téléphone : cartes sans débordement @mobile", async ({ open, page }) => {
-  await open({ user: ADMIN, hash: "#serviteurs" });
+  await open({ user: ADMIN, hash: "#leaders" });
   await expect(page.locator(".serv-card").first()).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize().width);
 });

@@ -228,27 +228,29 @@ async function refresh() {
   renderAdmin();
   renderServ();
 }
-// Vues : annuaire des propositions (public), annuaire des serviteurs (administrateurs : sinon écran de connexion)
+// Vues : annuaire des propositions (public), annuaire des leaders (administrateurs : sinon écran de connexion)
 // et administration
 function route() {
-  const h = location.hash, serv = h === "#serviteurs", showServ = serv && isAdmin;
+  // Ancienne adresse de la page (« serviteurs ») : redirigée
+  if (location.hash === "#serviteurs") history.replaceState(null, "", "#leaders");
+  const h = location.hash, serv = h === "#leaders", showServ = serv && isAdmin;
   const admin = h === "#admin" || (serv && !isAdmin);
   $("dir-view").hidden = admin || serv;
   $("serv-view").hidden = !showServ;
   $("admin-view").hidden = !admin;
-  $("h1").textContent = serv ? "Annuaire des serviteurs" : admin ? "Administration" : "Annuaire des propositions";
+  $("h1").textContent = serv ? "Annuaire des leaders" : admin ? "Administration" : "Annuaire des propositions";
   $("admin-link").textContent = h === "#admin" ? "← Retour à l'annuaire" : "Administration";
   // Onglets entre les deux annuaires, pour tout le monde (sauf dans l'administration) ;
-  // « Serviteurs » sans être administrateur affiche l'écran de connexion
+  // « Leaders » sans être administrateur affiche l'écran de connexion
   $("switch").hidden = h === "#admin";
   $("sw-prop").toggleAttribute("aria-current", false); $("sw-serv").toggleAttribute("aria-current", false);
   $(serv ? "sw-serv" : "sw-prop").setAttribute("aria-current", "page");
   $("login-title").textContent = serv ? "Accès réservé" : "Administration";
-  $("login-text").textContent = serv ? "L'annuaire des serviteurs est réservé aux administrateurs. Connectez-vous avec votre compte Google."
+  $("login-text").textContent = serv ? "L'annuaire des leaders est réservé aux administrateurs. Connectez-vous avec votre compte Google."
     : "Connectez-vous avec le compte Google d'un administrateur de l'annuaire.";
   if (admin || serv) ensureAuth();
   $("admin-login").hidden = !admin || !!session || !authLoaded;
-  // Lien de retour inutile sous les onglets (page des serviteurs)
+  // Lien de retour inutile sous les onglets (page des leaders)
   $("login-top").hidden = $("admin-login").hidden || serv;
   $("admin-denied").hidden = !admin || !session || isAdmin;
   $("admin-body").hidden = h !== "#admin" || !isAdmin;
@@ -790,7 +792,7 @@ function deletePole(p) {
     async () => { await api.deletePole(p._id); await refresh(); toast("Pôle supprimé."); }, "Supprimer", true);
 }
 
-// ---------- Annuaire des serviteurs (administrateurs) ----------
+// ---------- Annuaire des leaders (administrateurs) ----------
 // Une carte par personne (contacts des staffs et responsables de pôle, regroupés comme dans l'onglet Contacts),
 // rangées par lettre du nom de famille (sans la particule : « de Laforêt » à L)
 let servPole = null, servTerms = [];
@@ -814,7 +816,7 @@ function renderServ() {
   $("sfilters").innerHTML = chip("Tous", null, found.length) + names.map(n => chip(n, n, found.filter(x => x.poles.has(n)).length)).join("");
   const list = found.filter(x => !servPole || x.poles.has(servPole))
     .sort((a, b) => byName(servKey(a.p), servKey(b.p)) || byName(a.p.prenom || "", b.p.prenom || ""));
-  $("scount").textContent = !all.length ? "Aucun serviteur pour l'instant." : list.length ? list.length + " serviteur" + (list.length > 1 ? "s" : "") : "Aucun résultat pour cette recherche.";
+  $("scount").textContent = !all.length ? "Aucun leader pour l'instant." : list.length ? list.length + " leader" + (list.length > 1 ? "s" : "") : "Aucun résultat pour cette recherche.";
   let last = null;
   $("serv-grid").innerHTML = list.map(({ p, svc, resp }) => {
     const l = (servKey(p)[0] || "#").toUpperCase(), head = l !== last ? '<h2 class="letter">' + esc(l) + "</h2>" : "";
@@ -873,7 +875,7 @@ async function startAuth() {
     $("login-error").textContent = "La connexion a échoué : " + authError;
     $("login-error").hidden = false;
   }
-  if (fromLogin && s) location.hash = fromLogin === "#serviteurs" ? "serviteurs" : "admin";
+  if (fromLogin && s) location.hash = fromLogin === "#leaders" ? "leaders" : "admin";
   else if (authError) location.hash = "admin";
   authLoaded = true;
   await onSession(s);

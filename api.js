@@ -52,14 +52,14 @@ window.makeApi = function () {
     // Connexion Google et droits. La bibliothèque n'est nécessaire que pour l'administration, au retour
     // de Google, ou si une session est déjà enregistrée dans le navigateur.
     authNeeded() {
-      if (location.hash === "#admin" || location.hash === "#serviteurs" || /[?&](code|error)=/.test(location.search)) return true;
+      if (location.hash === "#admin" || location.hash === "#leaders" || /[?&](code|error)=/.test(location.search)) return true;
       try { return !!localStorage.getItem("sb-" + ref + "-auth-token"); } catch { return false; }
     },
     async session() { return (await (await getSb()).auth.getSession()).data.session; },
     async onAuth(cb) { (await getSb()).auth.onAuthStateChange((_e, s) => cb(s)); },
     async signIn() {
-      // Retour sur la page demandée (administration ou serviteurs) après la connexion Google
-      try { sessionStorage.setItem("annuaire-admin", location.hash === "#serviteurs" ? "#serviteurs" : "#admin"); } catch {}
+      // Retour sur la page demandée (administration ou leaders) après la connexion Google
+      try { sessionStorage.setItem("annuaire-admin", location.hash === "#leaders" ? "#leaders" : "#admin"); } catch {}
       return (await getSb()).auth.signInWithOAuth({ provider: "google", options: { redirectTo: location.origin + location.pathname } });
     },
     signOut: async () => (await getSb()).auth.signOut(),

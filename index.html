@@ -291,7 +291,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 /* Pastilles de pôle : fin contour pour que les teintes claires du site restent visibles sur fond blanc */
 .chip .dot, .tag::before, .roles li::before { box-shadow: inset 0 0 0 1px rgba(14, 15, 23, .14); }
 .chip[aria-pressed="true"] .dot { box-shadow: none; }
-/* Onglets « Propositions / Serviteurs » (administrateurs), posés sur le bas du bandeau */
+/* Onglets « Propositions / Leaders » (administrateurs), posés sur le bas du bandeau */
 .switch { display: flex; gap: 4px; margin-top: 22px; }
 .switch[hidden] { display: none; }
 .hero:has(.switch:not([hidden])) .wrap { padding-bottom: 0; }
@@ -299,7 +299,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
   font: 600 13px/1 Montserrat, sans-serif; letter-spacing: .08em; text-transform: uppercase; opacity: .8; }
 .switch a:hover { opacity: 1; background: rgba(255, 255, 255, .1); }
 .switch a[aria-current="page"] { background: var(--bg); color: var(--brand); opacity: 1; }
-/* Annuaire des serviteurs : une carte par personne, rangées par lettre du nom de famille */
+/* Annuaire des leaders : une carte par personne, rangées par lettre du nom de famille */
 .serv-grid { grid-auto-rows: auto !important; }
 .letter { grid-column: 1 / -1; margin: 8px 0 -4px; font: 700 28px/1 Phudu, Montserrat, sans-serif; color: var(--brand);
   display: flex; align-items: center; gap: 14px; }
@@ -327,7 +327,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
     <div class="brand">Église Lyon Centre</div>
     <h1 id="h1">Annuaire des propositions</h1>
     <nav class="switch" id="switch" aria-label="Annuaires" hidden>
-      <a href="#" id="sw-prop">Propositions</a><a href="#serviteurs" id="sw-serv">Serviteurs</a>
+      <a href="#" id="sw-prop">Propositions</a><a href="#leaders" id="sw-serv">Leaders</a>
     </nav>
   </div>
 </header>
@@ -340,7 +340,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 </main>
 </div>
 <div id="serv-view" class="view" hidden>
-<div class="bar" role="search" aria-label="Rechercher et filtrer les serviteurs"><div class="wrap filterbar"><input type="search" id="sq" class="search" placeholder="Rechercher une personne, un staff…" aria-label="Rechercher un serviteur" autocomplete="off"><span class="label">Filtrer par pôle</span><div class="filters" id="sfilters"></div></div></div>
+<div class="bar" role="search" aria-label="Rechercher et filtrer les leaders"><div class="wrap filterbar"><input type="search" id="sq" class="search" placeholder="Rechercher une personne, un staff…" aria-label="Rechercher un leader" autocomplete="off"><span class="label">Filtrer par pôle</span><div class="filters" id="sfilters"></div></div></div>
 <main class="wrap">
   <p class="count" id="scount" role="status" aria-live="polite"></p>
   <div class="grid serv-grid" id="serv-grid"></div>
