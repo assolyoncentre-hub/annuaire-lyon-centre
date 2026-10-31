@@ -238,12 +238,18 @@ function route() {
   $("admin-view").hidden = !admin;
   $("h1").textContent = serv ? "Annuaire des serviteurs" : admin ? "Administration" : "Annuaire des propositions";
   $("admin-link").textContent = h === "#admin" ? "← Retour à l'annuaire" : "Administration";
-  // Onglets entre les deux annuaires : seulement pour les administrateurs connectés
-  $("switch").hidden = !isAdmin || admin;
+  // Onglets entre les deux annuaires, pour tout le monde (sauf dans l'administration) ;
+  // « Serviteurs » sans être administrateur affiche l'écran de connexion
+  $("switch").hidden = h === "#admin";
   $("sw-prop").toggleAttribute("aria-current", false); $("sw-serv").toggleAttribute("aria-current", false);
-  $(showServ ? "sw-serv" : "sw-prop").setAttribute("aria-current", "page");
+  $(serv ? "sw-serv" : "sw-prop").setAttribute("aria-current", "page");
+  $("login-title").textContent = serv ? "Accès réservé" : "Administration";
+  $("login-text").textContent = serv ? "L'annuaire des serviteurs est réservé aux administrateurs. Connectez-vous avec votre compte Google."
+    : "Connectez-vous avec le compte Google d'un administrateur de l'annuaire.";
   if (admin || serv) ensureAuth();
-  $("admin-login").hidden = $("login-top").hidden = !admin || !!session || !authLoaded;
+  $("admin-login").hidden = !admin || !!session || !authLoaded;
+  // Lien de retour inutile sous les onglets (page des serviteurs)
+  $("login-top").hidden = $("admin-login").hidden || serv;
   $("admin-denied").hidden = !admin || !session || isAdmin;
   $("admin-body").hidden = h !== "#admin" || !isAdmin;
   const email = session?.user?.email || "";

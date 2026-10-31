@@ -1,15 +1,25 @@
 // Annuaire des serviteurs : réservé aux administrateurs, une carte par personne avec téléphone et e-mail.
 const { test, expect, ADMIN, calls } = require("./helpers");
 
-test("visiteur : pas d'onglet Serviteurs, l'adresse de la page mène à la connexion", async ({ open, page }) => {
+test("visiteur : onglets visibles, « Serviteurs » demande de se connecter", async ({ open, page }) => {
   await open();
-  await expect(page.locator("#switch")).toBeHidden();
-  await page.evaluate(() => { location.hash = "serviteurs"; });
+  await expect(page.locator("#switch")).toBeVisible();
+  await expect(page.locator("#sw-prop")).toHaveAttribute("aria-current", "page");
+  await page.click("#sw-serv");
+  await expect(page.locator("#sw-serv")).toHaveAttribute("aria-current", "page");
   await expect(page.locator("#admin-login")).toBeVisible();
+  await expect(page.locator("#login-title")).toHaveText("Accès réservé");
+  await expect(page.locator("#login-top")).toBeHidden();
   await expect(page.locator("#serv-view")).toBeHidden();
   await expect(page.locator("#h1")).toHaveText("Annuaire des serviteurs");
-  await page.click("#login-back");
+  await page.click("#google-btn");
+  expect(await calls(page, "signIn")).toHaveLength(1);
+  await page.click("#sw-prop");
   await expect(page.locator("#dir-view")).toBeVisible();
+  // Administration : pas d'onglets, écran de connexion habituel
+  await page.click("#admin-link");
+  await expect(page.locator("#switch")).toBeHidden();
+  await expect(page.locator("#login-title")).toHaveText("Administration");
 });
 
 test("compte non administrateur : accès refusé", async ({ open, page }) => {
