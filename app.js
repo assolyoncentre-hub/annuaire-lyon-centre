@@ -1,6 +1,7 @@
-const COLORS = { "Croissance dans la foi": "#2e9e6b", "Le dimanche": "#ff7e29", "Équipes centrales": "#0060aa",
-  "Jeunes": "#f2b705", "Prière, écoute et guérison": "#c2417f", "Écosystème": "#2fa3b5", "Solidarité": "#e0483e", "Support": "#7a5cc7" };
-const FALLBACK = ["#5b7a3c", "#8a5a9e", "#2e7d9a", "#a06030"];
+// Couleurs des pôles, reprises d'egliselyoncentre.fr (bandeaux des événements, boutons, fonds et feuille de style du site)
+const COLORS = { "Croissance dans la foi": "#009498", "Le dimanche": "#fa772f", "Équipes centrales": "#0060aa",
+  "Jeunes": "#78d8da", "Prière, écoute et guérison": "#4760ff", "Écosystème": "#a4d4f8", "Solidarité": "#0e0f17", "Support": "#797881" };
+const FALLBACK = ["#414e8a", "#df683d", "#535259", "#ffccbd"];
 const api = window.__api || window.makeApi();
 let services = [], poles = {}, active = null, terms = [], shown = [];
 // Les noms ne font pas partie de la liste publique : ils sont chargés à la demande, au clic
