@@ -268,6 +268,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .account .back-link { margin: 0; }
 .account { margin-top: 20px; }
 .hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.hp input { font-size: 16px; } /* iPhone : pas de zoom automatique si le champ reçoit le focus */
 /* Accessibilité : focus bien visible dans les champs, cible du lien d'administration, mouvements réduits */
 .search:focus, .field input:focus, .field textarea:focus, .field select:focus, .picker input:focus {
   border-color: var(--brand); box-shadow: 0 0 0 3px rgba(0, 96, 170, .3); }
