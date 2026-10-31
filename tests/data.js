@@ -1,0 +1,46 @@
+// Données de test entièrement fictives (le dépôt est public : aucun vrai nom ni vraie adresse ici).
+// Elles couvrent les cas particuliers : particules (« de », « do »), nom collé (« Delorme »),
+// civilité « Père », personne présente dans plusieurs staffs, staff sans leader, pôle jamais réordonné.
+module.exports = {
+  poles: [
+    { id: "croissance", name: "Croissance dans la foi", ordre: 10 },
+    { id: "dimanche", name: "Le dimanche", ordre: 20 },
+    { id: "solidarite", name: "Solidarité", ordre: 30 },
+    { id: "jeunes", name: "Jeunes", ordre: 40 },
+  ],
+  services: [
+    { id: "bapteme", name: "Baptême bébé", pole_id: "croissance", description: "Préparation au baptême des tout-petits.", ordre: 10 },
+    { id: "catechumenat", name: "Catéchuménat", pole_id: "croissance", description: "Préparation des adultes au baptême.", ordre: 20 },
+    { id: "forever", name: "Forever", pole_id: "croissance", description: "Trois soirées à deux.", ordre: 30 },
+    { id: "accueil", name: "Accueil", pole_id: "dimanche", description: "Accueillir les paroissiens à la messe.", ordre: null },
+    { id: "louange", name: "Louange", pole_id: "dimanche", description: "", ordre: null },
+    { id: "sacristie", name: "Sacristie", pole_id: "dimanche", description: "", ordre: null },
+    { id: "maraudes", name: "Maraudes", pole_id: "solidarite", description: "Maraudes auprès des plus fragiles.", ordre: null },
+    { id: "scouts", name: "Scouts et Guides", pole_id: "jeunes", description: "Aventure scoute.", ordre: null },
+    { id: "spot", name: "Spot", pole_id: "jeunes", description: "Groupe des étudiants.", ordre: null },
+    { id: "kt", name: "KT Kids", pole_id: "jeunes", description: "", ordre: null },
+  ],
+  contacts: [
+    { service_id: "bapteme", civilite: "Monsieur", prenom: "Damien", nom: "de Laforêt", email: "damien@example.org", position: 0 },
+    { service_id: "bapteme", civilite: "Madame", prenom: "Magali", nom: "de Laforêt", email: "magali@example.org", position: 1 },
+    { service_id: "catechumenat", civilite: null, prenom: "Antoine", nom: "Garnier", email: "antoine@example.org", position: 0 },
+    { service_id: "forever", civilite: null, prenom: "Cyril", nom: "Delorme", email: "cyril@example.org", position: 0 },
+    { service_id: "forever", civilite: null, prenom: "Julia", nom: "Delorme", email: "julia@example.org", position: 1 },
+    { service_id: "accueil", civilite: null, prenom: "Tanya", nom: "Roux", email: "tanya@example.org", position: 0 },
+    { service_id: "accueil", civilite: null, prenom: "Antoine", nom: "Garnier", email: null, position: 1 },
+    { service_id: "louange", civilite: null, prenom: "Quentin", nom: "Blanc", email: "quentin@example.org", position: 0 },
+    { service_id: "sacristie", civilite: null, prenom: "Jean", nom: "Brunet", email: "jean@example.org", position: 0 },
+    { service_id: "maraudes", civilite: null, prenom: "Sébastien", nom: "Allard", email: "sebastien@example.org", position: 0 },
+    { service_id: "scouts", civilite: null, prenom: "Paule et Yann", nom: "Mikoua", email: "mikoua@example.org", position: 0 },
+    { service_id: "spot", civilite: "Père", prenom: "Jean", nom: "Dupuis", email: "pere.jean@example.org", position: 0 },
+  ],
+  responsables: [
+    { pole_id: "dimanche", civilite: null, prenom: "Emmanuel", nom: "Moreau", email: "emmanuel@example.org", position: 0 },
+    { pole_id: "dimanche", civilite: null, prenom: "Delphine", nom: "Moreau", email: "delphine@example.org", position: 1 },
+    { pole_id: "dimanche", civilite: null, prenom: "Claire", nom: "Vannier", email: "claire@example.org", position: 2 },
+    { pole_id: "dimanche", civilite: null, prenom: "Stanislas", nom: "Vannier", email: "stanislas@example.org", position: 3 },
+    { pole_id: "solidarite", civilite: null, prenom: "Jean", nom: "Brunet", email: "jean@example.org", position: 0 },
+    { pole_id: "jeunes", civilite: null, prenom: "Alexia", nom: "do Carmo", email: "alexia@example.org", position: 0 },
+  ],
+  messages: [],
+};

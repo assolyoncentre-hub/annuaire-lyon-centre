@@ -1,85 +1,87 @@
 // Accès aux données : toute la communication avec Supabase passe par cet objet.
-// Les tests locaux le remplacent par un faux (window.__api) pour fonctionner sans réseau.
+// Les tests remplacent cet objet par un faux (window.__api) pour fonctionner sans réseau.
+//
+// Visiteurs : lectures publiques par de simples appels HTTP, sans la bibliothèque Supabase.
+// Administration : la bibliothèque (connexion Google, session) n'est chargée qu'au besoin.
 window.makeApi = function () {
   const { supabaseUrl, supabaseKey } = window.ANNUAIRE_CONFIG;
-  const sb = window.supabase.createClient(supabaseUrl, supabaseKey, { auth: { flowType: "pkce" } });
+  const SUPABASE_JS = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js";
+  const headers = { apikey: supabaseKey, "Content-Type": "application/json" };
+
+  async function call(path, body) {
+    const r = await fetch(supabaseUrl + path, body === undefined ? { headers } : { method: "POST", headers, body: JSON.stringify(body) });
+    const data = await r.json().catch(() => null);
+    if (!r.ok) throw Object.assign(new Error(data?.erreur || data?.message || "HTTP " + r.status), { status: r.status, body: data });
+    return data;
+  }
+  const rpc = (name, args = {}) => call("/rest/v1/rpc/" + name, args);
+
+  // Bibliothèque Supabase chargée une seule fois, à la demande
+  let sbPromise = null;
+  const getSb = () => sbPromise ||= new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = SUPABASE_JS;
+    s.onload = () => resolve(window.supabase.createClient(supabaseUrl, supabaseKey, { auth: { flowType: "pkce" } }));
+    s.onerror = () => reject(new Error("Chargement de Supabase impossible."));
+    document.head.append(s);
+  });
   const ok = ({ data, error }) => { if (error) throw error; return data; };
+  const sbRpc = async (name, args) => ok(await (await getSb()).rpc(name, args));
+  const ref = new URL(supabaseUrl).hostname.split(".")[0];
 
   return {
-    // Public : pôles et services (sans noms), puis noms au clic
+    // Public : pôles et staffs (sans noms), puis noms au clic
     async loadPublic() {
-      const [poles, services] = await Promise.all([
-        sb.from("poles").select("id, name, ordre").then(ok),
-        sb.rpc("annuaire_services").then(ok),
-      ]);
+      const [poles, services] = await Promise.all([call("/rest/v1/poles?select=id,name,ordre"), rpc("annuaire_services")]);
       return { poles, services };
     },
-    contacts: id => sb.rpc("annuaire_contacts", { p_service: id }).then(ok),
-    responsables: id => sb.rpc("annuaire_responsables", { p_pole: id }).then(ok),
+    contacts: id => rpc("annuaire_contacts", { p_service: id }),
+    responsables: id => rpc("annuaire_responsables", { p_pole: id }),
     // Staffs et pôles dont un leader porte ce nom (la base ne renvoie jamais les noms eux-mêmes)
-    searchPeople: q => sb.rpc("annuaire_recherche", { q }).then(ok),
+    searchPeople: q => rpc("annuaire_recherche", { q }),
     async sendMessage(m) {
-      const { data, error } = await sb.functions.invoke("envoyer-message", { body: m });
-      if (error) {
+      try { return await call("/functions/v1/envoyer-message", m); }
+      catch (err) {
         // Message de la fonction si elle a répondu, sinon détail technique (pour le diagnostic)
-        const ctx = error.context, base = "L'envoi a échoué. Merci de réessayer plus tard.";
-        let detail = error.message || error.name || "";
-        if (ctx && typeof ctx.json === "function") {
-          let body = null;
-          try { body = await ctx.clone().json(); } catch {}
-          if (body?.erreur) throw new Error(body.erreur);
-          detail = "HTTP " + ctx.status + (body ? " " + (body.message || body.msg || body.code || JSON.stringify(body)) : "");
-        }
-        console.error("envoyer-message :", error);
-        throw new Error(base + (detail ? " (" + detail + ")" : ""));
+        if (err.body?.erreur) throw new Error(err.body.erreur);
+        console.error("envoyer-message :", err);
+        throw new Error("L'envoi a échoué. Merci de réessayer plus tard. (" + (err.status ? "HTTP " + err.status : err.message) + ")");
       }
-      return data;
     },
 
-    // Connexion Google et droits
-    async session() { return (await sb.auth.getSession()).data.session; },
-    onAuth: cb => sb.auth.onAuthStateChange((_e, s) => cb(s)),
-    signIn() {
+    // Connexion Google et droits. La bibliothèque n'est nécessaire que pour l'administration, au retour
+    // de Google, ou si une session est déjà enregistrée dans le navigateur.
+    authNeeded() {
+      if (location.hash === "#admin" || /[?&](code|error)=/.test(location.search)) return true;
+      try { return !!localStorage.getItem("sb-" + ref + "-auth-token"); } catch { return false; }
+    },
+    async session() { return (await (await getSb()).auth.getSession()).data.session; },
+    async onAuth(cb) { (await getSb()).auth.onAuthStateChange((_e, s) => cb(s)); },
+    async signIn() {
       // Retour sur la page d'administration après la connexion Google
       try { sessionStorage.setItem("annuaire-admin", "1"); } catch {}
-      return sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: location.origin + location.pathname } });
+      return (await getSb()).auth.signInWithOAuth({ provider: "google", options: { redirectTo: location.origin + location.pathname } });
     },
-    signOut: () => sb.auth.signOut(),
-    isAdmin: () => sb.rpc("is_admin").then(ok),
+    signOut: async () => (await getSb()).auth.signOut(),
+    isAdmin: () => sbRpc("is_admin"),
 
-    // Administration (refusé par la base pour tout autre compte)
+    // Administration (refusé par la base pour tout autre compte). Chaque enregistrement est un seul
+    // appel à une fonction de la base, qui fait tout ou rien.
     async loadAdmin() {
+      const sb = await getSb();
       const [contacts, responsables] = await Promise.all([
         sb.from("contacts").select("id, service_id, civilite, prenom, nom, email, position").order("position").then(ok),
         sb.from("pole_responsables").select("id, pole_id, civilite, prenom, nom, email, position").order("position").then(ok),
       ]);
       return { contacts, responsables };
     },
-    messages: () => sb.from("messages").select("*, services(name), poles(name)").order("created_at", { ascending: false }).limit(100).then(ok),
-    async saveService(s, people) {
-      await sb.from("services").upsert(s).then(ok);
-      await sb.from("contacts").delete().eq("service_id", s.id).then(ok);
-      if (people.length) await sb.from("contacts").insert(people.map((p, i) => ({ ...p, service_id: s.id, position: i }))).then(ok);
-    },
-    deleteService: id => sb.from("services").delete().eq("id", id).then(ok),
-    async savePole(p, people) {
-      await sb.from("poles").upsert(p).then(ok);
-      await sb.from("pole_responsables").delete().eq("pole_id", p.id).then(ok);
-      if (people.length) await sb.from("pole_responsables").insert(people.map((x, i) => ({ ...x, pole_id: p.id, position: i }))).then(ok);
-    },
-    deletePole: id => sb.from("poles").delete().eq("id", id).then(ok),
-    // Une personne = ses lignes dans contacts (par service) et pole_responsables (par pôle) :
-    // on supprime les lignes retirées, met à jour les autres et ajoute les nouvelles
-    async savePerson(fields, plan) {
-      for (const [kind, table] of [["contacts", "contacts"], ["responsables", "pole_responsables"]]) {
-        const { del = [], keep = [], add = [] } = plan[kind] || {};
-        if (del.length) await sb.from(table).delete().in("id", del).then(ok);
-        if (keep.length) await sb.from(table).update(fields).in("id", keep).then(ok);
-        if (add.length) await sb.from(table).insert(add.map(r => ({ ...fields, ...r }))).then(ok);
-      }
-    },
-    async reorder(kind, rows) {
-      for (const r of rows) await sb.from(kind).update({ ordre: r.ordre }).eq("id", r.id).then(ok);
-    },
+    messages: async () => (await getSb()).from("messages").select("*, services(name), poles(name)").order("created_at", { ascending: false }).limit(100).then(ok),
+    saveService: (s, people) => sbRpc("admin_save_service", { s, people }),
+    deleteService: async id => (await getSb()).from("services").delete().eq("id", id).then(ok),
+    savePole: (p, people) => sbRpc("admin_save_pole", { p, people }),
+    deletePole: async id => (await getSb()).from("poles").delete().eq("id", id).then(ok),
+    // Une personne = ses lignes dans contacts (par staff) et pole_responsables (par pôle)
+    savePerson: (fields, plan) => sbRpc("admin_save_person", { fields, plan }),
+    reorder: (kind, rows) => sbRpc("admin_reorder", { kind, rows }),
   };
 };

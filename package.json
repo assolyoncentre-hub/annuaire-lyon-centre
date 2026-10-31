@@ -1,0 +1,12 @@
+{
+  "name": "annuaire-lyon-centre",
+  "private": true,
+  "description": "Annuaire des propositions de l'Église Lyon Centre",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "axe-core": "4.10.2"
+  }
+}

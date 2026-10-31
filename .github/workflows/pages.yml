@@ -1,8 +1,10 @@
 name: Déploiement GitHub Pages
 
+# À chaque modification sur main : les tests d'abord, puis la publication si tout est vert.
 on:
   push:
     branches: [main]
+    paths-ignore: [README.md]
   workflow_dispatch:
 
 permissions:
@@ -15,7 +17,31 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Navigateur de test gardé en cache d'une exécution à l'autre
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - run: npx playwright install --with-deps chromium
+      - run: npm test
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: resultats-des-tests
+          path: test-results/
+          retention-days: 7
+
   deploy:
+    needs: test
     runs-on: ubuntu-latest
     environment:
       name: github-pages

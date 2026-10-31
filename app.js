@@ -23,9 +23,11 @@ const fullName = p => {
 const peopleOf = s => (contactsOf[s._id] ?? []).map(fullName);
 const nbContacts = s => Number.isFinite(s.nbContacts) ? s.nbContacts : (contactsOf[s._id] ?? []).length;
 const respNames = p => (respOf[p._id] ?? []).map(fullName);
-async function loadDoc(col, id, cache) {
-  if (cache[id]) return;
-  cache[id] = await (col === "contacts" ? api.contacts(id) : api.responsables(id));
+const pending = {};
+function loadDoc(col, id, cache) {
+  if (cache[id]) return Promise.resolve();
+  return pending[col + id] ||= (col === "contacts" ? api.contacts(id) : api.responsables(id))
+    .then(rows => { cache[id] = rows; }, err => { delete pending[col + id]; throw err; });
 }
 
 // Chaque mot cherché doit être le début d'un mot (« bastien » ne trouve pas « Sébastien »)
@@ -77,6 +79,8 @@ function render() {
     b.innerHTML = (pole ? '<span class="dot"></span>' : "") + esc(label) + ' <span class="n">' + n + "</span>";
     b.setAttribute("aria-pressed", String(pole === active));
     b.onclick = () => { active = active === pole ? null : pole; render(); };
+    // Préchargement des responsables du pôle dès que le pointeur (ou le focus) arrive sur le filtre
+    if (pole) b.onpointerenter = b.onfocus = () => { const p = poles[pole]; if (p && !respOf[p._id]) loadDoc("responsables", p._id, respOf).catch(() => {}); };
     filters.append(b);
   };
   const found = services.filter(matches);
@@ -144,12 +148,22 @@ $("resp").addEventListener("click", e => {
   const p = e.target.closest(".msg") && poles[active];
   if (p) openModal({ pole: true, id: p._id, name: p.name, people: respNames(p) });
 });
+// Préchargement des leaders dès que le pointeur, le doigt ou le focus arrive sur une carte : le clic est instantané
+const prefetchCard = e => {
+  const s = shown[e.target.closest?.(".card")?.dataset.i];
+  if (s && nbContacts(s) && !contactsOf[s._id]) loadDoc("contacts", s._id, contactsOf).catch(() => {});
+};
+$("grid").addEventListener("pointerover", prefetchCard);
+$("grid").addEventListener("focusin", prefetchCard);
+$("grid").addEventListener("touchstart", prefetchCard, { passive: true });
 // Une seule section « Contact » ouverte à la fois, pour éviter les chevauchements
 $("grid").addEventListener("toggle", e => {
   if (e.target.open) {
     const s = shown[e.target.closest(".card")?.dataset.i];
-    if (s && !contactsOf[s._id]) loadDoc("contacts", s._id, contactsOf).then(() => {
-      e.target.querySelector("ul").innerHTML = contactList(s);
+    // Noms déjà préchargés (survol) ou en cours de chargement : la liste est remplie dès qu'ils sont là
+    const ul = e.target.querySelector("ul");
+    if (s && ul.querySelector(".loading")) loadDoc("contacts", s._id, contactsOf).then(() => {
+      ul.innerHTML = contactList(s);
     }, () => { const l = e.target.querySelector(".loading"); if (l) l.textContent = "Impossible de charger les contacts."; });
   }
   if (e.target.open) $("grid").querySelectorAll(".contact[open]").forEach(d => { if (d !== e.target) d.open = false; });
@@ -188,11 +202,12 @@ $("m-form").addEventListener("submit", async e => {
 // Connexion Google (Supabase Auth). Seuls les comptes listés dans la table « admins » sont
 // administrateurs ; la base refuse toute modification venant d'un autre compte.
 let isAdmin = false, session = null, adminTab = "services", adminTerms = [], messages = [];
+let authStarted = null, authLoaded = false, lastViewAdmin = null;
 
 async function onSession(s) {
   session = s;
   isAdmin = s ? await api.isAdmin().catch(() => false) : false;
-  if (isAdmin) await loadAdmin();
+  if (isAdmin) await Promise.all([loadAdmin(), api.messages().then(m => { messages = m; }, () => {})]);
   route();
 }
 async function loadAdmin() {
@@ -201,11 +216,10 @@ async function loadAdmin() {
   contactsOf = group(contacts, "service_id");
   respOf = group(responsables, "pole_id");
   contactRows = contacts; respRows = responsables;
-  messages = await api.messages().catch(() => []);
 }
+// Après un enregistrement : annuaire et données d'administration rechargés en parallèle
 async function refresh() {
-  await loadPublic();
-  if (isAdmin) await loadAdmin();
+  await Promise.all([loadPublic(), isAdmin && loadAdmin()]);
   render();
   renderAdmin();
 }
@@ -215,14 +229,17 @@ function route() {
   $("admin-view").hidden = !admin;
   $("h1").textContent = admin ? "Administration" : "Annuaire des propositions";
   $("admin-link").textContent = admin ? "← Retour à l'annuaire" : "Administration";
-  $("admin-login").hidden = $("login-top").hidden = !admin || !!session;
+  if (admin) ensureAuth();
+  $("admin-login").hidden = $("login-top").hidden = !admin || !!session || !authLoaded;
   $("admin-denied").hidden = !admin || !session || isAdmin;
   $("admin-body").hidden = !admin || !isAdmin;
   const email = session?.user?.email || "";
   $("me-email").textContent = email;
   $("denied-email").textContent = email;
   if (admin) renderAdmin();
-  window.scrollTo(0, 0);
+  // Retour en haut seulement en changeant de vue (pas quand la connexion se termine en arrière-plan)
+  if (admin !== lastViewAdmin) window.scrollTo(0, 0);
+  lastViewAdmin = admin;
 }
 window.addEventListener("hashchange", route);
 $("year").textContent = new Date().getFullYear();
@@ -758,7 +775,7 @@ $("q").addEventListener("input", e => {
     if (seq !== searchSeq) return; // une frappe plus récente a eu lieu entre-temps
     nameHits = { services: new Set(rows.map(r => r.service_id).filter(Boolean)), poles: new Set(rows.map(r => r.pole_id).filter(Boolean)) };
     render();
-  }, 250);
+  }, 150);
 });
 
 async function loadPublic() {
@@ -769,10 +786,9 @@ async function loadPublic() {
     ordre: s.ordre, nbContacts: s.nb_contacts }));
 }
 
-(async () => {
-  status("Chargement…");
-  try { await loadPublic(); render(); }
-  catch { status("Impossible de charger l'annuaire pour le moment. Merci de réessayer plus tard."); }
+// Connexion : la bibliothèque Supabase n'est chargée que pour l'administration (ou une session existante)
+function ensureAuth() { return authStarted ||= startAuth(); }
+async function startAuth() {
   const s = await api.session().catch(() => null);
   // Retour de Google : en cas d'échec, Supabase renvoie l'erreur dans l'adresse (?error_description=…)
   const params = new URLSearchParams(location.search + "&" + location.hash.replace(/^#/, ""));
@@ -785,7 +801,15 @@ async function loadPublic() {
     $("login-error").hidden = false;
   }
   if ((fromLogin && s) || authError) location.hash = "admin";
+  authLoaded = true;
   await onSession(s);
-  render();
+  if (isAdmin) render(); // l'annuaire n'est reconstruit que si les données d'administration changent l'affichage
   api.onAuth(async s2 => { if ((s2?.user?.id || null) !== (session?.user?.id || null)) { await onSession(s2); render(); } });
+}
+
+(async () => {
+  status("Chargement…");
+  if (!api.authNeeded || api.authNeeded()) ensureAuth();
+  try { await loadPublic(); render(); }
+  catch { status("Impossible de charger l'annuaire pour le moment. Merci de réessayer plus tard."); }
 })();
