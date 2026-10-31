@@ -17,7 +17,8 @@ const PARTICLE = /^(?:(?:de|du|des|do|da)\s+|d['’]\s*)+/i;
 const fullName = p => {
   if (typeof p === "string") return p;
   const nom = String(p?.nom ?? "").trim(), part = (nom.match(PARTICLE) || [""])[0];
-  return [p?.prenom, part.toLowerCase() + nom.slice(part.length).toUpperCase()].filter(Boolean).join(" ").trim();
+  // Seule la civilité « Père » s'affiche (devant le prénom) ; Madame et Monsieur restent invisibles
+  return [p?.civilite === "Père" ? "Père" : "", p?.prenom, part.toLowerCase() + nom.slice(part.length).toUpperCase()].filter(Boolean).join(" ").trim();
 };
 const peopleOf = s => (contactsOf[s._id] ?? []).map(fullName);
 const nbContacts = s => Number.isFinite(s.nbContacts) ? s.nbContacts : (contactsOf[s._id] ?? []).length;
@@ -40,7 +41,7 @@ const textMatches = s => {
 
 // Civilité : liste déroulante Madame / Monsieur (vide = non renseignée)
 const civSelect = (id, value, label) => '<select' + (id ? ' id="' + id + '"' : "") + ' class="civ" aria-label="' + (label || "Civilité") + '"><option value="">' + (id ? "—" : "Civilité") + "</option>" +
-  [["Madame", "Mme"], ["Monsieur", "M."]].map(([c, abr]) => '<option value="' + c + '"' + (c === value ? " selected" : "") + ">" + abr + "</option>").join("") + "</select>";
+  [["Madame", "Mme"], ["Monsieur", "M."], ["Père", "Père"]].map(([c, abr]) => '<option value="' + c + '"' + (c === value ? " selected" : "") + ">" + abr + "</option>").join("") + "</select>";
 // « A », « A et B », « A, B et C »
 const andList = a => a.length > 1 ? a.slice(0, -1).join(", ") + " et " + a[a.length - 1] : a.join("");
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -434,8 +435,8 @@ $("editor").addEventListener("click", e => { if (e.target === $("editor")) close
 // Le titre de la fenêtre suit le nom saisi (service, pôle ou contact)
 $("ed-form").addEventListener("input", e => {
   if (e.target.id === "ed-name") $("ed-title").textContent = e.target.value.trim() || e.target.dataset.empty;
-  else if (e.target.id === "pe-prenom" || e.target.id === "pe-nom")
-    $("ed-title").textContent = fullName({ prenom: $("pe-prenom").value.trim(), nom: $("pe-nom").value.trim() }) || "Nouveau contact";
+  else if (["pe-civ", "pe-prenom", "pe-nom"].includes(e.target.id))
+    $("ed-title").textContent = fullName({ civilite: $("pe-civ").value, prenom: $("pe-prenom").value.trim(), nom: $("pe-nom").value.trim() }) || "Nouveau contact";
 });
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("editor").hidden) closeEditor(); });
 
