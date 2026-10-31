@@ -12,7 +12,8 @@ let contactRows = [], respRows = [];
 // Recherche plein texte sans accents ni casse, tous les mots doivent apparaître
 const norm = s => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 // Une personne est {prenom, nom} ; nom de famille en capitales, particule initiale (de, d', do…) en minuscules
-const PARTICLE = /^((?:de|du|des|do|da|d')\s*)+/i;
+// La particule doit être un mot séparé (« de Laforcade ») ou un « d' » (« d'Ornano ») : « Delattre » n'en a pas
+const PARTICLE = /^(?:(?:de|du|des|do|da)\s+|d['’]\s*)+/i;
 const fullName = p => {
   if (typeof p === "string") return p;
   const nom = String(p?.nom ?? "").trim(), part = (nom.match(PARTICLE) || [""])[0];
