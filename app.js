@@ -239,7 +239,9 @@ function route() {
   $("serv-view").hidden = !showServ;
   $("admin-view").hidden = !admin;
   $("h1").textContent = serv ? "Annuaire des leaders" : admin ? "Administration" : "Annuaire des propositions";
-  $("admin-link").textContent = h === "#admin" ? "← Retour à l'annuaire" : "Administration";
+  // En haut à droite : « Connexion », ou « Administration » pour un administrateur connecté ; masqué dans l'administration
+  $("admin-link").textContent = isAdmin ? "Administration" : "Connexion";
+  $("admin-link").hidden = h === "#admin";
   // Onglets entre les deux annuaires, pour tout le monde (sauf dans l'administration) ;
   // « Leaders » sans être administrateur affiche l'écran de connexion
   $("switch").hidden = h === "#admin";
