@@ -34,6 +34,8 @@ const matches = s => {
   return terms.every(t => hay.some(w => w.startsWith(t)));
 };
 
+// « A », « A et B », « A, B et C »
+const andList = a => a.length > 1 ? a.slice(0, -1).join(", ") + " et " + a[a.length - 1] : a.join("");
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const color = p => COLORS[p] || FALLBACK[[...p].reduce((a, c) => a + c.charCodeAt(0), 0) % FALLBACK.length];
 const byName = (a, b) => a.localeCompare(b, "fr");
@@ -78,7 +80,8 @@ function render() {
   if (ap && !respOf[ap._id]) loadDoc("responsables", ap._id, respOf).then(render, () => {});
   const resp = ap && respNames(ap);
   $("resp").innerHTML = resp && resp.length
-    ? '<p class="resp" style="--c:' + color(active) + '"><strong>' + (resp.length > 1 ? "Responsables" : "Responsable") + ' du pôle :</strong> ' + resp.map(esc).join(", ") + "</p>" : "";
+    ? '<div class="resp" style="--c:' + color(active) + '"><p><strong>' + (resp.length > 1 ? "Responsables" : "Responsable") + ' du pôle :</strong> ' +
+      andList(resp.map(esc)) + '</p><button type="button" class="msg">' + MAIL_ICON + "Message</button></div>" : "";
   status(!services.length ? "Aucun staff pour l'instant."
     : list.length ? list.length + " staff" + (list.length > 1 ? "s" : "") : "Aucun résultat pour cette recherche.");
   shown = list;
@@ -101,14 +104,16 @@ function toast(msg) {
 }
 
 // Formulaire de contact : envoyé par la fonction serveur « envoyer-message »
-let lastFocus = null, modalService = null;
+// La fenêtre s'adresse soit aux contacts d'un staff, soit aux responsables d'un pôle
+let lastFocus = null, modalTarget = null;
 // Pendant qu'une fenêtre est ouverte, le reste de la page est inactif : Tab reste dans la fenêtre
 const setPageInert = on => [document.querySelector(".hero"), $("dir-view"), $("admin-view"), document.querySelector(".site-footer")]
   .forEach(el => { if (el) el.inert = on; });
-function openModal(s) {
-  modalService = s;
-  $("m-title").textContent = s.name || "";
-  $("m-people").textContent = peopleOf(s).join(", ");
+function openModal(t) {
+  modalTarget = t;
+  $("m-kicker").textContent = t.pole ? (t.people.length > 1 ? "Message aux responsables du pôle" : "Message au responsable du pôle") : "Envoyer un message";
+  $("m-title").textContent = t.name || "";
+  $("m-people").textContent = andList(t.people);
   $("m-form").reset();
   lastFocus = document.activeElement;
   $("modal").hidden = false;
@@ -125,7 +130,11 @@ function closeModal() {
 $("grid").addEventListener("click", e => {
   if (!e.target.closest(".msg")) return;
   const s = shown[e.target.closest(".card")?.dataset.i];
-  if (s) openModal(s);
+  if (s) openModal({ id: s._id, name: s.name, people: peopleOf(s) });
+});
+$("resp").addEventListener("click", e => {
+  const p = e.target.closest(".msg") && poles[active];
+  if (p) openModal({ pole: true, id: p._id, name: p.name, people: respNames(p) });
 });
 // Une seule section « Contact » ouverte à la fois, pour éviter les chevauchements
 $("grid").addEventListener("toggle", e => {
@@ -158,7 +167,7 @@ $("m-form").addEventListener("submit", async e => {
   const f = e.target, btn = $("m-send");
   btn.disabled = true;
   try {
-    const r = await api.sendMessage({ service_id: modalService._id, prenom: f.prenom.value, nom: f.nom.value,
+    const r = await api.sendMessage({ [modalTarget.pole ? "pole_id" : "service_id"]: modalTarget.id, prenom: f.prenom.value, nom: f.nom.value,
       email: f.email.value, telephone: f.tel.value, message: f.message.value, site: f.site.value });
     closeModal();
     toast(r?.envoye === false ? "Merci ! Votre message est enregistré, l'équipe le transmettra." : "Merci ! Votre message a bien été envoyé.");
@@ -198,7 +207,7 @@ function route() {
   $("admin-view").hidden = !admin;
   $("h1").textContent = admin ? "Administration" : "Annuaire des propositions";
   $("admin-link").textContent = admin ? "← Retour à l'annuaire" : "Administration";
-  $("admin-login").hidden = !admin || !!session;
+  $("admin-login").hidden = $("login-top").hidden = !admin || !!session;
   $("admin-denied").hidden = !admin || !session || isAdmin;
   $("admin-body").hidden = !admin || !isAdmin;
   const email = session?.user?.email || "";
@@ -210,6 +219,7 @@ function route() {
 window.addEventListener("hashchange", route);
 $("year").textContent = new Date().getFullYear();
 $("back-link").addEventListener("click", () => $("admin-link").click());
+$("login-back").addEventListener("click", () => $("admin-link").click());
 $("admin-link").addEventListener("click", () => {
   if (location.hash === "#admin") history.pushState("", "", location.pathname + location.search); else location.hash = "admin";
   route();
@@ -257,9 +267,9 @@ function renderAdmin() {
   }
   if (adminTab === "messages") {
     const fmt = d => new Date(d).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" });
-    $("admin-list").innerHTML = messages.filter(m => adminMatch([m.prenom, m.nom, m.email, m.message, m.services?.name].join(" "))).map(m =>
+    $("admin-list").innerHTML = messages.filter(m => adminMatch([m.prenom, m.nom, m.email, m.message, m.services?.name, m.poles?.name].join(" "))).map(m =>
       '<div class="msg-row"><div class="meta"><strong>' + esc(m.prenom + " " + m.nom) + "</strong><span>" + esc(m.email) + "</span>" +
-      (m.telephone ? "<span>" + esc(m.telephone) + "</span>" : "") + "<span>" + esc(m.services?.name || "Staff supprimé") + "</span><span>" + fmt(m.created_at) + "</span>" +
+      (m.telephone ? "<span>" + esc(m.telephone) + "</span>" : "") + "<span>" + esc(m.services?.name || (m.poles ? "Responsables du pôle " + m.poles.name : m.pole_id ? "Pôle supprimé" : "Staff supprimé")) + "</span><span>" + fmt(m.created_at) + "</span>" +
       (m.envoye ? '<span class="badge ok">Envoyé</span>' : '<span class="badge ko">Non envoyé</span>') + "</div>" +
       (!m.envoye && m.erreur ? '<p class="msg-error">' + esc(m.erreur) + "</p>" : "") + "<p>" + esc(m.message) + "</p></div>"
     ).join("") || '<div class="empty">Aucun message.</div>';

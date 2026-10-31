@@ -53,7 +53,10 @@ h1 { margin: 14px 0 8px; font: 700 clamp(40px, 8vw, 72px)/.95 Phudu, Montserrat,
 .chip[aria-pressed="true"] .n { color: inherit; opacity: .8; }
 .chip[aria-pressed="true"] .dot { background: var(--brand-ink); }
 main.wrap { padding-top: 24px; padding-bottom: 56px; }
-.resp { margin: 0 0 20px; padding: 14px 18px; border-radius: 16px; background: var(--tint); }
+.resp { margin: 0 0 20px; padding: 14px 18px; border-radius: 16px; background: var(--tint);
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px; }
+.resp p { margin: 0; min-width: 0; }
+
 .resp strong { font: 700 12px/1 Montserrat, sans-serif; letter-spacing: .12em; text-transform: uppercase;
   color: var(--brand); display: block; margin-bottom: 6px; }
 .count { margin: 0 0 16px; color: var(--muted); font: 600 12px/1 Montserrat, sans-serif;
@@ -95,11 +98,14 @@ main.wrap { padding-top: 24px; padding-bottom: 56px; }
   list-style: none; background: var(--surface); border: 1px solid var(--border); border-radius: 0 0 20px 20px;
   box-shadow: 0 16px 28px -14px rgba(0, 40, 80, .35); color: var(--text); font-size: 15px; }
 .contact ul li + li { margin-top: 4px; }
-.contact .msg { margin-top: 12px; width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+.contact .msg, .resp .msg { margin-top: 12px; width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   padding: 10px 16px; border: 0; border-radius: 6px; background: var(--btn); color: var(--btn-ink); cursor: pointer;
   font: 600 13px/1 Montserrat, sans-serif; letter-spacing: .02em; transition: filter .15s; }
-.contact .msg:hover { opacity: .85; }
-.contact .msg svg { width: 16px; height: 16px; }
+.contact .msg:hover, .resp .msg:hover { opacity: .85; }
+.contact .msg svg, .resp .msg svg { width: 16px; height: 16px; }
+/* Bandeau des responsables : bouton à droite des noms (pleine largeur sur téléphone) */
+.resp .msg { margin-top: 0; width: auto; flex: none; }
+@media (max-width: 520px) { .resp .msg { width: 100%; } }
 .toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 16px); opacity: 0; pointer-events: none; z-index: 30;
   max-width: calc(100% - 32px); padding: 12px 18px; border-radius: 12px; background: var(--text); color: var(--bg);
   font-size: 14px; box-shadow: 0 12px 28px -12px rgba(0, 0, 0, .4); transition: opacity .2s, transform .2s; }
@@ -266,6 +272,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .badge.ok { background: #e3f4ea; color: #1d6b43; } .badge.ko { background: #fde8e6; color: #a3261c; }
 .msg-row .msg-error { color: #a3261c; font-size: 13px; }
 .account .back-link { margin: 0; }
+.account[hidden] { display: none; }
 .account { margin-top: 20px; }
 .hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
 .hp input { font-size: 16px; } /* iPhone : pas de zoom automatique si le champ reçoit le focus */
@@ -299,6 +306,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 </div>
 <div id="admin-view" class="view" hidden>
   <main class="wrap">
+    <div id="login-top" class="account" hidden><button type="button" class="back-link" id="login-back">← Retour à l'annuaire</button></div>
     <div id="admin-login" class="login" hidden>
       <h2>Administration</h2>
       <p>Connectez-vous avec le compte Google d'un administrateur de l'annuaire.</p>
@@ -337,7 +345,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 <div class="modal-bg" id="modal" hidden>
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="m-title">
     <div class="modal-head">
-      <div class="kicker">Envoyer un message</div>
+      <div class="kicker" id="m-kicker">Envoyer un message</div>
       <h2 id="m-title"></h2>
       <p id="m-people"></p>
     </div>

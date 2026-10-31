@@ -53,7 +53,7 @@ window.makeApi = function () {
       ]);
       return { contacts, responsables };
     },
-    messages: () => sb.from("messages").select("*, services(name)").order("created_at", { ascending: false }).limit(100).then(ok),
+    messages: () => sb.from("messages").select("*, services(name), poles(name)").order("created_at", { ascending: false }).limit(100).then(ok),
     async saveService(s, people) {
       await sb.from("services").upsert(s).then(ok);
       await sb.from("contacts").delete().eq("service_id", s.id).then(ok);
