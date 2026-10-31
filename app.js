@@ -174,10 +174,12 @@ $("grid").addEventListener("pointerleave", e => {
   const d = e.target.querySelector(".contact[open]");
   if (d) d.open = false;
 }, true);
-// Au clavier : la section se replie quand le focus quitte la carte (sauf vers le formulaire de message qu'elle ouvre)
+// Au clavier : la section se replie quand le focus passe à un élément hors de la carte (sauf le formulaire de message).
+// Focus simplement perdu (sur iPhone, toucher un bouton ne lui donne pas le focus) : on ne replie pas, sinon le bouton
+// « Message » disparaîtrait avant d'avoir reçu le toucher.
 $("grid").addEventListener("focusout", e => {
   const card = e.target.closest(".card"), to = e.relatedTarget;
-  if (!card || (to && (card.contains(to) || $("modal").contains(to)))) return;
+  if (!card || !to || card.contains(to) || $("modal").contains(to)) return;
   const d = card.querySelector(".contact[open]");
   if (d) d.open = false;
 });

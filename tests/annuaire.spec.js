@@ -112,3 +112,16 @@ test("téléphone : rien ne déborde @mobile", async ({ open }) => {
   await page.locator("#filters .chip", { hasText: "Le dimanche" }).click();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize().width);
 });
+
+test("téléphone : le bouton Message d'une section dépliée ouvre le formulaire @mobile", async ({ open }) => {
+  test.skip(test.info().project.name !== "téléphone", "écran tactile uniquement");
+  const page = await open();
+  // Comme Safari sur iPhone : toucher un bouton ne lui donne pas le focus, celui d'avant est simplement perdu
+  await page.evaluate(() => document.addEventListener("mousedown", e => {
+    if (e.target.closest("button")) { e.preventDefault(); document.activeElement?.blur(); }
+  }, true));
+  const carte = page.locator(".card").first();
+  await carte.locator("summary").tap();
+  await carte.locator(".msg").tap();
+  await expect(page.locator("#modal")).toBeVisible();
+});
