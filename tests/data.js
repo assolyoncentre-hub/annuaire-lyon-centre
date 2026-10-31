@@ -21,7 +21,7 @@ module.exports = {
     { id: "kt", name: "KT Kids", pole_id: "jeunes", description: "", ordre: null },
   ],
   contacts: [
-    { service_id: "bapteme", civilite: "Monsieur", prenom: "Damien", nom: "de Laforêt", email: "damien@example.org", position: 0 },
+    { service_id: "bapteme", civilite: "Monsieur", prenom: "Damien", nom: "de Laforêt", email: "damien@example.org", telephone: "06 39 98 10 21", position: 0 },
     { service_id: "bapteme", civilite: "Madame", prenom: "Magali", nom: "de Laforêt", email: "magali@example.org", position: 1 },
     { service_id: "catechumenat", civilite: null, prenom: "Antoine", nom: "Garnier", email: "antoine@example.org", position: 0 },
     { service_id: "forever", civilite: null, prenom: "Cyril", nom: "Delorme", email: "cyril@example.org", position: 0 },
@@ -29,10 +29,10 @@ module.exports = {
     { service_id: "accueil", civilite: null, prenom: "Tanya", nom: "Roux", email: "tanya@example.org", position: 0 },
     { service_id: "accueil", civilite: null, prenom: "Antoine", nom: "Garnier", email: null, position: 1 },
     { service_id: "louange", civilite: null, prenom: "Quentin", nom: "Blanc", email: "quentin@example.org", position: 0 },
-    { service_id: "sacristie", civilite: null, prenom: "Jean", nom: "Brunet", email: "jean@example.org", position: 0 },
+    { service_id: "sacristie", civilite: null, prenom: "Jean", nom: "Brunet", email: "jean@example.org", telephone: "06 39 98 31 62", position: 0 },
     { service_id: "maraudes", civilite: null, prenom: "Sébastien", nom: "Allard", email: "sebastien@example.org", position: 0 },
     { service_id: "scouts", civilite: null, prenom: "Paule et Yann", nom: "Mikoua", email: "mikoua@example.org", position: 0 },
-    { service_id: "spot", civilite: "Père", prenom: "Jean", nom: "Dupuis", email: "pere.jean@example.org", position: 0 },
+    { service_id: "spot", civilite: "Père", prenom: "Jean", nom: "Dupuis", email: "pere.jean@example.org", telephone: "+33 6 39 98 22 05", position: 0 },
   ],
   responsables: [
     { pole_id: "dimanche", civilite: null, prenom: "Emmanuel", nom: "Moreau", email: "emmanuel@example.org", position: 0 },

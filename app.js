@@ -14,12 +14,13 @@ const norm = s => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLow
 // Une personne est {prenom, nom} ; nom de famille en capitales, particule initiale (de, d', do…) en minuscules
 // La particule doit être un mot séparé (« de Laforcade ») ou un « d' » (« d'Ornano ») : « Delattre » n'en a pas
 const PARTICLE = /^(?:(?:de|du|des|do|da)\s+|d['’]\s*)+/i;
-const fullName = p => {
-  if (typeof p === "string") return p;
-  const nom = String(p?.nom ?? "").trim(), part = (nom.match(PARTICLE) || [""])[0];
-  // Seule la civilité « Père » s'affiche (devant le prénom) ; Madame et Monsieur restent invisibles
-  return [p?.civilite === "Père" ? "Père" : "", p?.prenom, part.toLowerCase() + nom.slice(part.length).toUpperCase()].filter(Boolean).join(" ").trim();
-};
+const nomAff = n => { const nom = String(n ?? "").trim(), part = (nom.match(PARTICLE) || [""])[0]; return part.toLowerCase() + nom.slice(part.length).toUpperCase(); };
+// Seule la civilité « Père » s'affiche (devant le prénom) ; Madame et Monsieur restent invisibles
+const prenomAff = p => [p?.civilite === "Père" ? "Père" : "", p?.prenom].filter(Boolean).join(" ").trim();
+const fullName = p => typeof p === "string" ? p : [prenomAff(p), nomAff(p?.nom)].filter(Boolean).join(" ").trim();
+// Lien d'appel : chiffres seuls, numéro français à 10 chiffres au format international (+33…)
+const telHref = t => { let d = String(t).replace(/[^\d+]/g, ""); if (/^0\d{9}$/.test(d)) d = "+33" + d.slice(1); return "tel:" + d; };
+const TEL_RE = /^[+0-9 .()\/-]{6,30}$/;
 const peopleOf = s => (contactsOf[s._id] ?? []).map(fullName);
 const nbContacts = s => Number.isFinite(s.nbContacts) ? s.nbContacts : (contactsOf[s._id] ?? []).length;
 const respNames = p => (respOf[p._id] ?? []).map(fullName);
@@ -214,7 +215,7 @@ async function onSession(s) {
 }
 async function loadAdmin() {
   const { contacts, responsables } = await api.loadAdmin();
-  const group = (rows, key) => rows.reduce((m, r) => ((m[r[key]] ||= []).push({ civilite: r.civilite || "", prenom: r.prenom, nom: r.nom, email: r.email || "" }), m), {});
+  const group = (rows, key) => rows.reduce((m, r) => ((m[r[key]] ||= []).push({ civilite: r.civilite || "", prenom: r.prenom, nom: r.nom, email: r.email || "", telephone: r.telephone || "" }), m), {});
   contactsOf = group(contacts, "service_id");
   respOf = group(responsables, "pole_id");
   contactRows = contacts; respRows = responsables;
@@ -224,32 +225,45 @@ async function refresh() {
   await Promise.all([loadPublic(), isAdmin && loadAdmin()]);
   render();
   renderAdmin();
+  renderServ();
 }
+// Vues : annuaire des propositions (public), annuaire des serviteurs (administrateurs : sinon écran de connexion)
+// et administration
 function route() {
-  const admin = location.hash === "#admin";
-  $("dir-view").hidden = admin;
+  const h = location.hash, serv = h === "#serviteurs", showServ = serv && isAdmin;
+  const admin = h === "#admin" || (serv && !isAdmin);
+  $("dir-view").hidden = admin || serv;
+  $("serv-view").hidden = !showServ;
   $("admin-view").hidden = !admin;
-  $("h1").textContent = admin ? "Administration" : "Annuaire des propositions";
-  $("admin-link").textContent = admin ? "← Retour à l'annuaire" : "Administration";
-  if (admin) ensureAuth();
+  $("h1").textContent = serv ? "Annuaire des serviteurs" : admin ? "Administration" : "Annuaire des propositions";
+  $("admin-link").textContent = h === "#admin" ? "← Retour à l'annuaire" : "Administration";
+  // Onglets entre les deux annuaires : seulement pour les administrateurs connectés
+  $("switch").hidden = !isAdmin || admin;
+  $("sw-prop").toggleAttribute("aria-current", false); $("sw-serv").toggleAttribute("aria-current", false);
+  $(showServ ? "sw-serv" : "sw-prop").setAttribute("aria-current", "page");
+  if (admin || serv) ensureAuth();
   $("admin-login").hidden = $("login-top").hidden = !admin || !!session || !authLoaded;
   $("admin-denied").hidden = !admin || !session || isAdmin;
-  $("admin-body").hidden = !admin || !isAdmin;
+  $("admin-body").hidden = h !== "#admin" || !isAdmin;
   const email = session?.user?.email || "";
   $("me-email").textContent = email;
   $("denied-email").textContent = email;
   if (admin) renderAdmin();
+  if (showServ) renderServ();
   // Retour en haut seulement en changeant de vue (pas quand la connexion se termine en arrière-plan)
-  if (admin !== lastViewAdmin) window.scrollTo(0, 0);
-  lastViewAdmin = admin;
+  const view = showServ ? "serv" : admin ? "admin" : "dir";
+  if (view !== lastViewAdmin) window.scrollTo(0, 0);
+  lastViewAdmin = view;
 }
 window.addEventListener("hashchange", route);
 $("year").textContent = new Date().getFullYear();
-$("back-link").addEventListener("click", () => $("admin-link").click());
-$("login-back").addEventListener("click", () => $("admin-link").click());
+// Retour à l'annuaire des propositions (adresse sans « # »)
+const goHome = () => { history.pushState("", "", location.pathname + location.search); route(); };
+$("back-link").addEventListener("click", goHome);
+$("login-back").addEventListener("click", goHome);
+$("sw-prop").addEventListener("click", e => { e.preventDefault(); goHome(); });
 $("admin-link").addEventListener("click", () => {
-  if (location.hash === "#admin") history.pushState("", "", location.pathname + location.search); else location.hash = "admin";
-  route();
+  if (location.hash === "#admin") goHome(); else { location.hash = "admin"; route(); }
 });
 $("google-btn").onclick = () => api.signIn();
 $("logout").onclick = $("logout-2").onclick = async () => { await api.signOut(); isAdmin = false; session = null; contactsOf = {}; respOf = {}; contactRows = []; respRows = []; route(); render(); };
@@ -281,11 +295,11 @@ function renderAdmin() {
   $("tab-messages").textContent = "Messages (" + messages.length + ")";
   $("tab-contacts").textContent = "Contacts (" + persons().length + ")";
   if (adminTab === "contacts") {
-    const list = persons().filter(p => adminMatch([p.prenom, p.nom, p.email, ...personRoles(p)].join(" ")));
+    const list = persons().filter(p => adminMatch([p.prenom, p.nom, p.email, p.telephone, ...personRoles(p)].join(" ")));
     $("admin-list").innerHTML = list.length ? '<div class="group">' + list.map(p => {
       const roles = personRoles(p);
       return '<div class="row" data-id="' + esc(p.key) + '"><span></span><div><div class="title">' + esc(fullName(p)) + "</div>" +
-        '<div class="meta"><span>' + (p.email ? esc(p.email) : "Pas d'e-mail") + '</span><span class="ell" title="' + esc(roles.join(", ")) + '">' + esc(roles.join(", ")) + "</span></div></div>" +
+        '<div class="meta"><span>' + (p.email ? esc(p.email) : "Pas d'e-mail") + "</span>" + (p.telephone ? "<span>" + esc(p.telephone) + "</span>" : "") + '<span class="ell" title="' + esc(roles.join(", ")) + '">' + esc(roles.join(", ")) + "</span></div></div>" +
         '<div class="ops"><button type="button" class="btn btn-ghost btn-sm" data-act="edit">Modifier</button>' +
         '<button type="button" class="btn btn-ghost btn-sm" data-act="del">Supprimer</button></div></div>';
     }).join("") + "</div>" : '<div class="empty">Aucun contact.</div>';
@@ -469,15 +483,16 @@ const personKey = r => r.email ? "@" + String(r.email).toLowerCase() : (persons(
 const linkedRow = p => {
   // Une ligne sans e-mail reprend celui de la fiche du contact, s'il en a un
   const key = personKey(p), fiche = persons().find(x => x.key === key);
-  p = { ...p, email: p.email || fiche?.email || "", civilite: p.civilite || fiche?.civilite || "" };
+  p = { ...p, email: p.email || fiche?.email || "", civilite: p.civilite || fiche?.civilite || "", telephone: p.telephone || fiche?.telephone || "" };
   return '<div class="person linked" data-key="' + esc(key) + '" data-prenom="' + esc(p.prenom || "") +
-  '" data-nom="' + esc(p.nom || "") + '" data-email="' + esc(p.email || "") + '" data-civilite="' + esc(p.civilite || "") + '">' + gripBtn + '<div class="who" title="' + esc(fullName(p) + (p.email ? " · " + p.email : "")) + '">' +
+  '" data-nom="' + esc(p.nom || "") + '" data-email="' + esc(p.email || "") + '" data-civilite="' + esc(p.civilite || "") + '" data-telephone="' + esc(p.telephone || "") + '">' + gripBtn + '<div class="who" title="' + esc(fullName(p) + (p.email ? " · " + p.email : "")) + '">' +
   esc(fullName(p)) + "<span>" + (p.email ? esc(p.email) : "pas d'e-mail") + "</span></div>" + trashBtn + "</div>";
 };
 const personRow = p => '<div class="person">' + gripBtn + '<div class="fields"><div class="new">Nouveau contact</div>' + civSelect("", p?.civilite) +
   '<input placeholder="Prénom" aria-label="Prénom" value="' + esc(p?.prenom || "") + '">' +
   '<input placeholder="Nom" aria-label="Nom" value="' + esc(p?.nom || "") + '">' +
-  '<input type="email" placeholder="E-mail (privé)" aria-label="E-mail" value="' + esc(p?.email || "") + '"></div>' + trashBtn + "</div>";
+  '<input type="email" placeholder="E-mail (privé)" aria-label="E-mail" value="' + esc(p?.email || "") + '">' +
+  '<input type="tel" placeholder="Téléphone" aria-label="Téléphone" value="' + esc(p?.telephone || "") + '"></div>' + trashBtn + "</div>";
 const peopleField = (label, list) => '<div class="field"><label>' + label + '</label><div class="people">' +
   (list || []).map(linkedRow).join("") +
   '<div class="people-add"><div class="picker"><input type="search" class="pick" placeholder="Choisir un contact existant…" aria-label="Choisir un contact existant" autocomplete="off">' +
@@ -608,9 +623,9 @@ async function endPDrag() {
 document.addEventListener("pointerup", endPDrag);
 document.addEventListener("pointercancel", endPDrag);
 const readPeople = f => [...f.querySelectorAll(".person")].map(r => {
-  if (r.classList.contains("linked")) return { civilite: r.dataset.civilite || null, prenom: r.dataset.prenom, nom: r.dataset.nom, email: r.dataset.email || null };
-  const [a, b, c] = r.querySelectorAll("input");
-  return { civilite: r.querySelector(".civ").value || null, prenom: a.value.trim(), nom: b.value.trim(), email: c.value.trim().toLowerCase() || null };
+  if (r.classList.contains("linked")) return { civilite: r.dataset.civilite || null, prenom: r.dataset.prenom, nom: r.dataset.nom, email: r.dataset.email || null, telephone: r.dataset.telephone || null };
+  const [a, b, c, d] = r.querySelectorAll("input");
+  return { civilite: r.querySelector(".civ").value || null, prenom: a.value.trim(), nom: b.value.trim(), email: c.value.trim().toLowerCase() || null, telephone: d.value.trim() || null };
 }).filter(p => p.prenom || p.nom);
 function invalid(f, sel, msg) { toast(msg); f.querySelector(sel)?.focus(); return false; }
 
@@ -661,9 +676,10 @@ function persons() {
   for (const r of all) {
     const known = emailOfName[nameKey(r)];
     const key = r.email ? "@" + r.email.toLowerCase() : known?.size === 1 ? "@" + [...known][0] : nameKey(r);
-    if (!map.has(key)) map.set(key, { key, civilite: "", prenom: r.prenom, nom: r.nom, email: r.email || "", contacts: [], responsables: [] });
+    if (!map.has(key)) map.set(key, { key, civilite: "", prenom: r.prenom, nom: r.nom, email: r.email || "", telephone: "", contacts: [], responsables: [] });
     const p = map.get(key);
     if (!p.email && r.email) p.email = r.email;
+    if (!p.telephone && r.telephone) p.telephone = r.telephone;
     if (!p.civilite && r.civilite) p.civilite = r.civilite;
     p[r.kind].push(r);
   }
@@ -689,6 +705,7 @@ function editPerson(p) {
     '<div class="row2"><div class="field"><label for="pe-prenom">Prénom</label><input id="pe-prenom" value="' + esc(p?.prenom || "") + '"></div>' +
     '<div class="field"><label for="pe-nom">Nom</label><input id="pe-nom" value="' + esc(p?.nom || "") + '"></div></div>' +
     '<div class="field"><label for="pe-email">E-mail <span class="opt">(privé : reçoit les messages du formulaire)</span></label><input id="pe-email" type="email" value="' + esc(p?.email || "") + '"></div>' +
+    '<div class="field w-1-2"><label for="pe-tel">Téléphone <span class="opt">(visible des administrateurs)</span></label><input id="pe-tel" type="tel" autocomplete="off" value="' + esc(p?.telephone || "") + '"></div>' +
     '<div class="field"><label>Contact des staffs</label><div class="checks">' + svcBoxes + "</div></div>" +
     '<div class="field"><label>Responsable des pôles</label><div class="checks">' + poleBoxes + "</div></div>",
     async f => {
@@ -696,6 +713,8 @@ function editPerson(p) {
       const email = f.querySelector("#pe-email").value.trim().toLowerCase();
       if (!prenom && !nom) return invalid(f, "#pe-prenom", "Indiquez au moins un prénom ou un nom.");
       if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return invalid(f, "#pe-email", "Adresse e-mail invalide.");
+      const telephone = f.querySelector("#pe-tel").value.trim();
+      if (telephone && !TEL_RE.test(telephone)) return invalid(f, "#pe-tel", "Numéro de téléphone invalide.");
       const checked = name => [...f.querySelectorAll('input[name="' + name + '"]:checked')].map(i => i.value);
       const svcIds = checked("svc"), poleIds = checked("pole");
       if (!svcIds.length && !poleIds.length) return toast("Cochez au moins un staff ou un pôle."), false;
@@ -711,7 +730,7 @@ function editPerson(p) {
           position: Math.max(-1, ...all.filter(r => r[col] === id).map(r => r.position ?? 0)) + 1 }));
         return { keep, del, add };
       };
-      await api.savePerson({ civilite: f.querySelector("#pe-civ").value || null, prenom, nom, email: email || null }, {
+      await api.savePerson({ civilite: f.querySelector("#pe-civ").value || null, prenom, nom, email: email || null, telephone: telephone || null }, {
         contacts: plan(p?.contacts || [], svcIds, "service_id", contactRows),
         responsables: plan(p?.responsables || [], poleIds, "pole_id", respRows),
       });
@@ -764,6 +783,51 @@ function deletePole(p) {
     async () => { await api.deletePole(p._id); await refresh(); toast("Pôle supprimé."); }, "Supprimer", true);
 }
 
+// ---------- Annuaire des serviteurs (administrateurs) ----------
+// Une carte par personne (contacts des staffs et responsables de pôle, regroupés comme dans l'onglet Contacts),
+// rangées par lettre du nom de famille (sans la particule : « de Laforêt » à L)
+let servPole = null, servTerms = [];
+const servKey = p => norm(String(p.nom || p.prenom || "").trim().replace(PARTICLE, ""));
+const initials = p => (String(p.prenom || "").trim()[0] || "") + (String(p.nom || "").trim().replace(PARTICLE, "")[0] || "");
+function renderServ() {
+  if ($("serv-view").hidden) return;
+  const all = persons().map(p => {
+    const svc = [...new Set(p.contacts.map(r => r.service_id))].map(svcById).filter(Boolean).sort(bySvc);
+    const resp = [...new Set(p.responsables.map(r => r.pole_id))].map(poleById).filter(Boolean).sort((a, b) => byPole(a.name, b.name));
+    return { p, svc, resp, poles: new Set([...resp.map(x => x.name), ...svc.map(s => s.pole).filter(Boolean)]) };
+  });
+  const found = all.filter(x => {
+    const w = words([prenomAff(x.p), x.p.nom, x.p.email, x.p.telephone, ...x.svc.map(s => s.name), ...x.resp.map(r => r.name)].join(" "));
+    return servTerms.every(t => w.some(v => v.startsWith(t)));
+  });
+  const names = poleNames().filter(n => all.some(x => x.poles.has(n)));
+  if (servPole && !names.includes(servPole)) servPole = null;
+  const chip = (label, pole, n) => '<button type="button" class="chip" data-pole="' + esc(pole || "") + '"' + (pole ? ' style="--c:' + color(pole) + '"' : "") +
+    ' aria-pressed="' + (pole === servPole) + '">' + (pole ? '<span class="dot"></span>' : "") + esc(label) + ' <span class="n">' + n + "</span></button>";
+  $("sfilters").innerHTML = chip("Tous", null, found.length) + names.map(n => chip(n, n, found.filter(x => x.poles.has(n)).length)).join("");
+  const list = found.filter(x => !servPole || x.poles.has(servPole))
+    .sort((a, b) => byName(servKey(a.p), servKey(b.p)) || byName(a.p.prenom || "", b.p.prenom || ""));
+  $("scount").textContent = !all.length ? "Aucun serviteur pour l'instant." : list.length ? list.length + " serviteur" + (list.length > 1 ? "s" : "") : "Aucun résultat pour cette recherche.";
+  let last = null;
+  $("serv-grid").innerHTML = list.map(({ p, svc, resp }) => {
+    const l = (servKey(p)[0] || "#").toUpperCase(), head = l !== last ? '<h2 class="letter">' + esc(l) + "</h2>" : "";
+    last = l;
+    const roles = [...resp.map(x => '<li style="--c:' + color(x.name) + '"><span>Responsable du pôle <strong>' + esc(x.name) + "</strong></span></li>"),
+      ...svc.map(s => '<li style="--c:' + color(s.pole || "") + '"><span>Leader du staff <strong>' + esc(s.name) + "</strong></span></li>")].join("");
+    const coords = (p.telephone ? '<a href="' + esc(telHref(p.telephone)) + '">' + esc(p.telephone) + "</a>" : "") +
+      (p.email ? '<a href="mailto:' + esc(p.email) + '">' + esc(p.email) + "</a>" : "");
+    return head + '<article class="card serv-card"><div class="who"><div class="avatar" aria-hidden="true">' + esc(initials(p).toUpperCase()) + "</div>" +
+      '<h3 class="name"><span class="nom">' + esc(nomAff(p.nom)) + '</span><span class="prenom">' + esc(prenomAff(p)) + "</span></h3></div>" +
+      (roles ? '<ul class="roles">' + roles + "</ul>" : "") + (coords ? '<p class="coords">' + coords + "</p>" : "") + "</article>";
+  }).join("");
+}
+$("sfilters").addEventListener("click", e => {
+  const b = e.target.closest(".chip"); if (!b) return;
+  servPole = b.dataset.pole && servPole !== b.dataset.pole ? b.dataset.pole : null;
+  renderServ();
+});
+$("sq").addEventListener("input", e => { servTerms = norm(e.target.value).split(/\s+/).filter(Boolean); renderServ(); });
+
 let searchTimer, searchSeq = 0;
 $("q").addEventListener("input", e => {
   const q = e.target.value;
@@ -795,14 +859,15 @@ async function startAuth() {
   // Retour de Google : en cas d'échec, Supabase renvoie l'erreur dans l'adresse (?error_description=…)
   const params = new URLSearchParams(location.search + "&" + location.hash.replace(/^#/, ""));
   const authError = params.get("error_description") || params.get("error");
-  let fromLogin = false;
-  try { fromLogin = !!sessionStorage.getItem("annuaire-admin"); sessionStorage.removeItem("annuaire-admin"); } catch {}
+  let fromLogin = null;
+  try { fromLogin = sessionStorage.getItem("annuaire-admin"); sessionStorage.removeItem("annuaire-admin"); } catch {}
   if (authError) {
     history.replaceState(null, "", location.pathname);
     $("login-error").textContent = "La connexion a échoué : " + authError;
     $("login-error").hidden = false;
   }
-  if ((fromLogin && s) || authError) location.hash = "admin";
+  if (fromLogin && s) location.hash = fromLogin === "#serviteurs" ? "serviteurs" : "admin";
+  else if (authError) location.hash = "admin";
   authLoaded = true;
   await onSession(s);
   if (isAdmin) render(); // l'annuaire n'est reconstruit que si les données d'administration changent l'affichage
@@ -812,6 +877,6 @@ async function startAuth() {
 (async () => {
   status("Chargement…");
   if (!api.authNeeded || api.authNeeded()) ensureAuth();
-  try { await loadPublic(); render(); }
+  try { await loadPublic(); render(); renderServ(); }
   catch { status("Impossible de charger l'annuaire pour le moment. Merci de réessayer plus tard."); }
 })();

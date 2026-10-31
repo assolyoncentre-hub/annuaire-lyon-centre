@@ -1,0 +1,94 @@
+// Annuaire des serviteurs : réservé aux administrateurs, une carte par personne avec téléphone et e-mail.
+const { test, expect, ADMIN, calls } = require("./helpers");
+
+test("visiteur : pas d'onglet Serviteurs, l'adresse de la page mène à la connexion", async ({ open, page }) => {
+  await open();
+  await expect(page.locator("#switch")).toBeHidden();
+  await page.evaluate(() => { location.hash = "serviteurs"; });
+  await expect(page.locator("#admin-login")).toBeVisible();
+  await expect(page.locator("#serv-view")).toBeHidden();
+  await expect(page.locator("#h1")).toHaveText("Annuaire des serviteurs");
+  await page.click("#login-back");
+  await expect(page.locator("#dir-view")).toBeVisible();
+});
+
+test("compte non administrateur : accès refusé", async ({ open, page }) => {
+  await open({ user: { email: "autre@example.org", admin: false }, hash: "#serviteurs" });
+  await expect(page.locator("#admin-denied")).toBeVisible();
+  await expect(page.locator("#serv-view")).toBeHidden();
+});
+
+test("administrateur : cartes par lettre, rôles, liens d'appel et d'e-mail, filtres, recherche", async ({ open, page }) => {
+  await open({ user: ADMIN });
+  await expect(page.locator("#switch")).toBeVisible();
+  await expect(page.locator("#sw-prop")).toHaveAttribute("aria-current", "page");
+  await page.click("#sw-serv");
+  await expect(page.locator("#sw-serv")).toHaveAttribute("aria-current", "page");
+  await expect(page.locator("#scount")).toHaveText("16 serviteurs");
+  // Lettres du nom de famille, sans la particule (« de Laforêt » à L, « do Carmo » à C)
+  await expect(page.locator(".letter")).toHaveText(["A", "B", "C", "D", "G", "L", "M", "R", "V"]);
+  const damien = page.locator(".serv-card", { hasText: "Damien" });
+  await expect(damien.locator(".nom")).toHaveText("de LAFORÊT");
+  await expect(damien.locator(".avatar")).toHaveText("DL");
+  await expect(damien.locator(".coords a").first()).toHaveAttribute("href", "tel:+33639981021");
+  await expect(damien.locator(".coords a").last()).toHaveAttribute("href", "mailto:damien@example.org");
+  await expect(damien.locator(".roles li")).toHaveText(["Leader du staff Baptême bébé"]);
+  // Une seule carte par personne, même dans un staff et responsable d'un pôle
+  const jean = page.locator(".serv-card", { hasText: "BRUNET" });
+  await expect(jean).toHaveCount(1);
+  await expect(jean.locator(".roles li")).toHaveText(["Responsable du pôle Solidarité", "Leader du staff Sacristie"]);
+  await expect(page.locator(".serv-card", { hasText: "DUPUIS" }).locator(".prenom")).toHaveText("Père Jean");
+  await expect(page.locator(".serv-card", { hasText: "DUPUIS" }).locator(".coords a").first()).toHaveAttribute("href", "tel:+33639982205");
+  // Sans téléphone ni e-mail : pas de bloc de coordonnées
+  await expect(page.locator(".serv-card", { hasText: "ALLARD" }).locator(".coords a")).toHaveCount(1);
+
+  await page.locator("#sfilters .chip", { hasText: "Jeunes" }).click();
+  await expect(page.locator("#scount")).toHaveText("3 serviteurs");
+  await page.locator("#sfilters .chip", { hasText: "Jeunes" }).click();
+  await page.fill("#sq", "sacris");
+  await expect(page.locator(".serv-card")).toHaveCount(1);
+  await page.fill("#sq", "06 39 98 10");
+  await expect(page.locator(".serv-card .nom")).toHaveText(["de LAFORÊT"]);
+
+  await page.click("#sw-prop");
+  await expect(page.locator("#dir-view")).toBeVisible();
+});
+
+test("téléphone : saisi dans la fiche d'un contact, gardé en enregistrant un staff", async ({ open, page }) => {
+  await open({ user: ADMIN, hash: "#admin" });
+  await page.click("#tab-contacts");
+  await page.fill("#aq", "tanya");
+  await page.locator("#admin-list [data-act=edit]").click();
+  await page.fill("#pe-tel", "abc");
+  await page.locator("#ed-form [type=submit]").click();
+  await expect(page.locator("#toast")).toHaveText("Numéro de téléphone invalide.");
+  await page.fill("#pe-tel", "06 39 98 70 08");
+  await page.locator("#ed-form [type=submit]").click();
+  await expect(page.locator("#editor")).toBeHidden();
+  expect((await calls(page, "savePerson")).pop().arg.fields.telephone).toBe("06 39 98 70 08");
+  await expect(page.locator("#admin-list")).toContainText("06 39 98 70 08");
+
+  // Le staff Accueil réenregistre ses contacts : le numéro de Tanya est conservé, un nouveau contact peut en avoir un
+  await page.click("#tab-services");
+  await page.fill("#aq", "accueil");
+  await page.locator("#admin-list [data-act=edit]").click();
+  await page.click(".add-person");
+  const neu = page.locator(".person:not(.linked)").last();
+  await neu.getByLabel("Prénom", { exact: true }).fill("Lucie");
+  await neu.getByLabel("Nom", { exact: true }).fill("Martin");
+  await neu.getByLabel("Téléphone").fill("06 39 98 75 26");
+  await page.locator("#ed-form [type=submit]").click();
+  await expect(page.locator("#editor")).toBeHidden();
+  const people = (await calls(page, "saveService")).pop().arg.people;
+  expect(people.find(p => p.prenom === "Tanya").telephone).toBe("06 39 98 70 08");
+  expect(people.find(p => p.prenom === "Lucie").telephone).toBe("06 39 98 75 26");
+
+  await page.evaluate(() => { location.hash = "serviteurs"; });
+  await expect(page.locator(".serv-card", { hasText: "MARTIN" }).locator(".coords a")).toHaveAttribute("href", "tel:+33639987526");
+});
+
+test("téléphone : cartes sans débordement @mobile", async ({ open, page }) => {
+  await open({ user: ADMIN, hash: "#serviteurs" });
+  await expect(page.locator(".serv-card").first()).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize().width);
+});

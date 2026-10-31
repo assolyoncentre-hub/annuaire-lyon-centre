@@ -288,6 +288,34 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 /* Listes déroulantes : flèche dessinée, à distance du bord droit (la flèche native de Safari est collée au bord) */
 .field select { -webkit-appearance: none; appearance: none; padding-right: 44px; background-repeat: no-repeat; background-position: right 16px center; background-size: 12px 8px;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none' stroke='%235b6b7c' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5l5 5 5-5'/%3E%3C/svg%3E"); }
+/* Onglets « Propositions / Serviteurs » (administrateurs), posés sur le bas du bandeau */
+.switch { display: flex; gap: 4px; margin-top: 22px; }
+.switch[hidden] { display: none; }
+.hero:has(.switch:not([hidden])) .wrap { padding-bottom: 0; }
+.switch a { padding: 12px 18px; border-radius: 10px 10px 0 0; color: var(--brand-ink); text-decoration: none;
+  font: 600 13px/1 Montserrat, sans-serif; letter-spacing: .08em; text-transform: uppercase; opacity: .8; }
+.switch a:hover { opacity: 1; background: rgba(255, 255, 255, .1); }
+.switch a[aria-current="page"] { background: var(--bg); color: var(--brand); opacity: 1; }
+/* Annuaire des serviteurs : une carte par personne, rangées par lettre du nom de famille */
+.serv-grid { grid-auto-rows: auto !important; }
+.letter { grid-column: 1 / -1; margin: 8px 0 -4px; font: 700 28px/1 Phudu, Montserrat, sans-serif; color: var(--brand);
+  display: flex; align-items: center; gap: 14px; }
+.letter::after { content: ""; flex: 1; border-top: 1px solid var(--border); }
+.serv-card { padding: 20px 20px 16px; gap: 14px; min-width: 0; }
+.serv-card .who { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.serv-card .avatar { flex: none; width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center;
+  background: #009498; color: #fff; font: 700 19px/1 Phudu, Montserrat, sans-serif; letter-spacing: .02em; }
+.serv-card .name { margin: 0; min-width: 0; font: 700 19px/1.2 "DM Sans", system-ui, sans-serif; text-transform: none; color: var(--text); overflow-wrap: anywhere; }
+.serv-card .name span { display: block; }
+.serv-card .name .prenom { margin-top: 2px; font-weight: 400; font-size: 16px; }
+.roles { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.roles li { display: flex; align-items: baseline; gap: 10px; font-size: 15px; line-height: 1.35; }
+.roles li::before { content: ""; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--c); transform: translateY(-1px); }
+.coords { margin: auto 0 0; padding-top: 12px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 2px; font-size: 15px; min-width: 0; }
+.coords a { align-self: flex-start; padding-block: 3px; color: var(--brand); text-decoration: underline; text-decoration-thickness: 1px;
+  text-underline-offset: 3px; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.coords a:hover { text-decoration-thickness: 2px; }
+.person .fields input[type=tel] { grid-column: 1 / -1; }
 </style>
 </head>
 <body>
@@ -295,6 +323,9 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
   <div class="wrap">
     <div class="brand">Église Lyon Centre</div>
     <h1 id="h1">Annuaire des propositions</h1>
+    <nav class="switch" id="switch" aria-label="Annuaires" hidden>
+      <a href="#" id="sw-prop">Propositions</a><a href="#serviteurs" id="sw-serv">Serviteurs</a>
+    </nav>
   </div>
 </header>
 <div id="dir-view" class="view">
@@ -303,6 +334,13 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
   <div id="resp"></div>
   <p class="count" id="count" role="status" aria-live="polite"></p>
   <div class="grid" id="grid"></div>
+</main>
+</div>
+<div id="serv-view" class="view" hidden>
+<div class="bar" role="search" aria-label="Rechercher et filtrer les serviteurs"><div class="wrap filterbar"><input type="search" id="sq" class="search" placeholder="Rechercher une personne, un staff…" aria-label="Rechercher un serviteur" autocomplete="off"><span class="label">Filtrer par pôle</span><div class="filters" id="sfilters"></div></div></div>
+<main class="wrap">
+  <p class="count" id="scount" role="status" aria-live="polite"></p>
+  <div class="grid serv-grid" id="serv-grid"></div>
 </main>
 </div>
 <div id="admin-view" class="view" hidden>
