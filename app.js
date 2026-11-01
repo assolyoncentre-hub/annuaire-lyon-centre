@@ -777,8 +777,7 @@ function editPerson(p) {
     '<div class="field"><label for="pe-nom">Nom</label><input id="pe-nom" value="' + esc(p?.nom || "") + '"></div></div>' +
     '<div class="field"><label for="pe-email">E-mail <span class="opt">(privé : reçoit les messages du formulaire)</span></label><input id="pe-email" type="email" value="' + esc(p?.email || "") + '"></div>' +
     '<div class="field w-1-2"><label for="pe-tel">Téléphone <span class="opt">(visible des administrateurs)</span></label><input id="pe-tel" type="tel" autocomplete="off" value="' + esc(p?.telephone || "") + '"></div>' +
-    '<div class="field"><label>Contact des staffs <span class="opt">(facultatif)</span></label><div class="checks">' + svcBoxes + "</div></div>" +
-    '<div class="field"><label>Responsable des pôles <span class="opt">(facultatif)</span></label><div class="checks">' + poleBoxes + "</div></div>" +
+    '<div class="row2">' + msel("pe-svc", "Contact des staffs", "Aucun staff", svcBoxes) + msel("pe-pole", "Responsable des pôles", "Aucun pôle", poleBoxes) + "</div>" +
     '<p class="hors-warn" id="pe-hors" hidden>Ni staff ni pôle : cette personne n\'apparaîtra pas dans l\'annuaire, elle pourra seulement se connecter.</p>' +
     '<fieldset class="field droits"><legend>Droits</legend><div class="seg">' +
     DROITS.map(([v, label, sub]) => '<label><input type="radio" name="pe-droit" value="' + v + '"' + (droit === v ? " checked" : "") + (self ? " disabled" : "") +
@@ -832,11 +831,39 @@ function editPerson(p) {
       noEmail ? "Sans e-mail, cette personne ne peut pas se connecter : le droit ne s'applique qu'avec une adresse." :
       "";
   };
+  mselSync(f);
   f.addEventListener("change", sync);
   f.querySelector("#pe-email").addEventListener("input", sync);
   sync();
 }
-const DROITS = [["aucun", "Aucun", "Ne peut pas se connecter"], ["leaders", "Leader", "Voit l'annuaire des leaders"], ["admin", "Administrateur", "Leaders et administration"]];
+// Liste déroulante à choix multiple : un bouton qui résume la sélection, puis des cases à cocher
+const msel = (id, label, empty, boxes) => '<div class="field"><label id="' + id + '-l">' + label + ' <span class="opt">(facultatif)</span></label>' +
+  '<div class="msel"><button type="button" class="msel-btn" id="' + id + '" aria-haspopup="true" aria-expanded="false" aria-labelledby="' + id + '-l ' + id + '" data-empty="' + esc(empty) + '"></button>' +
+  '<div class="msel-panel checks" hidden>' + boxes + "</div></div></div>";
+const mselSync = root => root.querySelectorAll(".msel").forEach(m => {
+  const on = [...m.querySelectorAll("input:checked")].map(i => i.parentElement.textContent.trim());
+  const b = m.querySelector(".msel-btn");
+  b.textContent = on.length ? on.join(", ") : b.dataset.empty;
+  b.classList.toggle("placeholder", !on.length);
+});
+const mselClose = (except = null) => document.querySelectorAll(".msel-panel:not([hidden])").forEach(p => {
+  if (p === except) return;
+  p.hidden = true; p.previousElementSibling.setAttribute("aria-expanded", "false");
+});
+$("ed-form").addEventListener("click", e => {
+  const b = e.target.closest(".msel-btn");
+  if (!b) { if (!e.target.closest(".msel-panel")) mselClose(); return; }
+  const p = b.nextElementSibling;
+  mselClose(p);
+  p.hidden = !p.hidden; b.setAttribute("aria-expanded", String(!p.hidden));
+});
+$("ed-form").addEventListener("change", e => { if (e.target.closest(".msel")) mselSync($("ed-form")); });
+$("ed-form").addEventListener("keydown", e => {
+  if (e.key !== "Escape" || !document.querySelector(".msel-panel:not([hidden])")) return;
+  e.stopPropagation(); const p = document.querySelector(".msel-panel:not([hidden])"); mselClose(); p.previousElementSibling.focus();
+});
+$("editor").addEventListener("click", e => { if (!e.target.closest(".msel")) mselClose(); });
+const DROITS = [["aucun", "Aucun", "Ne peut pas se connecter"], ["leaders", "Leader", "Voit l'annuaire des leaders"], ["admin", "Administrateur", "Peut modifier les staffs, les pôles, les contacts et les droits"]];
 function deletePerson(p) {
   const roles = personRoles(p), e = p.email.toLowerCase(), self = e && e === myEmail();
   openEditor("Supprimer le contact", fullName(p), '<p style="margin:0">Cette personne sera retirée' +

@@ -109,3 +109,20 @@ test("contact avec le droit Aucun : connexion refusée", async ({ open, page }) 
   await expect(page.locator("#login-error")).toContainText("damien@example.org");
   expect(await calls(page, "signOut")).toHaveLength(1);
 });
+
+test("fiche contact : staffs et pôles choisis dans des listes déroulantes à choix multiple", async ({ open, page }) => {
+  await open({ user: ADMIN, hash: "#admin" });
+  await page.click("#tab-contacts");
+  await page.locator("#admin-list .row", { hasText: "Jean BRUNET" }).locator("[data-act=edit]").click();
+  await expect(page.locator("#pe-svc")).toHaveText("Sacristie");
+  await expect(page.locator("#pe-pole")).toHaveText("Solidarité");
+  await page.click("#pe-svc");
+  await page.locator(".msel-panel label", { hasText: "Accueil" }).click();
+  await expect(page.locator("#pe-svc")).toHaveText("Accueil, Sacristie");
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".msel-panel:not([hidden])")).toHaveCount(0);
+  await expect(page.locator("#editor")).toBeVisible();
+  await page.locator("#ed-form [type=submit]").click();
+  await expect(page.locator("#editor")).toBeHidden();
+  expect((await calls(page, "savePerson"))[0].arg.plan.contacts.add).toHaveLength(1);
+});
