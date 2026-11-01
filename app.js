@@ -86,6 +86,7 @@ function render() {
     filters.append(b);
   };
   const found = services.filter(matches);
+  filtCur("filters", active);
   chip("Tous", null, found.length);
   names.forEach(p => chip(p, p, found.filter(s => s.pole === p).length));
 
@@ -944,6 +945,7 @@ function renderServ() {
   if (servPole && !names.includes(servPole)) servPole = null;
   const chip = (label, pole, n) => '<button type="button" class="chip" data-pole="' + esc(pole || "") + '"' + (pole ? ' style="--c:' + color(pole) + '"' : "") +
     ' aria-pressed="' + (pole === servPole) + '">' + (pole ? '<span class="dot"></span>' : "") + esc(label) + ' <span class="n">' + n + "</span></button>";
+  filtCur("sfilters", servPole);
   $("sfilters").innerHTML = chip("Tous", null, found.length) + names.map(n => chip(n, n, found.filter(x => x.poles.has(n)).length)).join("");
   const list = found.filter(x => !servPole || x.poles.has(servPole))
     .sort((a, b) => byName(servKey(a.p), servKey(b.p)) || byName(a.p.prenom || "", b.p.prenom || ""));
@@ -961,6 +963,12 @@ function renderServ() {
       (roles ? '<ul class="roles">' + roles + "</ul>" : "") + (coords ? '<p class="coords">' + coords + "</p>" : "") + "</article>";
   }).join("");
 }
+// Téléphone : bouton « Filtrer par pôle » qui déplie ou replie les filtres (pôle choisi affiché à côté)
+function filtCur(id, pole) { $(id).parentNode.querySelector(".filt-cur").textContent = pole ? "· " + pole : ""; }
+for (const t of document.querySelectorAll(".filt-toggle")) t.addEventListener("click", () => {
+  const open = t.closest(".filterbar").classList.toggle("open");
+  t.setAttribute("aria-expanded", String(open));
+});
 $("sfilters").addEventListener("click", e => {
   const b = e.target.closest(".chip"); if (!b) return;
   servPole = b.dataset.pole && servPole !== b.dataset.pole ? b.dataset.pole : null;

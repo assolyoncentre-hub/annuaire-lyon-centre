@@ -109,6 +109,7 @@ test("clavier : Tab reste dans le formulaire, la section se replie en quittant l
 test("téléphone : rien ne déborde @mobile", async ({ open }) => {
   const page = await open();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize().width);
+  if (await page.locator("#dir-view .filt-toggle").isVisible()) await page.click("#dir-view .filt-toggle");
   await page.locator("#filters .chip", { hasText: "Le dimanche" }).click();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize().width);
 });
@@ -124,4 +125,26 @@ test("téléphone : le bouton Message d'une section dépliée ouvre le formulair
   await carte.locator("summary").tap();
   await carte.locator(".msg").tap();
   await expect(page.locator("#modal")).toBeVisible();
+});
+
+test("téléphone : filtres par pôle repliés, dépliables, pôle choisi rappelé @mobile", async ({ open, page }) => {
+  await open();
+  const mobile = test.info().project.name === "téléphone";
+  const toggle = page.locator("#dir-view .filt-toggle");
+  if (!mobile) {
+    await expect(toggle).toBeHidden();
+    await expect(page.locator("#filters")).toBeVisible();
+    return;
+  }
+  await expect(page.locator("#filters")).toBeHidden();
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  await toggle.click();
+  await expect(page.locator("#filters")).toBeVisible();
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  const pole = page.locator("#filters .chip").nth(1);
+  const nom = (await pole.innerText()).replace(/\s*\d+$/, "");
+  await pole.click();
+  await expect(toggle).toContainText(nom);
+  await toggle.click();
+  await expect(page.locator("#filters")).toBeHidden();
 });
