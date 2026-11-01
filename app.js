@@ -273,7 +273,7 @@ function route() {
   $("admin-body").hidden = h !== "#admin" || !isAdmin;
   const email = session?.user?.email || "";
   $("me-email").textContent = email;
-  $("me-name").textContent = session ? firstName() : "";
+  $("me-name").textContent = session ? accountName() : "";
   $("denied-email").textContent = email;
   if (admin) renderAdmin();
   if (showServ) renderServ();
@@ -296,6 +296,14 @@ function firstName() {
   if (n) return capitalize(n);
   const l = email.split("@")[0].split(/[._-]/)[0];
   return l ? capitalize(l) : "Mon compte";
+}
+// Menu du compte : prénom puis nom (« Loïc PELLETIER »), d'après la fiche de contact, sinon le compte Google
+function accountName() {
+  const u = session?.user, email = String(u?.email || "").toLowerCase(), m = u?.user_metadata || {};
+  const p = email && persons().find(x => x.email && x.email.toLowerCase() === email);
+  if (p) return [capitalize(p.prenom || ""), nomAff(p.nom)].filter(Boolean).join(" ");
+  const nom = m.family_name || String(m.full_name || m.name || "").trim().split(/\s+/).slice(1).join(" ");
+  return [firstName(), nom && nomAff(nom)].filter(Boolean).join(" ");
 }
 const closeAcct = () => { $("acct-menu").hidden = true; if (session) $("admin-link").setAttribute("aria-expanded", "false"); };
 $("admin-link").addEventListener("click", () => {
