@@ -77,7 +77,7 @@ window.makeApi = function () {
           if (error) onError(error.message);
         },
       });
-      google.accounts.id.renderButton(el, { theme: "outline", size: "large", shape: "pill", text: "signin_with", logo_alignment: "left", locale: "fr", width: 280 });
+      google.accounts.id.renderButton(el, { theme: "outline", size: "large", shape: "rectangular", text: "signin_with", logo_alignment: "left", locale: "fr", width: 280 });
     },
     signOut: async () => (await getSb()).auth.signOut(),
     // Droit de la personne connectée : "admin", "leaders" (tout contact de l'annuaire) ou null (connexion refusée)
