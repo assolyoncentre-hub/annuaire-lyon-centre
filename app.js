@@ -242,11 +242,17 @@ async function refresh() {
 }
 // Vues : annuaire des propositions (public), annuaire des leaders (droit « leaders » ou « admin » : sinon écran de connexion)
 // et administration
+// Chaque onglet a son adresse, pour qu'un rechargement rouvre le même onglet
+const HASH_OF = { services: "#admin", poles: "#admin/poles", contacts: "#admin/contacts", messages: "#admin/messages" };
+const TAB_OF = { staffs: "services", poles: "poles", contacts: "contacts", messages: "messages" };
 function route() {
   // Ancienne adresse de la page (« serviteurs ») : redirigée
   if (location.hash === "#serviteurs") history.replaceState(null, "", "#leaders");
   const h = location.hash, serv = h === "#leaders", showServ = serv && canLeaders;
-  const admin = h === "#admin" || (serv && !canLeaders);
+  // Administration : « #admin » (staffs), « #admin/poles », « #admin/contacts », « #admin/messages »
+  const adminHash = h === "#admin" || h.startsWith("#admin/");
+  if (adminHash) { const t = TAB_OF[h.slice(7)] || "services"; if (t !== adminTab) showTab(t); }
+  const admin = adminHash || (serv && !canLeaders);
   $("dir-view").hidden = admin || serv;
   $("serv-view").hidden = !showServ;
   $("admin-view").hidden = !admin;
@@ -261,7 +267,7 @@ function route() {
   // Administration seulement pour un administrateur connecté
   $("sw-admin").hidden = !isAdmin;
   for (const k of ["sw-prop", "sw-serv", "sw-admin"]) $(k).removeAttribute("aria-current");
-  const cur = serv ? "sw-serv" : h === "#admin" ? (isAdmin ? "sw-admin" : null) : "sw-prop";
+  const cur = serv ? "sw-serv" : adminHash ? (isAdmin ? "sw-admin" : null) : "sw-prop";
   if (cur) $(cur).setAttribute("aria-current", "page");
   $("login-title").textContent = serv ? "Accès réservé" : "Administration";
   $("login-text").textContent = serv ? "" : "Connexion réservée aux personnes autorisées, avec le compte Google de l'adresse e-mail enregistrée dans l'annuaire.";
@@ -271,7 +277,7 @@ function route() {
   $("admin-denied").hidden = !admin || !session || (serv ? canLeaders : isAdmin);
   $("denied-what").textContent = serv ? "n'a pas accès à l'annuaire des leaders." : "n'est pas administrateur de l'annuaire.";
   if (session) $("login-error").hidden = true;
-  $("admin-body").hidden = h !== "#admin" || !isAdmin;
+  $("admin-body").hidden = !adminHash || !isAdmin;
   const email = session?.user?.email || "";
   $("denied-email").textContent = email;
   if (admin) renderAdmin();
@@ -309,11 +315,16 @@ $("logout").onclick = $("logout-2").onclick = async () => { closeAcct(); await a
 
 const poleNames = () => Object.keys(poles).sort(byPole);
 const isPoleTab = () => adminTab === "poles";
-function setTab(t) {
+function showTab(t) {
   adminTab = t;
+  $("sw-admin").setAttribute("href", HASH_OF[t]); // retour sur le même onglet depuis Propositions ou Leaders
   for (const k of ["services", "poles", "contacts", "messages"]) $("tab-" + k).setAttribute("aria-selected", String(t === k));
   $("add-btn").hidden = t === "messages";
   $("add-btn").textContent = { services: "Ajouter un staff", poles: "Ajouter un pôle", contacts: "Ajouter un contact" }[t] || "";
+}
+function setTab(t) {
+  showTab(t);
+  if (location.hash !== HASH_OF[t]) history.replaceState(null, "", HASH_OF[t]);
   renderAdmin();
 }
 $("tab-services").onclick = () => setTab("services");

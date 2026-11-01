@@ -150,3 +150,23 @@ test("administrateur sans fiche de contact : prénom du compte Google, sinon tir
   await expect(page.locator("#admin-label")).toHaveText("Paul");
   await expect(page.locator("#sw-admin")).toBeVisible();
 });
+
+test("administration : une adresse par onglet, rouverte au rechargement", async ({ open, page }) => {
+  await open({ user: ADMIN, hash: "#admin" });
+  await page.click("#tab-contacts");
+  expect(new URL(page.url()).hash).toBe("#admin/contacts");
+  await page.click("#tab-messages");
+  expect(new URL(page.url()).hash).toBe("#admin/messages");
+  await page.click("#tab-poles");
+  expect(new URL(page.url()).hash).toBe("#admin/poles");
+  await page.reload();
+  await expect(page.locator("#tab-poles")).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator("#add-btn")).toHaveText("Ajouter un pôle");
+  await expect(page.locator("#sw-admin")).toHaveAttribute("aria-current", "page");
+  // Depuis l'annuaire des leaders, l'onglet Administration ramène au dernier onglet ouvert
+  await page.click("#sw-serv");
+  await page.click("#sw-admin");
+  await expect(page.locator("#tab-poles")).toHaveAttribute("aria-selected", "true");
+  await page.click("#tab-services");
+  expect(new URL(page.url()).hash).toBe("#admin");
+});

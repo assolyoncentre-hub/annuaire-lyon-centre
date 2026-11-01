@@ -59,7 +59,7 @@ window.makeApi = function () {
     // Connexion Google et droits. La bibliothèque n'est nécessaire que pour l'administration, au retour
     // de Google, ou si une session est déjà enregistrée dans le navigateur.
     authNeeded() {
-      if (location.hash === "#admin" || location.hash === "#leaders" || /[?&](code|error)=/.test(location.search)) return true;
+      if (/^#admin(\/|$)/.test(location.hash) || location.hash === "#leaders" || /[?&](code|error)=/.test(location.search)) return true;
       try { return !!localStorage.getItem("sb-" + ref + "-auth-token"); } catch { return false; }
     },
     async session() { return (await (await getSb()).auth.getSession()).data.session; },
