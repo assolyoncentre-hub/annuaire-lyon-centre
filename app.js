@@ -970,7 +970,8 @@ for (const t of document.querySelectorAll(".filt-toggle")) {
   const setOpen = open => { bar.classList.toggle("open", open); t.setAttribute("aria-expanded", String(open)); };
   t.addEventListener("click", () => setOpen(!bar.classList.contains("open")));
   // Un pôle choisi : les filtres se replient (le pôle reste affiché dans le bouton)
-  bar.addEventListener("click", e => { if (e.target.closest(".filters .chip")) setOpen(false); });
+  // (à la capture : sur Propositions, le filtre cliqué est aussitôt reconstruit et sort de la page)
+  bar.addEventListener("click", e => { if (e.target.closest(".filters .chip")) setOpen(false); }, true);
 }
 $("sfilters").addEventListener("click", e => {
   const b = e.target.closest(".chip"); if (!b) return;
