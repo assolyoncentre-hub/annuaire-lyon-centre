@@ -10,7 +10,7 @@ const save = page => page.locator("#ed-form [type=submit]").click();
 test("connexion : écran Google, retour à l'annuaire, compte non administrateur", async ({ open, page }) => {
   await open({ hash: "#admin" });
   await expect(page.locator("#admin-login")).toBeVisible();
-  await page.click("#google-btn");
+  await page.click("#gsi-btn button");
   expect(await calls(page, "signIn")).toHaveLength(1);
   await page.click("#sw-prop");
   await expect(page.locator("#dir-view")).toBeVisible();

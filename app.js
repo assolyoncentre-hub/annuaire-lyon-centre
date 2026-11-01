@@ -304,7 +304,6 @@ $("admin-link").addEventListener("click", () => {
 });
 document.addEventListener("click", e => { if (!$("acct-menu").hidden && !e.target.closest(".acct")) closeAcct(); });
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("acct-menu").hidden) { closeAcct(); $("admin-link").focus(); } });
-$("google-btn").onclick = () => api.signIn();
 $("logout").onclick = $("logout-2").onclick = async () => { closeAcct(); await api.signOut(); isAdmin = canLeaders = false; session = null; acces = []; messages = []; contactsOf = {}; respOf = {}; contactRows = []; respRows = []; route(); render(); };
 
 const poleNames = () => Object.keys(poles).sort(byPole);
@@ -935,27 +934,24 @@ async function loadPublic() {
 
 // Connexion : la bibliothèque Supabase n'est chargée que pour l'administration (ou une session existante)
 function ensureAuth() { return authStarted ||= startAuth(); }
-// Bouton officiel de Google (fenêtre par-dessus la page) ; s'il ne peut pas se charger, l'ancien bouton (redirection) reste
+// Bouton officiel de Google (fenêtre par-dessus la page) ; s'il ne peut pas se charger, un message l'explique
 let googleReady = null;
 function setupGoogleButton() {
   if (googleReady || !api.googleButton) return;
   const fail = msg => { $("login-error").textContent = "La connexion a échoué : " + msg; $("login-error").hidden = false; };
-  googleReady = api.googleButton($("gsi-btn"), fail).then(() => { $("google-btn").hidden = true; $("gsi-btn").hidden = false; }, () => {});
+  googleReady = api.googleButton($("gsi-btn"), fail).catch(() => { $("gsi-btn").hidden = true; $("gsi-error").hidden = false; });
 }
 async function startAuth() {
   const s = await api.session().catch(() => null);
   // Retour de Google : en cas d'échec, Supabase renvoie l'erreur dans l'adresse (?error_description=…)
   const params = new URLSearchParams(location.search + "&" + location.hash.replace(/^#/, ""));
   const authError = params.get("error_description") || params.get("error");
-  let fromLogin = null;
-  try { fromLogin = sessionStorage.getItem("annuaire-admin"); sessionStorage.removeItem("annuaire-admin"); } catch {}
   if (authError) {
     history.replaceState(null, "", location.pathname);
     $("login-error").textContent = "La connexion a échoué : " + authError;
     $("login-error").hidden = false;
   }
-  if (fromLogin && s) location.hash = fromLogin === "#leaders" ? "leaders" : "admin";
-  else if (authError) location.hash = "admin";
+  if (authError) location.hash = "admin";
   authLoaded = true;
   setupGoogleButton();
   await onSession(s);

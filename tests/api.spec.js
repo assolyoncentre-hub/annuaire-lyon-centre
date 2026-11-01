@@ -42,4 +42,7 @@ test("administration : la bibliothèque Supabase n'est demandée qu'à ce moment
   const vus = await serveur(page);
   await page.goto(SITE + "#admin");
   await expect.poll(() => vus.some(u => u.includes("supabase-js"))).toBe(true);
+  // Scripts de Google ou de Supabase bloqués : un message remplace le bouton de connexion
+  await expect(page.locator("#gsi-error")).toBeVisible();
+  await expect(page.locator("#gsi-btn")).toBeHidden();
 });

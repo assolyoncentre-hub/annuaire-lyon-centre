@@ -64,11 +64,6 @@ window.makeApi = function () {
     },
     async session() { return (await (await getSb()).auth.getSession()).data.session; },
     async onAuth(cb) { (await getSb()).auth.onAuthStateChange((_e, s) => cb(s)); },
-    async signIn() {
-      // Retour sur la page demandée (administration ou leaders) après la connexion Google
-      try { sessionStorage.setItem("annuaire-admin", location.hash === "#leaders" ? "#leaders" : "#admin"); } catch {}
-      return (await getSb()).auth.signInWithOAuth({ provider: "google", options: { redirectTo: location.origin + location.pathname } });
-    },
     // Connexion dans une fenêtre Google ouverte par-dessus la page (le jeton est ensuite confié à Supabase).
     // Google y affiche le site (ou le nom de l'application) au lieu de l'adresse technique de Supabase.
     async googleButton(el, onError) {

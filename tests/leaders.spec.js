@@ -11,7 +11,7 @@ test("visiteur : onglets visibles, « Leaders » demande de se connecter", async
   await expect(page.locator("#login-title")).toHaveText("Accès réservé");
   await expect(page.locator("#serv-view")).toBeHidden();
   await expect(page.locator("#h1")).toHaveText("Annuaire des leaders");
-  await page.click("#google-btn");
+  await page.click("#gsi-btn button");
   expect(await calls(page, "signIn")).toHaveLength(1);
   await page.click("#sw-prop");
   await expect(page.locator("#dir-view")).toBeVisible();

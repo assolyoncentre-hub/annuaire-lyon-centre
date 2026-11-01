@@ -55,7 +55,11 @@ module.exports = function installFakeApi({ data, user }) {
     authNeeded: () => true,
     async session() { return session; },
     async onAuth() {},
-    async signIn() { log("signIn"); },
+    // Bouton Google simulé : un clic compte comme une demande de connexion
+    async googleButton(el) {
+      el.innerHTML = '<button type="button">Se connecter avec Google</button>';
+      el.firstChild.onclick = () => log("signIn");
+    },
     async signOut() { log("signOut"); session = null; },
     async droit() { return droit(); },
     async loadAdmin() { guardRead(); return { contacts: clone(S.contacts), responsables: clone(S.responsables) }; },
