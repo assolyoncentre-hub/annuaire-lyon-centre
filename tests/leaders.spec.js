@@ -9,17 +9,18 @@ test("visiteur : onglets visibles, « Leaders » demande de se connecter", async
   await expect(page.locator("#sw-serv")).toHaveAttribute("aria-current", "page");
   await expect(page.locator("#admin-login")).toBeVisible();
   await expect(page.locator("#login-title")).toHaveText("Accès réservé");
-  await expect(page.locator("#login-top")).toBeHidden();
   await expect(page.locator("#serv-view")).toBeHidden();
   await expect(page.locator("#h1")).toHaveText("Annuaire des leaders");
   await page.click("#google-btn");
   expect(await calls(page, "signIn")).toHaveLength(1);
   await page.click("#sw-prop");
   await expect(page.locator("#dir-view")).toBeVisible();
-  // Administration : pas d'onglets, écran de connexion habituel
+  // Bouton « Connexion » : écran de connexion habituel ; pas d'onglet Administration sans être administrateur
+  await expect(page.locator("#sw-admin")).toBeHidden();
+  await expect(page.locator("#admin-label")).toHaveText("Connexion");
   await page.click("#admin-link");
-  await expect(page.locator("#switch")).toBeHidden();
   await expect(page.locator("#login-title")).toHaveText("Administration");
+  await expect(page.locator(".switch a[aria-current]")).toHaveCount(0);
 });
 
 test("compte non administrateur : accès refusé", async ({ open, page }) => {
@@ -101,4 +102,12 @@ test("téléphone : cartes sans débordement @mobile", async ({ open, page }) =>
   await open({ user: ADMIN, hash: "#leaders" });
   await expect(page.locator(".serv-card").first()).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize().width);
+});
+
+test("téléphone : trois onglets sans débordement @mobile", async ({ open, page }) => {
+  await open({ user: ADMIN });
+  await expect(page.locator("#sw-admin")).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize().width);
+  const top = await page.locator("#switch a").evaluateAll(as => as.map(a => Math.round(a.getBoundingClientRect().top)));
+  expect(new Set(top).size).toBe(1);
 });

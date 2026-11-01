@@ -23,11 +23,14 @@
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--text);
   font: 16px/1.55 "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif; }
-.hero { background: var(--brand); color: var(--brand-ink); position: relative; overflow: hidden; }
+/* Anneau décoratif dessiné en fond (le bandeau ne masque plus ce qui dépasse : le menu du compte peut en sortir) */
+.hero { background: var(--brand) radial-gradient(circle at calc(100% - 90px) 50px, transparent 154px, rgba(255, 255, 255, .07) 154.5px 210px, transparent 210.5px) no-repeat;
+  color: var(--brand-ink); position: relative; }
+.hero::after { display: none; }
 .hero::after { content: ""; position: absolute; right: -120px; top: -160px; width: 420px; height: 420px;
   border-radius: 50%; border: 56px solid rgba(255, 255, 255, .07); pointer-events: none; }
 .wrap { max-width: 1120px; margin: 0 auto; padding: 0 16px; }
-.hero .wrap { padding-top: 40px; padding-bottom: 44px; position: relative; z-index: 1; }
+.hero .wrap { padding-top: 40px; padding-bottom: 44px; }
 .brand { font: 700 17px/1.2 Montserrat, sans-serif; letter-spacing: .16em; text-transform: uppercase; }
 h1 { margin: 14px 0 8px; font: 700 clamp(40px, 8vw, 72px)/.95 Phudu, Montserrat, sans-serif;
   text-transform: uppercase; letter-spacing: .01em; }
@@ -304,7 +307,26 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .chip[aria-pressed="true"] .dot { box-shadow: none; }
 /* Onglets « Propositions / Leaders » (administrateurs), posés sur le bas du bandeau */
 .switch { display: flex; gap: 4px; margin-top: 22px; }
-.switch[hidden] { display: none; }
+.switch[hidden], .switch a[hidden] { display: none; }
+/* Téléphone : trois onglets sur une ligne */
+@media (max-width: 520px) {
+  .switch { gap: 0; overflow-x: auto; scrollbar-width: none; margin-right: -16px; }
+  .switch::-webkit-scrollbar { display: none; }
+  .switch a { flex: none; padding: 12px 9px; font-size: 11.5px; letter-spacing: .03em; }
+}
+/* Menu du compte connecté (prénom en haut à droite) */
+.acct { position: relative; flex: none; }
+.acct-menu { position: absolute; right: 0; top: calc(100% + 8px); z-index: 15; min-width: 220px; max-width: calc(100vw - 32px); padding: 12px;
+  background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 18px 36px -14px rgba(0, 40, 80, .4);
+  display: grid; gap: 10px; }
+.acct-menu[hidden] { display: none; }
+.acct-name { font-weight: 700; }
+.acct-email { color: var(--muted); font-size: 14px; overflow-wrap: anywhere; }
+.switch .short { display: none; }
+@media (max-width: 520px) { .switch .long { display: none; } .switch .short { display: inline; } }
+#logout { justify-self: start; padding: 9px 14px; border: 1.5px solid var(--text); border-radius: 6px; background: var(--surface); color: var(--text);
+  font: 600 13px/1 Montserrat, sans-serif; cursor: pointer; }
+#logout:hover { opacity: .85; }
 .hero:has(.switch:not([hidden])) .wrap { padding-bottom: 0; }
 .switch a { padding: 12px 18px; border-radius: 10px 10px 0 0; color: var(--brand-ink); text-decoration: none;
   font: 600 13px/1 Montserrat, sans-serif; letter-spacing: .08em; text-transform: uppercase; opacity: .8; }
@@ -336,10 +358,11 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 <header class="hero">
   <div class="wrap">
     <div class="top"><div class="brand">Église Lyon Centre</div>
-      <button type="button" class="admin-link" id="admin-link" aria-label="Connexion"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg><span id="admin-label">Connexion</span></button></div>
+      <div class="acct"><button type="button" class="admin-link" id="admin-link" aria-label="Connexion"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg><span id="admin-label">Connexion</span></button>
+        <div class="acct-menu" id="acct-menu" hidden><div><div class="acct-name" id="me-name"></div><div class="acct-email" id="me-email"></div></div><button type="button" id="logout">Se déconnecter</button></div></div></div>
     <h1 id="h1">Annuaire des propositions</h1>
-    <nav class="switch" id="switch" aria-label="Annuaires" hidden>
-      <a href="#" id="sw-prop">Propositions</a><a href="#leaders" id="sw-serv">Leaders</a>
+    <nav class="switch" id="switch" aria-label="Annuaires">
+      <a href="#" id="sw-prop">Propositions</a><a href="#leaders" id="sw-serv">Leaders</a><a href="#admin" id="sw-admin" aria-label="Administration" hidden><span class="long">Administration</span><span class="short" aria-hidden="true">Admin</span></a>
     </nav>
   </div>
 </header>
@@ -360,7 +383,6 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 </div>
 <div id="admin-view" class="view" hidden>
   <main class="wrap">
-    <div id="login-top" class="account" hidden><button type="button" class="back-link" id="login-back">← Retour à l'annuaire</button></div>
     <div id="admin-login" class="login" hidden>
       <h2 id="login-title">Administration</h2>
       <p id="login-text">Connectez-vous avec le compte Google d'un administrateur de l'annuaire.</p>
@@ -372,8 +394,6 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
       <div class="account"><button type="button" class="link-btn" id="logout-2">Se déconnecter</button></div>
     </div>
     <div id="admin-body" hidden>
-      <div class="account"><button type="button" class="back-link" id="back-link">← Retour à l'annuaire</button>
-        <span>Connecté : <span id="me-email"></span> · <button type="button" class="link-btn" id="logout">Se déconnecter</button></span></div>
       <div class="admin-top">
         <div class="tabs" role="tablist">
           <button type="button" class="tab" role="tab" id="tab-services" aria-selected="true">Staffs</button>

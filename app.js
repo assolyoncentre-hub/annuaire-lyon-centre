@@ -239,26 +239,27 @@ function route() {
   $("serv-view").hidden = !showServ;
   $("admin-view").hidden = !admin;
   $("h1").textContent = serv ? "Annuaire des leaders" : admin ? "Administration" : "Annuaire des propositions";
-  // En haut à droite : « Connexion », ou « Administration » pour un administrateur connecté ; masqué dans l'administration
-  $("admin-label").textContent = isAdmin ? "Administration" : "Connexion";
-  $("admin-link").setAttribute("aria-label", $("admin-label").textContent);
-  $("admin-link").hidden = h === "#admin";
-  // Onglets entre les deux annuaires, pour tout le monde (sauf dans l'administration) ;
-  // « Leaders » sans être administrateur affiche l'écran de connexion
-  $("switch").hidden = h === "#admin";
-  $("sw-prop").toggleAttribute("aria-current", false); $("sw-serv").toggleAttribute("aria-current", false);
-  $(serv ? "sw-serv" : "sw-prop").setAttribute("aria-current", "page");
+  // En haut à droite : « Connexion », ou le prénom de la personne connectée (menu avec « Se déconnecter »)
+  const label = session ? firstName() : "Connexion";
+  $("admin-label").textContent = label;
+  $("admin-link").setAttribute("aria-label", session ? "Compte de " + label : label);
+  if (session) $("admin-link").setAttribute("aria-expanded", String(!$("acct-menu").hidden)); else { $("admin-link").removeAttribute("aria-expanded"); $("acct-menu").hidden = true; }
+  // Onglets : Propositions et Leaders pour tous (Leaders sans être administrateur affiche la connexion),
+  // Administration seulement pour un administrateur connecté
+  $("sw-admin").hidden = !isAdmin;
+  for (const k of ["sw-prop", "sw-serv", "sw-admin"]) $(k).removeAttribute("aria-current");
+  const cur = serv ? "sw-serv" : h === "#admin" ? (isAdmin ? "sw-admin" : null) : "sw-prop";
+  if (cur) $(cur).setAttribute("aria-current", "page");
   $("login-title").textContent = serv ? "Accès réservé" : "Administration";
   $("login-text").textContent = serv ? "L'annuaire des leaders est réservé aux administrateurs. Connectez-vous avec votre compte Google."
     : "Connectez-vous avec le compte Google d'un administrateur de l'annuaire.";
   if (admin || serv) ensureAuth();
   $("admin-login").hidden = !admin || !!session || !authLoaded;
-  // Lien de retour inutile sous les onglets (page des leaders)
-  $("login-top").hidden = $("admin-login").hidden || serv;
   $("admin-denied").hidden = !admin || !session || isAdmin;
   $("admin-body").hidden = h !== "#admin" || !isAdmin;
   const email = session?.user?.email || "";
   $("me-email").textContent = email;
+  $("me-name").textContent = session ? firstName() : "";
   $("denied-email").textContent = email;
   if (admin) renderAdmin();
   if (showServ) renderServ();
@@ -271,14 +272,27 @@ window.addEventListener("hashchange", route);
 $("year").textContent = new Date().getFullYear();
 // Retour à l'annuaire des propositions (adresse sans « # »)
 const goHome = () => { history.pushState("", "", location.pathname + location.search); route(); };
-$("back-link").addEventListener("click", goHome);
-$("login-back").addEventListener("click", goHome);
 $("sw-prop").addEventListener("click", e => { e.preventDefault(); goHome(); });
+// Prénom de la personne connectée : celui de sa fiche de contact (même e-mail), sinon celui du compte Google
+function firstName() {
+  const u = session?.user, email = String(u?.email || "").toLowerCase(), m = u?.user_metadata || {};
+  const n = (email && persons().find(x => x.email && x.email.toLowerCase() === email)?.prenom) || m.given_name ||
+    String(m.full_name || m.name || "").trim().split(/\s+/)[0];
+  if (n) return n;
+  const l = email.split("@")[0].split(/[._-]/)[0];
+  return l ? l[0].toUpperCase() + l.slice(1) : "Mon compte";
+}
+const closeAcct = () => { $("acct-menu").hidden = true; if (session) $("admin-link").setAttribute("aria-expanded", "false"); };
 $("admin-link").addEventListener("click", () => {
-  if (location.hash === "#admin") goHome(); else { location.hash = "admin"; route(); }
+  if (!session) { location.hash = "admin"; return route(); }
+  $("acct-menu").hidden = !$("acct-menu").hidden;
+  $("admin-link").setAttribute("aria-expanded", String(!$("acct-menu").hidden));
+  if (!$("acct-menu").hidden) $("logout").focus();
 });
+document.addEventListener("click", e => { if (!$("acct-menu").hidden && !e.target.closest(".acct")) closeAcct(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("acct-menu").hidden) { closeAcct(); $("admin-link").focus(); } });
 $("google-btn").onclick = () => api.signIn();
-$("logout").onclick = $("logout-2").onclick = async () => { await api.signOut(); isAdmin = false; session = null; contactsOf = {}; respOf = {}; contactRows = []; respRows = []; route(); render(); };
+$("logout").onclick = $("logout-2").onclick = async () => { closeAcct(); await api.signOut(); isAdmin = false; session = null; contactsOf = {}; respOf = {}; contactRows = []; respRows = []; route(); render(); };
 
 const poleNames = () => Object.keys(poles).sort(byPole);
 const isPoleTab = () => adminTab === "poles";

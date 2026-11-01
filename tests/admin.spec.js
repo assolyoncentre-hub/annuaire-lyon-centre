@@ -12,7 +12,7 @@ test("connexion : écran Google, retour à l'annuaire, compte non administrateur
   await expect(page.locator("#admin-login")).toBeVisible();
   await page.click("#google-btn");
   expect(await calls(page, "signIn")).toHaveLength(1);
-  await page.click("#login-back");
+  await page.click("#sw-prop");
   await expect(page.locator("#dir-view")).toBeVisible();
 });
 
@@ -20,7 +20,6 @@ test("compte connecté mais non administrateur : accès refusé", async ({ open,
   await open({ user: { email: "autre@example.org", admin: false }, hash: "#admin" });
   await expect(page.locator("#admin-denied")).toContainText("autre@example.org");
   await expect(page.locator("#admin-body")).toBeHidden();
-  await expect(page.locator("#login-top")).toBeHidden();
 });
 
 test("onglets et compteurs", async ({ open, page }) => {
@@ -111,7 +110,7 @@ test("messages : expéditeur avec civilité, message adressé à un pôle", asyn
   await page.fill("#m-email", "anne@example.org");
   await page.fill("#m-msg", "Bonjour");
   await page.click("#m-send");
-  await page.click("#admin-link");
+  await page.click("#sw-admin");
   await page.click("#tab-messages");
   await expect(page.locator(".msg-row")).toContainText("Madame Anne Test");
   await expect(page.locator(".msg-row")).toContainText("Responsables du pôle Jeunes");
@@ -125,4 +124,30 @@ test("téléphone : administration et fiche sans débordement @mobile", async ({
   await page.locator(".pick").click();
   const m = await page.locator("#editor .modal").evaluate(e => e.scrollWidth - e.clientWidth);
   expect(m).toBeLessThanOrEqual(0);
+});
+
+test("compte connecté : prénom en haut à droite, menu de déconnexion, onglet Administration", async ({ open, page }) => {
+  // Administratrice qui a une fiche de contact (même e-mail) : prénom de la fiche
+  await open({ user: { email: "claire@example.org", admin: true } });
+  await expect(page.locator("#admin-label")).toHaveText("Claire");
+  await expect(page.locator("#sw-admin")).toBeVisible();
+  await page.click("#sw-admin");
+  await expect(page.locator("#admin-body")).toBeVisible();
+  await expect(page.locator("#sw-admin")).toHaveAttribute("aria-current", "page");
+  await page.click("#admin-link");
+  await expect(page.locator("#acct-menu")).toBeVisible();
+  await expect(page.locator("#me-email")).toHaveText("claire@example.org");
+  await page.keyboard.press("Escape");
+  await expect(page.locator("#acct-menu")).toBeHidden();
+  await page.click("#admin-link");
+  await page.click("#logout");
+  await expect(page.locator("#admin-label")).toHaveText("Connexion");
+  await expect(page.locator("#sw-admin")).toBeHidden();
+  await expect(page.locator("#admin-login")).toBeVisible();
+});
+
+test("compte sans fiche de contact : prénom du compte Google, sinon tiré de l'e-mail", async ({ open, page }) => {
+  await open({ user: { email: "paul.durand@example.org", admin: false, name: "Paul Durand" } });
+  await expect(page.locator("#admin-label")).toHaveText("Paul");
+  await expect(page.locator("#sw-admin")).toBeHidden();
 });

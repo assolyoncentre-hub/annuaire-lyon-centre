@@ -9,7 +9,7 @@ module.exports = function installFakeApi({ data, user }) {
   window.__calls = [];
   const log = (name, arg) => window.__calls.push({ name, arg });
   const clone = x => JSON.parse(JSON.stringify(x));
-  let session = user ? { user: { id: "u1", email: user.email } } : null;
+  let session = user ? { user: { id: "u1", email: user.email, user_metadata: { full_name: user.name || "" } } } : null;
   const admin = () => !!(session && user && user.admin);
   const guard = () => { if (!admin()) throw new Error("refusé (règles d'accès)"); };
   const norm = s => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
