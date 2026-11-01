@@ -256,7 +256,7 @@ function route() {
   $("dir-view").hidden = admin || serv;
   $("serv-view").hidden = !showServ;
   $("admin-view").hidden = !admin;
-  $("h1").textContent = serv ? (canLeaders ? "Annuaire des leaders" : "Annuaire") : admin ? (session ? "Administration" : "Connexion") : "Annuaire des propositions";
+  $("h1").textContent = serv ? "Annuaire des leaders" : admin ? (session ? "Administration" : "Connexion") : "Annuaire des propositions";
   // En haut à droite : « Connexion », ou le prénom de la personne connectée (menu avec « Se déconnecter »)
   const label = session ? firstName() : "Connexion";
   $("admin-label").textContent = label;
