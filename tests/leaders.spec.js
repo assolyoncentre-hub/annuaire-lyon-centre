@@ -20,6 +20,7 @@ test("visiteur : onglets visibles, « Leaders » demande de se connecter", async
   await expect(page.locator("#admin-label")).toHaveText("Connexion");
   await page.click("#admin-link");
   await expect(page.locator("#login-title")).toHaveText("Connexion");
+  await expect(page.locator("#h1")).toHaveText("Connexion");
   await expect(page.locator(".switch a[aria-current]")).toHaveCount(0);
 });
 
