@@ -876,7 +876,7 @@ $("ed-form").addEventListener("keydown", e => {
   e.stopPropagation(); const p = document.querySelector(".msel-panel:not([hidden])"); mselClose(); p.previousElementSibling.focus();
 });
 $("editor").addEventListener("click", e => { if (!e.target.closest(".msel")) mselClose(); });
-const DROITS = [["aucun", "Aucun", "Ne peut pas se connecter"], ["leaders", "Leader", "Voit l'annuaire des leaders"], ["admin", "Administrateur", "Peut modifier les staffs, les pôles, les contacts et les droits"]];
+const DROITS = [["aucun", "Aucun", "Ne peut pas se connecter"], ["leaders", "Leader", "Voit l'annuaire des leaders quand il ou elle est connecté·e"], ["admin", "Administrateur", "Peut modifier les staffs, les pôles, les contacts et les droits"]];
 function deletePerson(p) {
   const roles = personRoles(p), e = p.email.toLowerCase(), self = e && e === myEmail();
   openEditor("Supprimer le contact", fullName(p), '<p style="margin:0">Cette personne sera retirée' +
