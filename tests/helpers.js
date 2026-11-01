@@ -20,6 +20,13 @@ const test = base.extend({
   },
 });
 
+// Choix d'un pôle : les filtres sont repliés derrière « Filtrer par pôle », on les déplie d'abord
+async function pickPole(page, list, name) {
+  const toggle = page.locator(".filt-toggle[aria-controls='" + list + "']");
+  if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
+  await page.locator("#" + list + " .chip", { hasText: name }).click();
+}
+
 const calls = (page, name) => page.evaluate(n => window.__calls.filter(c => c.name === n), name);
 
-module.exports = { test, expect, ADMIN, calls };
+module.exports = { test, expect, ADMIN, calls, pickPole };

@@ -1,5 +1,5 @@
 // Annuaire public : affichage, recherche, leaders, formulaires de message.
-const { test, expect, calls } = require("./helpers");
+const { test, expect, calls, pickPole } = require("./helpers");
 
 const card = (page, name) => page.locator(".card", { has: page.getByRole("heading", { name, exact: true }) });
 async function openLeaders(page, name) {
@@ -53,11 +53,11 @@ test("recherche : texte, nom de leader (dès 2 lettres), responsable de pôle", 
 
 test("filtre par pôle : responsables (accord, « et ») et message au pôle", async ({ open }) => {
   const page = await open();
-  await page.locator("#filters .chip", { hasText: "Le dimanche" }).click();
+  await pickPole(page, "filters", "Le dimanche");
   await expect(page.locator("#resp p")).toHaveText("Responsables du pôle : Emmanuel MOREAU, Delphine MOREAU, Claire VANNIER et Stanislas VANNIER");
-  await page.locator("#filters .chip", { hasText: "Solidarité" }).click();
+  await pickPole(page, "filters", "Solidarité");
   await expect(page.locator("#resp p")).toHaveText("Responsable du pôle : Jean BRUNET");
-  await page.locator("#filters .chip", { hasText: "Le dimanche" }).click();
+  await pickPole(page, "filters", "Le dimanche");
   await page.locator("#resp .msg").click();
   await expect(page.locator("#m-kicker")).toHaveText("Message aux responsables du pôle");
   await expect(page.locator("#m-title")).toHaveText("Le dimanche");
@@ -109,8 +109,7 @@ test("clavier : Tab reste dans le formulaire, la section se replie en quittant l
 test("téléphone : rien ne déborde @mobile", async ({ open }) => {
   const page = await open();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize().width);
-  if (await page.locator("#dir-view .filt-toggle").isVisible()) await page.click("#dir-view .filt-toggle");
-  await page.locator("#filters .chip", { hasText: "Le dimanche" }).click();
+  await pickPole(page, "filters", "Le dimanche");
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize().width);
 });
 
@@ -127,15 +126,9 @@ test("téléphone : le bouton Message d'une section dépliée ouvre le formulair
   await expect(page.locator("#modal")).toBeVisible();
 });
 
-test("téléphone : filtres par pôle repliés, dépliables, pôle choisi rappelé @mobile", async ({ open, page }) => {
+test("filtres par pôle repliés, dépliables, pôle choisi rappelé @mobile", async ({ open, page }) => {
   await open();
-  const mobile = test.info().project.name === "téléphone";
   const toggle = page.locator("#dir-view .filt-toggle");
-  if (!mobile) {
-    await expect(toggle).toBeHidden();
-    await expect(page.locator("#filters")).toBeVisible();
-    return;
-  }
   await expect(page.locator("#filters")).toBeHidden();
   await expect(toggle).toHaveAttribute("aria-expanded", "false");
   await toggle.click();

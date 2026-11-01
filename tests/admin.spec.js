@@ -1,5 +1,5 @@
 // Administration : connexion, staffs, pôles, contacts, messages.
-const { test, expect, ADMIN, calls } = require("./helpers");
+const { test, expect, ADMIN, calls, pickPole } = require("./helpers");
 
 const editRow = async (page, filtre) => {
   await page.fill("#aq", filtre);
@@ -102,7 +102,7 @@ test("contacts : personne regroupée sur ses staffs, civilité « Père » affic
 
 test("messages : expéditeur avec civilité, message adressé à un pôle", async ({ open, page }) => {
   await open({ user: ADMIN });
-  await page.locator("#filters .chip", { hasText: "Jeunes" }).click();
+  await pickPole(page, "filters", "Jeunes");
   await page.locator("#resp .msg").click();
   await page.selectOption("#m-civ", "Madame");
   await page.fill("#m-prenom", "Anne");

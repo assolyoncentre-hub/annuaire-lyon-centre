@@ -1,5 +1,5 @@
 // Annuaire des leaders : réservé aux administrateurs, une carte par personne avec téléphone et e-mail.
-const { test, expect, ADMIN, calls } = require("./helpers");
+const { test, expect, ADMIN, calls, pickPole } = require("./helpers");
 
 test("visiteur : onglets visibles, « Leaders » demande de se connecter", async ({ open, page }) => {
   await open();
@@ -58,9 +58,9 @@ test("administrateur : cartes par lettre, rôles, liens d'appel et d'e-mail, fil
   // Sans téléphone ni e-mail : pas de bloc de coordonnées
   await expect(page.locator(".serv-card", { hasText: "ALLARD" }).locator(".coords a")).toHaveCount(1);
 
-  await page.locator("#sfilters .chip", { hasText: "Jeunes" }).click();
+  await pickPole(page, "sfilters", "Jeunes");
   await expect(page.locator("#scount")).toHaveText("3 leaders");
-  await page.locator("#sfilters .chip", { hasText: "Jeunes" }).click();
+  await pickPole(page, "sfilters", "Jeunes");
   await page.fill("#sq", "sacris");
   await expect(page.locator(".serv-card")).toHaveCount(1);
   await page.fill("#sq", "06 39 98 10");
