@@ -61,6 +61,15 @@ h1 { margin: 14px 0 8px; font: 700 clamp(40px, 8vw, 72px)/.95 Phudu, Montserrat,
   background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' fill='none' stroke='%235b6b7c' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='8' cy='8' r='6'/%3E%3Cpath d='m17 17-4.5-4.5'/%3E%3C/svg%3E") no-repeat 16px center;
   color: var(--text); font: 16px/1.2 "DM Sans", system-ui, sans-serif; outline: none; }
 .search:focus { border-color: var(--brand); }
+/* Croix pour vider la recherche (Safari sur iPhone n'en affiche pas) : la croix du navigateur est masquée partout */
+.search::-webkit-search-cancel-button { -webkit-appearance: none; display: none; }
+.search-wrap { position: relative; flex: 1 1 100%; width: 100%; min-width: 0; }
+.search-wrap .search { width: 100%; padding-right: 46px; }
+.search-clear { position: absolute; top: 50%; right: 6px; transform: translateY(-50%); display: grid; place-items: center; width: 36px; height: 36px;
+  padding: 0; border: 0; border-radius: 50%; background: none; color: var(--muted); cursor: pointer; }
+.search-clear[hidden] { display: none; }
+.search-clear svg { width: 18px; height: 18px; }
+@media (hover: hover) { .search-clear:hover { background: var(--tint); color: var(--text); } }
 .chip { border: 1.5px solid var(--border); background: var(--surface); color: var(--text);
   border-radius: 999px; padding: 10px 16px; font: 600 14px/1 Montserrat, sans-serif; cursor: pointer;
   display: inline-flex; align-items: center; gap: 8px; transition: border-color .15s, background .15s; }
@@ -185,7 +194,7 @@ body { min-height: 100vh; display: flex; flex-direction: column; }
   font: 600 13px/1 Montserrat, sans-serif; cursor: pointer; }
 .tab[aria-selected="true"] { background: var(--brand); border-color: var(--brand); color: #fff; }
 .admin-tools { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 12px 0 16px; }
-.admin-tools .search { flex: 0 1 360px; width: auto; min-width: 0; }
+.admin-tools .search-wrap { flex: 0 1 360px; width: auto; min-width: 0; }
 .btn-sm { padding: 9px 14px; font-size: 13px; }
 .list { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
 .row { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; padding: 14px 18px; border-top: 1px solid var(--border); }

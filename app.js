@@ -58,6 +58,18 @@ const byPole = (a, b) => (rank(a) - rank(b)) || byName(a, b);
 const sRank = s => Number.isFinite(s.ordre) ? s.ordre : Infinity;
 const bySvc = (a, b) => byPole(a.pole || "", b.pole || "") || (sRank(a) - sRank(b)) || byName(a.name || "", b.name || "");
 const $ = id => document.getElementById(id);
+// Champs de recherche : croix pour les vider (absente de Safari sur iPhone), visible dès qu'il y a du texte
+for (const input of document.querySelectorAll("input.search")) {
+  const wrap = document.createElement("span"), clear = document.createElement("button");
+  wrap.className = "search-wrap";
+  clear.type = "button"; clear.className = "search-clear"; clear.hidden = true;
+  clear.setAttribute("aria-label", "Vider la recherche");
+  clear.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>';
+  input.replaceWith(wrap); wrap.append(input, clear);
+  const sync = () => { clear.hidden = !input.value; };
+  input.addEventListener("input", sync);
+  clear.addEventListener("click", () => { input.value = ""; input.dispatchEvent(new Event("input", { bubbles: true })); input.focus(); });
+}
 const status = msg => { $("count").textContent = msg; };
 
 const MAIL_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>';

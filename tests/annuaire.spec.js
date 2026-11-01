@@ -148,3 +148,16 @@ test("téléphone : filtres par pôle repliés, dépliables, pôle choisi rappel
   await expect(page.locator("#filters")).toBeHidden();
   await expect(toggle).toHaveAttribute("aria-expanded", "false");
 });
+
+test("recherche : une croix vide le champ @mobile", async ({ open, page }) => {
+  await open();
+  const clear = page.locator("#dir-view .search-clear");
+  await expect(clear).toBeHidden();
+  await page.fill("#q", "zzzz");
+  await expect(page.locator("#count")).toContainText("Aucun résultat");
+  await clear.click();
+  await expect(page.locator("#q")).toHaveValue("");
+  await expect(page.locator("#q")).toBeFocused();
+  await expect(clear).toBeHidden();
+  await expect(page.locator("#count")).not.toContainText("Aucun résultat");
+});
