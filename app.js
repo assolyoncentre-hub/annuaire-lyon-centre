@@ -1093,6 +1093,17 @@ $("otp-resend").addEventListener("click", () => sendCode(true));
 // Après une déconnexion, l'écran de connexion repart de l'adresse
 function resetOtp() { clearInterval(otpTimer); $("otp-email-form").hidden = false; $("otp-code-form").hidden = true; $("otp-code").value = ""; loginMsg(); }
 
+// Bouton « Se connecter » de l'e-mail : ?connexion=<empreinte du code>, retirée aussitôt de l'adresse.
+// Une messagerie qui « visite » le lien pour l'analyser n'exécute pas la page : le code reste valable.
+const linkToken = new URLSearchParams(location.search).get("connexion");
+if (linkToken) history.replaceState(null, "", location.pathname + (location.hash || "#leaders"));
+async function verifyLink(token) {
+  if (session) return; // déjà connecté
+  loginMsg("login-ok", "Connexion en cours…");
+  try { await api.verifyLink(token); loginMsg(); }
+  catch { loginMsg("login-error", "Ce lien de connexion a expiré ou a déjà servi. Demandez un nouveau code ci-dessous."); }
+}
+
 async function startAuth() {
   const s = await api.session().catch(() => null);
   // Retour de Google : en cas d'échec, Supabase renvoie l'erreur dans l'adresse (?error_description=…)
@@ -1109,6 +1120,7 @@ async function startAuth() {
   await onSession(s);
   if (canLeaders) render(); // l'annuaire n'est reconstruit que si les données d'administration changent l'affichage
   api.onAuth(async s2 => { if ((s2?.user?.id || null) !== (session?.user?.id || null)) { await onSession(s2); render(); } });
+  if (linkToken) await verifyLink(linkToken);
 }
 
 (async () => {

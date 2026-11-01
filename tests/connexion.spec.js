@@ -49,3 +49,17 @@ test("code e-mail : changer d'adresse revient à la saisie de l'adresse", async 
   await expect(page.locator("#otp-email")).toBeFocused();
   await expect(page.locator("#otp-email")).toHaveValue("magali@example.org");
 });
+
+test("lien « Se connecter » de l'e-mail : connexion directe, adresse nettoyée", async ({ open, page }) => {
+  await open({ hash: "?connexion=lien-ok" });
+  await expect(page.locator("#serv-view")).toBeVisible();
+  expect(page.url()).not.toContain("connexion=");
+  expect(page.url()).toMatch(/#leaders$/);
+  expect((await calls(page, "verifyLink")).map(c => c.arg)).toEqual(["lien-ok"]);
+});
+
+test("lien de l'e-mail expiré : message et formulaire de code", async ({ open, page }) => {
+  await open({ hash: "?connexion=perime" });
+  await expect(page.locator("#login-error")).toContainText("expiré ou a déjà servi");
+  await expect(page.locator("#otp-email")).toBeVisible();
+});

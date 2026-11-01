@@ -59,7 +59,7 @@ window.makeApi = function () {
     // Connexion Google et droits. La bibliothèque n'est nécessaire que pour l'administration, au retour
     // de Google, ou si une session est déjà enregistrée dans le navigateur.
     authNeeded() {
-      if (/^#admin(\/|$)/.test(location.hash) || location.hash === "#leaders" || /[?&](code|error)=/.test(location.search)) return true;
+      if (/^#admin(\/|$)/.test(location.hash) || location.hash === "#leaders" || /[?&](code|error|connexion)=/.test(location.search)) return true;
       try { return !!localStorage.getItem("sb-" + ref + "-auth-token"); } catch { return false; }
     },
     async session() { return (await (await getSb()).auth.getSession()).data.session; },
@@ -88,6 +88,11 @@ window.makeApi = function () {
     },
     async verifyCode(email, token) {
       const { error } = await (await getSb()).auth.verifyOtp({ email, token, type: "email" });
+      if (error) throw error;
+    },
+    // Bouton « Se connecter » de l'e-mail : l'adresse contient l'empreinte du code (?connexion=…), sans l'e-mail
+    async verifyLink(tokenHash) {
+      const { error } = await (await getSb()).auth.verifyOtp({ token_hash: tokenHash, type: "email" });
       if (error) throw error;
     },
     signOut: async () => (await getSb()).auth.signOut(),

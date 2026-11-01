@@ -60,6 +60,13 @@ module.exports = function installFakeApi({ data, user, acces }) {
     // Connexion par code : le bon code est toujours 123456
     async canSignIn(email) { log("canSignIn", email); return !!droitDe(email.toLowerCase()); },
     async sendCode(email) { log("sendCode", email); },
+    // Lien de l'e-mail : l'empreinte « lien-ok » connecte damien@example.org
+    async verifyLink(hash) {
+      log("verifyLink", hash);
+      if (hash !== "lien-ok") throw new Error("Token has expired or is invalid");
+      session = { user: { id: "u-lien", email: "damien@example.org", user_metadata: {} } };
+      window.__authCb?.(session);
+    },
     async verifyCode(email, code) {
       log("verifyCode", { email, code });
       if (code !== "123456") throw new Error("Token has expired or is invalid");
