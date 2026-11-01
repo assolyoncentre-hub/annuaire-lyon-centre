@@ -323,16 +323,14 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 }
 /* Menu du compte connecté (prénom en haut à droite) */
 .acct { position: relative; flex: none; }
-.acct-menu { position: absolute; right: 0; top: calc(100% + 8px); z-index: 15; min-width: 220px; max-width: calc(100vw - 32px); padding: 12px;
+.acct-menu { position: absolute; right: 0; top: calc(100% + 8px); z-index: 15; max-width: calc(100vw - 32px); padding: 12px;
   background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 18px 36px -14px rgba(0, 40, 80, .4);
   display: grid; gap: 10px; }
 .acct-menu[hidden] { display: none; }
-.acct-name { font-weight: 700; }
-.acct-email { color: var(--muted); font-size: 14px; overflow-wrap: anywhere; }
 .switch .short { display: none; }
 .switch .gear { width: 1.15em; height: 1.15em; margin-right: .45em; vertical-align: -.2em; }
 @media (max-width: 520px) { .switch .long { display: none; } .switch .short { display: inline; } }
-#logout { justify-self: start; padding: 9px 14px; border: 1.5px solid var(--text); border-radius: 6px; background: var(--surface); color: var(--text);
+#logout { white-space: nowrap; padding: 9px 14px; border: 1.5px solid var(--text); border-radius: 6px; background: var(--surface); color: var(--text);
   font: 600 13px/1 Montserrat, sans-serif; cursor: pointer; }
 #logout:hover { opacity: .85; }
 .hero:has(.switch:not([hidden])) .wrap { padding-bottom: 0; }
@@ -367,7 +365,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
   <div class="wrap">
     <div class="top"><div class="brand">Église Lyon Centre</div>
       <div class="acct"><button type="button" class="admin-link" id="admin-link" aria-label="Connexion"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg><span id="admin-label">Connexion</span></button>
-        <div class="acct-menu" id="acct-menu" hidden><div><div class="acct-name" id="me-name"></div><div class="acct-email" id="me-email"></div></div><button type="button" id="logout">Se déconnecter</button></div></div></div>
+        <div class="acct-menu" id="acct-menu" hidden><button type="button" id="logout">Se déconnecter</button></div></div></div>
     <h1 id="h1">Annuaire des propositions</h1>
     <nav class="switch" id="switch" aria-label="Annuaires">
       <a href="#" id="sw-prop">Propositions</a><a href="#leaders" id="sw-serv">Leaders</a><a href="#admin" id="sw-admin" aria-label="Administration" hidden><svg class="gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span class="long">Administration</span><span class="short" aria-hidden="true">Admin</span></a>

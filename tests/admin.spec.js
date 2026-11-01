@@ -136,7 +136,6 @@ test("compte connecté : prénom en haut à droite, menu de déconnexion, onglet
   await expect(page.locator("#sw-admin")).toHaveAttribute("aria-current", "page");
   await page.click("#admin-link");
   await expect(page.locator("#acct-menu")).toBeVisible();
-  await expect(page.locator("#me-email")).toHaveText("claire@example.org");
   await page.keyboard.press("Escape");
   await expect(page.locator("#acct-menu")).toBeHidden();
   await page.click("#admin-link");
