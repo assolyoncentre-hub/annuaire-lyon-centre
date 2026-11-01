@@ -293,7 +293,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 /* Droits sur les fiches contact */
 .row .title .badge { margin-left: 8px; vertical-align: 1px; }
 .badge.admin { background: var(--text); color: #fff; } .badge.lead { background: var(--tint); color: var(--brand); } .badge.none { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
-.afilters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.afilters { display: flex; flex-wrap: wrap; gap: 6px; margin-left: auto; justify-content: flex-end; }
 .afilters[hidden] { display: none; }
 .afilter { padding: 7px 12px; border: 1.5px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--text); font: 600 12px/1 Montserrat, sans-serif; cursor: pointer; }
 .afilter[aria-pressed="true"] { background: var(--text); border-color: var(--text); color: #fff; }
@@ -435,8 +435,8 @@ fieldset.droits legend { padding: 0; margin-bottom: 6px; font: 600 12px/1 Montse
       </div>
       <div class="admin-tools">
         <input type="search" id="aq" class="search" placeholder="Filtrer" aria-label="Filtrer la liste" autocomplete="off">
+        <div class="afilters" id="admin-filters" hidden></div>
       </div>
-      <div class="afilters" id="admin-filters" hidden></div>
       <div class="list" id="admin-list"></div>
     </div>
   </main>
