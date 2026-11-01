@@ -98,11 +98,12 @@ window.makeApi = function () {
     deleteService: async id => (await getSb()).from("services").delete().eq("id", id).then(ok),
     savePole: (p, people) => sbRpc("admin_save_pole", { p, people }),
     deletePole: async id => (await getSb()).from("poles").delete().eq("id", id).then(ok),
-    // Une personne = ses lignes dans contacts (par staff) et pole_responsables (par pôle)
-    savePerson: (fields, plan) => sbRpc("admin_save_person", { fields, plan }),
+    // Une personne = ses lignes dans contacts (par staff) et pole_responsables (par pôle), plus son droit
+    // ("admin", "leaders" ou "aucun"), rangé par e-mail dans « acces » quand il diffère du défaut ou pour une fiche hors annuaire
+    savePerson: (fields, plan, droit = "leaders") => sbRpc("admin_save_person", { fields, plan, droit }),
     reorder: (kind, rows) => sbRpc("admin_reorder", { kind, rows }),
-    // Administrateurs ; droit null = administration retirée
-    acces: async () => (await getSb()).from("acces").select("email, droit").order("email").then(ok),
+    // Droits par e-mail et fiches hors annuaire ; saveAcces(email, null) supprime la ligne
+    acces: async () => (await getSb()).from("acces").select("email, droit, civilite, prenom, nom, telephone").order("email").then(ok),
     saveAcces: (email, droit) => sbRpc("admin_save_acces", { p_email: email, p_droit: droit }),
   };
 };

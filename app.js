@@ -203,10 +203,11 @@ $("m-form").addEventListener("submit", async e => {
 
 
 // ---------- Administration ----------
-// Connexion Google (Supabase Auth), réservée aux contacts de l'annuaire : ils ont le droit « leaders »
+// Connexion Google (Supabase Auth), réservée aux personnes qui ont un droit : les contacts (« leaders » par défaut)
+// et les fiches hors annuaire, réglés sur la fiche contact
 // (consultation de l'annuaire des leaders). Les administrateurs (table « acces ») ont en plus l'administration.
 // Un autre compte est déconnecté aussitôt ; la base refuse de toute façon toute lecture au-delà de ces droits.
-let isAdmin = false, canLeaders = false, session = null, adminTab = "services", adminTerms = [], messages = [], acces = [];
+let isAdmin = false, canLeaders = false, session = null, adminTab = "services", adminTerms = [], messages = [], acces = [], contactFilter = "tous";
 let authStarted = null, authLoaded = false, lastViewAdmin = null;
 
 async function onSession(s) {
@@ -215,7 +216,7 @@ async function onSession(s) {
   if (s && droit === null) {
     // Compte absent des contacts : pas de connexion
     await api.signOut().catch(() => {});
-    $("login-error").textContent = "Le compte " + (s.user?.email || "") + " ne fait pas partie des contacts de l'annuaire : la connexion leur est réservée.";
+    $("login-error").textContent = "Le compte " + (s.user?.email || "") + " n'a pas accès à l'annuaire.";
     $("login-error").hidden = false;
     s = null;
   }
@@ -234,7 +235,7 @@ async function loadAdmin() {
 const loadAcces = () => api.acces().then(a => { acces = a; }, () => {});
 // Après un enregistrement : annuaire et données d'administration rechargés en parallèle
 async function refresh() {
-  await Promise.all([loadPublic(), canLeaders && loadAdmin()]);
+  await Promise.all([loadPublic(), canLeaders && loadAdmin(), isAdmin && loadAcces()]);
   render();
   renderAdmin();
   renderServ();
@@ -263,7 +264,7 @@ function route() {
   const cur = serv ? "sw-serv" : h === "#admin" ? (isAdmin ? "sw-admin" : null) : "sw-prop";
   if (cur) $(cur).setAttribute("aria-current", "page");
   $("login-title").textContent = serv ? "Accès réservé" : "Administration";
-  $("login-text").textContent = serv ? "" : "Connexion réservée aux contacts de l'annuaire, avec le compte Google de votre adresse e-mail de contact.";
+  $("login-text").textContent = serv ? "" : "Connexion réservée aux personnes autorisées, avec le compte Google de l'adresse e-mail enregistrée dans l'annuaire.";
   $("login-text").hidden = serv;
   if (admin || serv) ensureAuth();
   $("admin-login").hidden = !admin || !!session || !authLoaded;
@@ -289,7 +290,7 @@ $("sw-prop").addEventListener("click", e => { e.preventDefault(); goHome(); });
 const capitalize = s => s.toLocaleLowerCase("fr").replace(/(^|[\s'-])(\p{L})/gu, (_m, a, b) => a + b.toLocaleUpperCase("fr"));
 function firstName() {
   const u = session?.user, email = String(u?.email || "").toLowerCase(), m = u?.user_metadata || {};
-  const n = (email && persons().find(x => x.email && x.email.toLowerCase() === email)?.prenom) || m.given_name ||
+  const n = (email && fiches().find(x => x.email && x.email.toLowerCase() === email)?.prenom) || m.given_name ||
     String(m.full_name || m.name || "").trim().split(/\s+/)[0];
   if (n) return capitalize(n);
   const l = email.split("@")[0].split(/[._-]/)[0];
@@ -310,15 +311,14 @@ const poleNames = () => Object.keys(poles).sort(byPole);
 const isPoleTab = () => adminTab === "poles";
 function setTab(t) {
   adminTab = t;
-  for (const k of ["services", "poles", "contacts", "messages", "acces"]) $("tab-" + k).setAttribute("aria-selected", String(t === k));
+  for (const k of ["services", "poles", "contacts", "messages"]) $("tab-" + k).setAttribute("aria-selected", String(t === k));
   $("add-btn").hidden = t === "messages";
-  $("add-btn").textContent = { services: "Ajouter un staff", poles: "Ajouter un pôle", contacts: "Ajouter un contact", acces: "Ajouter un admin" }[t] || "";
+  $("add-btn").textContent = { services: "Ajouter un staff", poles: "Ajouter un pôle", contacts: "Ajouter un contact" }[t] || "";
   renderAdmin();
 }
 $("tab-services").onclick = () => setTab("services");
 $("tab-poles").onclick = () => setTab("poles");
 $("tab-contacts").onclick = () => setTab("contacts");
-$("tab-acces").onclick = async () => { await loadAcces(); setTab("acces"); };
 $("tab-messages").onclick = async () => { messages = await api.messages().catch(() => messages); setTab("messages"); };
 $("aq").addEventListener("input", e => { adminTerms = norm(e.target.value).split(/\s+/).filter(Boolean); renderAdmin(); });
 const adminMatch = text => { const w = words(text); return adminTerms.every(t => w.some(x => x.startsWith(t))); };
@@ -328,34 +328,33 @@ let drag = null, renderPending = false;
 
 function renderAdmin() {
   if ($("admin-body").hidden) return;
+  $("admin-filters").hidden = true;
   if (drag) { renderPending = true; return; }
   $("tab-services").textContent = "Staffs (" + services.length + ")";
   $("tab-poles").textContent = "Pôles (" + Object.keys(poles).length + ")";
   $("tab-messages").textContent = "Messages (" + messages.length + ")";
-  $("tab-contacts").textContent = "Contacts (" + persons().length + ")";
-  $("tab-acces").textContent = "Admins (" + acces.length + ")";
-  if (adminTab === "acces") {
-    const me = String(session?.user?.email || "").toLowerCase();
-    const list = acces.map(a => ({ ...a, p: persons().find(x => x.email && x.email.toLowerCase() === a.email) }))
-      .filter(a => adminMatch([a.email, a.p && fullName(a.p)].join(" ")))
-      .sort((a, b) => (a.p ? fullName(a.p) : a.email).localeCompare(b.p ? fullName(b.p) : b.email, "fr"));
-    $("admin-list").innerHTML = list.length ? '<div class="group">' + list.map(a =>
-      '<div class="row" data-id="' + esc(a.email) + '"><span></span><div><div class="title">' + esc(a.p ? fullName(a.p) : a.email) + "</div>" +
-      '<div class="meta">' + (a.p ? "<span>" + esc(a.email) + "</span>" : "<span>Pas dans les contacts</span>") + "</div></div>" +
-      (a.email === me ? '<div class="ops"><span class="you">Vous</span></div>' : '<div class="ops"><button type="button" class="btn btn-ghost btn-sm" data-act="del">Retirer</button></div>') +
-      "</div>").join("") + "</div>" : '<div class="empty">Aucun administrateur.</div>';
-    $("admin-list").classList.add("no-drag");
-    return;
-  }
+  $("tab-contacts").textContent = "Contacts (" + fiches().length + ")";
   if (adminTab === "contacts") {
-    const list = persons().filter(p => adminMatch([p.prenom, p.nom, p.email, p.telephone, ...personRoles(p)].join(" ")));
-    $("admin-list").innerHTML = list.length ? '<div class="group">' + list.map(p => {
-      const roles = personRoles(p);
-      return '<div class="row" data-id="' + esc(p.key) + '"><span></span><div><div class="title">' + esc(fullName(p)) + "</div>" +
+    const all = fiches(), nb = { admin: all.filter(p => p.droit === "admin").length, hors: all.filter(p => p.hors).length };
+    if (!nb[contactFilter]) contactFilter = "tous";
+    const list = all.filter(p => (contactFilter === "tous" || (contactFilter === "admin" ? p.droit === "admin" : p.hors)) &&
+      adminMatch([p.prenom, p.nom, p.email, p.telephone, ...personRoles(p)].join(" ")));
+    const badge = p => p.droit === "admin" ? ' <span class="badge admin">Admin</span>' : p.droit === "aucun" ? ' <span class="badge none">Sans accès</span>' :
+      p.hors ? ' <span class="badge lead">Leaders</span>' : "";
+    const row = p => {
+      const roles = p.hors ? ["Ni staff ni pôle"] : personRoles(p);
+      return '<div class="row" data-id="' + esc(p.key) + '"><span></span><div><div class="title">' + esc(fullName(p) || p.email) + badge(p) + "</div>" +
         '<div class="meta"><span>' + (p.email ? esc(p.email) : "Pas d'e-mail") + "</span>" + (p.telephone ? "<span>" + esc(p.telephone) + "</span>" : "") + '<span class="ell" title="' + esc(roles.join(", ")) + '">' + esc(roles.join(", ")) + "</span></div></div>" +
         '<div class="ops"><button type="button" class="btn btn-ghost btn-sm" data-act="edit">Modifier</button>' +
         '<button type="button" class="btn btn-ghost btn-sm" data-act="del">Supprimer</button></div></div>';
-    }).join("") + "</div>" : '<div class="empty">Aucun contact.</div>';
+    };
+    const chip = (k, label, n) => '<button type="button" class="afilter" data-filter="' + k + '" aria-pressed="' + (contactFilter === k) + '">' + label + " (" + n + ")</button>";
+    $("admin-filters").innerHTML = chip("tous", "Tous", all.length) + (nb.admin ? chip("admin", "Administrateurs", nb.admin) : "") +
+      (nb.hors ? chip("hors", "Hors annuaire", nb.hors) : "");
+    $("admin-filters").hidden = !nb.admin && !nb.hors;
+    const dans = list.filter(p => !p.hors), hors = list.filter(p => p.hors);
+    $("admin-list").innerHTML = (list.length ? '<div class="group">' + dans.map(row).join("") +
+      (hors.length ? '<div class="group-head">Hors annuaire · accès sans être contact</div>' + hors.map(row).join("") : "") + "</div>" : '<div class="empty">Aucun contact.</div>');
     $("admin-list").classList.add("no-drag");
     return;
   }
@@ -482,15 +481,15 @@ async function endDrag() {
 document.addEventListener("pointerup", endDrag);
 document.addEventListener("pointercancel", endDrag);
 
+$("admin-filters").addEventListener("click", e => {
+  const fb = e.target.closest("[data-filter]");
+  if (fb) { contactFilter = fb.dataset.filter; renderAdmin(); }
+});
 $("admin-list").addEventListener("click", e => {
   const b = e.target.closest("[data-act]"); if (!b) return;
   const id = b.closest(".row").dataset.id;
-  if (adminTab === "acces") {
-    const a = acces.find(x => x.email === id); if (!a) return;
-    return deleteAcces(a);
-  }
   if (adminTab === "contacts") {
-    const p = persons().find(x => x.key === id); if (!p) return;
+    const p = fiches().find(x => x.key === id); if (!p) return;
     return b.dataset.act === "edit" ? editPerson(p) : deletePerson(p);
   }
   const item = isPoleTab() ? Object.values(poles).find(p => p._id === id) : services.find(s => s._id === id);
@@ -498,7 +497,7 @@ $("admin-list").addEventListener("click", e => {
   if (b.dataset.act === "edit") (isPoleTab() ? editPole : editService)(item);
   else (isPoleTab() ? deletePole : deleteService)(item);
 });
-$("add-btn").onclick = () => adminTab === "acces" ? editAcces(null) : adminTab === "contacts" ? editPerson(null) : isPoleTab() ? editPole(null) : editService(null);
+$("add-btn").onclick = () => adminTab === "contacts" ? editPerson(null) : isPoleTab() ? editPole(null) : editService(null);
 
 // --- Éditeur (fenêtre) ---
 function openEditor(kicker, title, html, onSave, saveLabel = "Enregistrer", danger = false) {
@@ -539,7 +538,7 @@ const trashBtn = '<button type="button" class="trash" data-rm aria-label="Retire
 const personKey = r => r.email ? "@" + String(r.email).toLowerCase() : (persons().find(x => nameKey(x) === nameKey(r))?.key || nameKey(r));
 const linkedRow = p => {
   // Une ligne sans e-mail reprend celui de la fiche du contact, s'il en a un
-  const key = personKey(p), fiche = persons().find(x => x.key === key);
+  const key = personKey(p), fiche = fiches().find(x => x.key === key);
   p = { ...p, email: p.email || fiche?.email || "", civilite: p.civilite || fiche?.civilite || "", telephone: p.telephone || fiche?.telephone || "" };
   return '<div class="person linked" data-key="' + esc(key) + '" data-prenom="' + esc(p.prenom || "") +
   '" data-nom="' + esc(p.nom || "") + '" data-email="' + esc(p.email || "") + '" data-civilite="' + esc(p.civilite || "") + '" data-telephone="' + esc(p.telephone || "") + '">' + gripBtn + '<div class="who" title="' + esc(fullName(p) + (p.email ? " · " + p.email : "")) + '">' +
@@ -559,7 +558,7 @@ function suggest(input) {
   const box = input.closest(".people"), sug = input.nextElementSibling;
   const taken = new Set([...box.querySelectorAll(".person.linked")].map(r => r.dataset.key));
   const t = norm(input.value).split(/\s+/).filter(Boolean);
-  const list = persons().filter(p => !taken.has(p.key) && t.every(x => words([p.prenom, p.nom, p.email].join(" ")).some(w => w.startsWith(x))));
+  const list = fiches().filter(p => !taken.has(p.key) && t.every(x => words([p.prenom, p.nom, p.email].join(" ")).some(w => w.startsWith(x))));
   sug.innerHTML = list.length ? list.map((p, i) => '<button type="button" data-key="' + esc(p.key) + '"' + (i ? "" : ' class="on"') + ">" + esc(fullName(p)) +
     "<span>" + esc(p.email || "pas d'e-mail") + "</span></button>").join("") : '<div class="none">Aucun contact trouvé. Utilisez « Créer un nouveau contact ».</div>';
   sug.hidden = false;
@@ -582,7 +581,7 @@ const followPick = () => { const i = document.querySelector("#ed-form .pick"); i
 document.addEventListener("scroll", followPick, true);
 addEventListener("resize", followPick);
 function pick(input, key) {
-  const p = persons().find(x => x.key === key); if (!p) return;
+  const p = fiches().find(x => x.key === key); if (!p) return;
   const box = input.closest(".people");
   box.querySelector(".people-add").insertAdjacentHTML("beforebegin", linkedRow(p));
   input.value = ""; input.nextElementSibling.hidden = true;
@@ -742,6 +741,20 @@ function persons() {
   }
   return [...map.values()].sort((a, b) => byName(a.nom || "", b.nom || "") || byName(a.prenom || "", b.prenom || ""));
 }
+// Fiches de l'administration : les contacts, plus les personnes hors annuaire (ni staff ni pôle, table « acces »),
+// chacune avec son droit (« leaders » par défaut pour un contact qui a un e-mail)
+const myEmail = () => String(session?.user?.email || "").toLowerCase();
+function fiches() {
+  const droits = new Map(acces.map(a => [a.email, a]));
+  const list = persons().map(p => {
+    const e = p.email.toLowerCase();
+    return { ...p, hors: false, droit: e ? droits.get(e)?.droit || "leaders" : null };
+  });
+  const known = new Set(list.map(p => p.email.toLowerCase()).filter(Boolean));
+  for (const a of acces) if (!known.has(a.email)) list.push({ key: "@" + a.email, civilite: a.civilite || "", prenom: a.prenom || "", nom: a.nom || "",
+    email: a.email, telephone: a.telephone || "", contacts: [], responsables: [], hors: true, droit: a.droit });
+  return list.sort((a, b) => byName(a.nom || "", b.nom || "") || byName(a.prenom || "", b.prenom || "") || byName(a.email, b.email));
+}
 const svcById = id => services.find(s => s._id === id);
 const poleById = id => Object.values(poles).find(p => p._id === id);
 function personRoles(p) {
@@ -757,14 +770,20 @@ function editPerson(p) {
     return list.length ? '<div class="grp">' + esc(n) + "</div>" + list.map(s => box("svc", s._id, s.name, mine.has(s._id))).join("") : "";
   }).join("") + (services.some(s => !s.pole) ? '<div class="grp">Sans pôle</div>' + services.filter(s => !s.pole).map(s => box("svc", s._id, s.name, mine.has(s._id))).join("") : "");
   const poleBoxes = poleNames().map(n => box("pole", poles[n]._id, n, myPoles.has(poles[n]._id))).join("");
+  const self = !!p?.email && p.email.toLowerCase() === myEmail(), droit = p?.droit || "leaders";
   openEditor(p ? "Modifier le contact" : "Ajouter un contact", p ? fullName(p) : "Nouveau contact",
     '<div class="field w-fit"><label for="pe-civ">Civilité</label>' + civSelect("pe-civ", p?.civilite) + "</div>" +
     '<div class="row2"><div class="field"><label for="pe-prenom">Prénom</label><input id="pe-prenom" value="' + esc(p?.prenom || "") + '"></div>' +
     '<div class="field"><label for="pe-nom">Nom</label><input id="pe-nom" value="' + esc(p?.nom || "") + '"></div></div>' +
     '<div class="field"><label for="pe-email">E-mail <span class="opt">(privé : reçoit les messages du formulaire)</span></label><input id="pe-email" type="email" value="' + esc(p?.email || "") + '"></div>' +
     '<div class="field w-1-2"><label for="pe-tel">Téléphone <span class="opt">(visible des administrateurs)</span></label><input id="pe-tel" type="tel" autocomplete="off" value="' + esc(p?.telephone || "") + '"></div>' +
-    '<div class="field"><label>Contact des staffs</label><div class="checks">' + svcBoxes + "</div></div>" +
-    '<div class="field"><label>Responsable des pôles</label><div class="checks">' + poleBoxes + "</div></div>",
+    '<div class="field"><label>Contact des staffs <span class="opt">(facultatif)</span></label><div class="checks">' + svcBoxes + "</div></div>" +
+    '<div class="field"><label>Responsable des pôles <span class="opt">(facultatif)</span></label><div class="checks">' + poleBoxes + "</div></div>" +
+    '<p class="hors-warn" id="pe-hors" hidden>Ni staff ni pôle : cette personne n\'apparaîtra pas dans l\'annuaire, elle pourra seulement se connecter.</p>' +
+    '<fieldset class="field droits"><legend>Droits</legend><div class="seg">' +
+    DROITS.map(([v, label, sub]) => '<label><input type="radio" name="pe-droit" value="' + v + '"' + (droit === v ? " checked" : "") + (self ? " disabled" : "") +
+      "><b>" + label + "</b><span>" + sub + "</span></label>").join("") + "</div>" +
+    '<div class="hint" id="pe-droit-hint"></div></fieldset>',
     async f => {
       const prenom = f.querySelector("#pe-prenom").value.trim(), nom = f.querySelector("#pe-nom").value.trim();
       const email = f.querySelector("#pe-email").value.trim().toLowerCase();
@@ -774,10 +793,15 @@ function editPerson(p) {
       if (telephone && !TEL_RE.test(telephone)) return invalid(f, "#pe-tel", "Numéro de téléphone invalide.");
       const checked = name => [...f.querySelectorAll('input[name="' + name + '"]:checked')].map(i => i.value);
       const svcIds = checked("svc"), poleIds = checked("pole");
-      if (!svcIds.length && !poleIds.length) return toast("Cochez au moins un staff ou un pôle."), false;
-      if (!p) {
+      const d = f.querySelector('input[name="pe-droit"]:checked')?.value || "leaders";
+      if (!svcIds.length && !poleIds.length) {
+        if (!email) return invalid(f, "#pe-email", "Une personne sans staff ni pôle doit avoir une adresse e-mail pour se connecter.");
+        if (d === "aucun") return toast("Sans staff ni pôle, choisissez le droit Leaders ou Administrateur."), false;
+      }
+      if (self && email !== p.email.toLowerCase()) return invalid(f, "#pe-email", "Vous ne pouvez pas modifier votre propre adresse e-mail.");
+      if (!p || email !== p.email.toLowerCase()) {
         const key = email ? "@" + email : nameKey({ prenom, nom });
-        if (persons().some(x => x.key === key)) return invalid(f, email ? "#pe-email" : "#pe-prenom", "Ce contact existe déjà : modifiez sa fiche.");
+        if (fiches().some(x => x.key === key && x.key !== p?.key)) return invalid(f, email ? "#pe-email" : "#pe-prenom", "Ce contact existe déjà : modifiez sa fiche.");
       }
       // Une ligne par service (et par pôle) coché : les existantes sont mises à jour, les autres créées en fin de liste
       const plan = (rows, wanted, col, all) => {
@@ -787,46 +811,44 @@ function editPerson(p) {
           position: Math.max(-1, ...all.filter(r => r[col] === id).map(r => r.position ?? 0)) + 1 }));
         return { keep, del, add };
       };
-      await api.savePerson({ civilite: f.querySelector("#pe-civ").value || null, prenom, nom, email: email || null, telephone: telephone || null }, {
+      await api.savePerson({ civilite: f.querySelector("#pe-civ").value || null, prenom, nom, email: email || null, telephone: telephone || null,
+        ancien_email: p?.email ? p.email.toLowerCase() : null }, {
         contacts: plan(p?.contacts || [], svcIds, "service_id", contactRows),
         responsables: plan(p?.responsables || [], poleIds, "pole_id", respRows),
-      });
+      }, d);
       await refresh();
       toast(p ? "Contact enregistré." : "Contact ajouté.");
     });
+  const f = $("ed-form");
+  // Sans staff ni pôle : bandeau d'avertissement, e-mail requis et droit « Aucun » impossible
+  const sync = () => {
+    const hors = !f.querySelector('input[name="svc"]:checked, input[name="pole"]:checked');
+    const noEmail = !f.querySelector("#pe-email").value.trim();
+    f.querySelector("#pe-hors").hidden = !hors;
+    const aucun = f.querySelector('input[name="pe-droit"][value="aucun"]');
+    if (!self) aucun.disabled = hors;
+    if (hors && aucun.checked) f.querySelector('input[name="pe-droit"][value="leaders"]').checked = true;
+    f.querySelector("#pe-droit-hint").textContent = self ? "Vous ne pouvez pas modifier votre propre droit." :
+      noEmail ? "Sans e-mail, cette personne ne peut pas se connecter : le droit ne s'applique qu'avec une adresse." :
+      "Connexion avec le compte Google de l'adresse e-mail ci-dessus.";
+  };
+  f.addEventListener("change", sync);
+  f.querySelector("#pe-email").addEventListener("input", sync);
+  sync();
 }
+const DROITS = [["aucun", "Aucun", "Ne peut pas se connecter"], ["leaders", "Leaders", "Voit l'annuaire des leaders"], ["admin", "Administrateur", "Leaders et administration"]];
 function deletePerson(p) {
-  const roles = personRoles(p);
+  const roles = personRoles(p), e = p.email.toLowerCase(), self = e && e === myEmail();
   openEditor("Supprimer le contact", fullName(p), '<p style="margin:0">Cette personne sera retirée' +
-    (roles.length ? " de : " + esc(roles.join(", ")) : "") + ". Cette action est définitive.</p>",
+    (roles.length ? " de : " + esc(roles.join(", ")) : "") + (e && !self ? ", et ne pourra plus se connecter" : "") + ". Cette action est définitive.</p>",
     async () => {
-      await api.savePerson({}, { contacts: { del: p.contacts.map(r => r.id) }, responsables: { del: p.responsables.map(r => r.id) } });
+      if (self && p.hors) return toast("Vous ne pouvez pas supprimer votre propre fiche."), false;
+      if (p.contacts.length || p.responsables.length)
+        await api.savePerson({}, { contacts: { del: p.contacts.map(r => r.id) }, responsables: { del: p.responsables.map(r => r.id) } });
+      if (e && !self && acces.some(a => a.email === e)) await api.saveAcces(e, null);
       await refresh();
       toast("Contact supprimé.");
     }, "Supprimer", true);
-}
-
-// --- Administrateurs (table « acces ») : les contacts ont déjà le droit « leaders » ---
-const accesName = a => { const p = persons().find(x => x.email && x.email.toLowerCase() === a.email); return p ? fullName(p) : a.email; };
-function editAcces() {
-  const opts = persons().filter(p => p.email && !acces.some(x => x.email === p.email.toLowerCase()))
-    .map(p => '<option value="' + esc(p.email.toLowerCase()) + '">' + esc(fullName(p)) + "</option>").join("");
-  openEditor("Administrateurs", "Nouvel administrateur",
-    '<div class="field"><label for="ac-email">Adresse e-mail du compte Google</label>' +
-    '<input id="ac-email" type="email" required list="ac-list" autocomplete="off" placeholder="prenom.nom@gmail.com"><datalist id="ac-list">' + opts + "</datalist>" +
-    '<div class="hint">Commencez à taper un nom pour choisir un contact de l\'annuaire. Un administrateur peut modifier l\'annuaire et nommer d\'autres administrateurs.</div></div>',
-    async () => {
-      const email = $("ac-email").value.trim().toLowerCase();
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { toast("Adresse e-mail invalide."); return false; }
-      await api.saveAcces(email, "admin");
-      await loadAcces(); renderAdmin();
-      toast("Administrateur ajouté.");
-    }, "Ajouter");
-}
-function deleteAcces(a) {
-  openEditor("Retirer l'administration", accesName(a), '<p style="margin:0">Le compte ' + esc(a.email) + " n'aura plus accès à l'administration" +
-    (persons().some(p => p.email && p.email.toLowerCase() === a.email) ? " (il garde l'annuaire des leaders, comme tous les contacts)." : ", ni à l'annuaire des leaders : il ne fait pas partie des contacts.") + "</p>",
-    async () => { await api.saveAcces(a.email, null); await loadAcces(); renderAdmin(); toast("Administrateur retiré."); }, "Retirer", true);
 }
 
 // Numéro d'ordre pour placer un élément après tous les autres. Si certains n'ont pas encore de numéro

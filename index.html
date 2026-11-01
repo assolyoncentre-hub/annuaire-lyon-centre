@@ -290,6 +290,29 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .msg-row p { margin: 6px 0 0; white-space: pre-wrap; }
 .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font: 600 11px/1.4 Montserrat, sans-serif; }
 .badge.ok { background: #e3f4ea; color: #1d6b43; } .badge.ko { background: #fde8e6; color: #a3261c; }
+/* Droits sur les fiches contact */
+.row .title .badge { margin-left: 8px; vertical-align: 1px; }
+.badge.admin { background: var(--text); color: #fff; } .badge.lead { background: var(--tint); color: var(--brand); } .badge.none { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
+.afilters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.afilters[hidden] { display: none; }
+.afilter { padding: 7px 12px; border: 1.5px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--text); font: 600 12px/1 Montserrat, sans-serif; cursor: pointer; }
+.afilter[aria-pressed="true"] { background: var(--text); border-color: var(--text); color: #fff; }
+.hors-warn { margin: 0 0 16px; padding: 10px 12px; border-radius: 6px; background: #fff3ea; color: #7a3a0e; font-size: 14px; }
+.hors-warn[hidden] { display: none; }
+fieldset.droits { border: 0; padding: 0; margin: 0 0 16px; min-width: 0; }
+fieldset.droits legend { padding: 0; margin-bottom: 6px; font: 600 12px/1 Montserrat, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1.5px solid var(--border); border-radius: 8px; overflow: hidden; background: #fff; }
+.seg label { position: relative; display: block; margin: 0; padding: 10px 12px; border-left: 1.5px solid var(--border); cursor: pointer;
+  font: 13px/1.3 "DM Sans", sans-serif; letter-spacing: 0; text-transform: none; color: var(--muted); }
+.seg label:first-child { border-left: 0; }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg b { display: block; margin-bottom: 2px; font: 700 13px/1.2 Montserrat, sans-serif; color: var(--text); }
+.seg label:has(input:checked) { background: var(--brand); color: rgba(255, 255, 255, .88); }
+.seg label:has(input:checked) b { color: #fff; }
+.seg label:has(input:disabled) { cursor: not-allowed; }
+.seg label:has(input:disabled:not(:checked)) { opacity: .45; }
+.seg label:has(input:focus-visible) { outline: 2px solid var(--brand); outline-offset: -4px; }
+@media (max-width: 520px) { .seg { grid-template-columns: 1fr; } .seg label { border-left: 0; border-top: 1.5px solid var(--border); } .seg label:first-child { border-top: 0; } }
 .ops .you { color: var(--muted); font-size: 13px; font-weight: 600; }
 .msg-row .msg-error { color: #a3261c; font-size: 13px; }
 .account .back-link { margin: 0; }
@@ -407,13 +430,13 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
           <button type="button" class="tab" role="tab" id="tab-poles" aria-selected="false">Pôles</button>
           <button type="button" class="tab" role="tab" id="tab-contacts" aria-selected="false">Contacts</button>
           <button type="button" class="tab" role="tab" id="tab-messages" aria-selected="false">Messages</button>
-          <button type="button" class="tab" role="tab" id="tab-acces" aria-selected="false">Accès</button>
         </div>
         <button type="button" class="btn btn-primary btn-sm" id="add-btn">Ajouter un staff</button>
       </div>
       <div class="admin-tools">
         <input type="search" id="aq" class="search" placeholder="Filtrer" aria-label="Filtrer la liste" autocomplete="off">
       </div>
+      <div class="afilters" id="admin-filters" hidden></div>
       <div class="list" id="admin-list"></div>
     </div>
   </main>

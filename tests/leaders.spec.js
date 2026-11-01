@@ -25,7 +25,7 @@ test("visiteur : onglets visibles, « Leaders » demande de se connecter", async
 
 test("compte absent des contacts : connexion refusée", async ({ open, page }) => {
   await open({ user: { email: "autre@example.org" }, hash: "#leaders" });
-  await expect(page.locator("#login-error")).toContainText("autre@example.org ne fait pas partie des contacts");
+  await expect(page.locator("#login-error")).toContainText("autre@example.org n'a pas accès à l'annuaire");
   await expect(page.locator("#admin-login")).toBeVisible();
   await expect(page.locator("#serv-view")).toBeHidden();
   await expect(page.locator("#admin-label")).toHaveText("Connexion");
