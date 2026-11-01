@@ -772,17 +772,17 @@ function editPerson(p) {
   const poleBoxes = poleNames().map(n => box("pole", poles[n]._id, n, myPoles.has(poles[n]._id))).join("");
   const self = !!p?.email && p.email.toLowerCase() === myEmail(), droit = p?.droit || "leaders";
   openEditor(p ? "Modifier le contact" : "Ajouter un contact", p ? fullName(p) : "Nouveau contact",
-    '<div class="field w-fit"><label for="pe-civ">Civilité</label>' + civSelect("pe-civ", p?.civilite) + "</div>" +
-    '<div class="row2"><div class="field"><label for="pe-prenom">Prénom</label><input id="pe-prenom" value="' + esc(p?.prenom || "") + '"></div>' +
+    '<section class="ed-sec"><div class="field w-fit"><label for="pe-civ">Civilité</label>' + civSelect("pe-civ", p?.civilite) + "</div>" +
+    '<div class="row2 names"><div class="field"><label for="pe-prenom">Prénom</label><input id="pe-prenom" value="' + esc(p?.prenom || "") + '"></div>' +
     '<div class="field"><label for="pe-nom">Nom</label><input id="pe-nom" value="' + esc(p?.nom || "") + '"></div></div>' +
     '<div class="field"><label for="pe-email">E-mail <span class="opt">(privé : reçoit les messages du formulaire)</span></label><input id="pe-email" type="email" value="' + esc(p?.email || "") + '"></div>' +
-    '<div class="field w-1-2"><label for="pe-tel">Téléphone <span class="opt">(visible des administrateurs)</span></label><input id="pe-tel" type="tel" autocomplete="off" value="' + esc(p?.telephone || "") + '"></div>' +
-    '<div class="row2">' + msel("pe-svc", "Contact des staffs", "Aucun staff", svcBoxes) + msel("pe-pole", "Responsable des pôles", "Aucun pôle", poleBoxes) + "</div>" +
-    '<p class="hors-warn" id="pe-hors" hidden>Ni staff ni pôle : cette personne n\'apparaîtra pas dans l\'annuaire, elle pourra seulement se connecter.</p>' +
-    '<fieldset class="field droits"><legend>Droits</legend><div class="seg">' +
+    '<div class="field w-tel"><label for="pe-tel">Téléphone <span class="opt">(visible des administrateurs)</span></label><input id="pe-tel" type="tel" autocomplete="off" value="' + esc(p?.telephone || "") + '"></div></section>' +
+    '<section class="ed-sec"><h3 class="ed-sec-title">Rôles dans l\'annuaire</h3><div class="row2">' + msel("pe-svc", "Contact des staffs", "Aucun staff", svcBoxes) + msel("pe-pole", "Responsable des pôles", "Aucun pôle", poleBoxes) + "</div>" +
+    '<p class="hors-warn" id="pe-hors" hidden>Ni staff ni pôle : cette personne n\'apparaîtra pas dans l\'annuaire, elle pourra seulement se connecter.</p></section>' +
+    '<section class="ed-sec droits" role="radiogroup" aria-labelledby="pe-droits-t"><h3 class="ed-sec-title" id="pe-droits-t">Droits</h3><div class="seg">' +
     DROITS.map(([v, label, sub]) => '<label><input type="radio" name="pe-droit" value="' + v + '"' + (droit === v ? " checked" : "") + (self ? " disabled" : "") +
       "><b>" + label + "</b><span>" + sub + "</span></label>").join("") + "</div>" +
-    '<div class="hint" id="pe-droit-hint"></div></fieldset>',
+    '<div class="hint" id="pe-droit-hint"></div></section>',
     async f => {
       const prenom = f.querySelector("#pe-prenom").value.trim(), nom = f.querySelector("#pe-nom").value.trim();
       const email = f.querySelector("#pe-email").value.trim().toLowerCase();

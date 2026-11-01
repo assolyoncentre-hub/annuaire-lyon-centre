@@ -309,8 +309,16 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .msel-btn:focus-visible, .msel-btn[aria-expanded="true"] { outline: none; border-color: var(--brand); }
 .msel-panel { margin-top: 4px; }
 .msel-panel[hidden] { display: none; }
-fieldset.droits { border: 0; padding: 0; margin: 0 0 16px; min-width: 0; }
-fieldset.droits legend { padding: 0; margin-bottom: 6px; font: 600 12px/1 Montserrat, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+/* Fiche contact en trois sections : identité, rôles dans l'annuaire, droits */
+.ed-sec { display: grid; gap: 14px; min-width: 0; }
+.ed-sec + .ed-sec { margin-top: 8px; padding-top: 22px; border-top: 1px solid var(--border); }
+.ed-sec-title { margin: 0; font: 700 18px/1.1 Phudu, Montserrat, sans-serif; letter-spacing: .02em; text-transform: uppercase; color: var(--brand); }
+.ed-sec .hint { margin-top: -6px; }
+.ed-sec .hors-warn { margin: 0; }
+/* Prénom et nom : largeur réduite sur ordinateur, pleine largeur sur mobile */
+@media (min-width: 521px) { .row2.names { grid-template-columns: repeat(2, minmax(0, 15em)); } }
+/* Champ téléphone à la largeur d'un numéro français (« 06 12 34 56 78 ») */
+.field.w-tel input { width: calc(14ch + 28px); max-width: 100%; font-variant-numeric: tabular-nums; }
 .seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1.5px solid var(--border); border-radius: 8px; overflow: hidden; background: #fff; }
 .seg label { position: relative; display: block; margin: 0; padding: 10px 12px; border-left: 1.5px solid var(--border); cursor: pointer;
   font: 13px/1.3 "DM Sans", sans-serif; letter-spacing: 0; text-transform: none; color: var(--muted); }
