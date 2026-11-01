@@ -286,6 +286,16 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .msg-row p { margin: 6px 0 0; white-space: pre-wrap; }
 .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font: 600 11px/1.4 Montserrat, sans-serif; }
 .badge.ok { background: #e3f4ea; color: #1d6b43; } .badge.ko { background: #fde8e6; color: #a3261c; }
+.badge.lead { background: var(--tint); color: var(--brand); }
+.ops .you { color: var(--muted); font-size: 13px; font-weight: 600; }
+/* Choix du droit d'accès */
+.droits { margin: 0; padding: 0; border: 0; display: grid; gap: 8px; }
+.droits legend { margin-bottom: 6px; padding: 0; font: 600 12px/1 Montserrat, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.field.droits label { display: flex; align-items: flex-start; gap: 10px; margin: 0; padding: 12px; border: 1.5px solid var(--border); border-radius: 8px; cursor: pointer;
+  font: 400 14px/1.4 Montserrat, sans-serif; letter-spacing: 0; text-transform: none; color: var(--text); }
+.field.droits label:has(input:checked) { border-color: var(--brand); background: var(--tint); }
+.field.droits input { flex: none; width: auto; margin: 3px 0 0; accent-color: var(--brand); }
+.droits strong { font-weight: 600; }
 .msg-row .msg-error { color: #a3261c; font-size: 13px; }
 .account .back-link { margin: 0; }
 .account[hidden] { display: none; }
@@ -393,7 +403,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
       <button type="button" class="google-btn" id="google-btn"><svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.9 6.1C12.5 13.6 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.6c0-1.6-.1-3.1-.4-4.6H24v9h12.4c-.5 2.9-2.2 5.3-4.6 6.9l7.5 5.8c4.4-4.1 6.8-10.1 6.8-17.1z"/><path fill="#FBBC05" d="M10.6 28.6c-.5-1.4-.8-2.9-.8-4.6s.3-3.2.8-4.6l-7.9-6.1C1 16.6 0 20.2 0 24s1 7.4 2.7 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.5-5.8c-2.1 1.4-4.8 2.3-8.4 2.3-6.2 0-11.5-4.1-13.4-9.9l-7.9 6.1C6.6 42.6 14.6 48 24 48z"/></svg>Se connecter avec Google</button>
     </div>
     <div id="admin-denied" class="denied" hidden>
-      <strong>Accès réservé.</strong> Le compte <span id="denied-email"></span> n'est pas administrateur de l'annuaire.
+      <strong>Accès réservé.</strong> Le compte <span id="denied-email"></span> <span id="denied-what">n'est pas administrateur de l'annuaire.</span>
       <div class="account"><button type="button" class="link-btn" id="logout-2">Se déconnecter</button></div>
     </div>
     <div id="admin-body" hidden>
@@ -403,6 +413,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
           <button type="button" class="tab" role="tab" id="tab-poles" aria-selected="false">Pôles</button>
           <button type="button" class="tab" role="tab" id="tab-contacts" aria-selected="false">Contacts</button>
           <button type="button" class="tab" role="tab" id="tab-messages" aria-selected="false">Messages</button>
+          <button type="button" class="tab" role="tab" id="tab-acces" aria-selected="false">Accès</button>
         </div>
         <button type="button" class="btn btn-primary btn-sm" id="add-btn">Ajouter un staff</button>
       </div>

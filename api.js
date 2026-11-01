@@ -63,9 +63,10 @@ window.makeApi = function () {
       return (await getSb()).auth.signInWithOAuth({ provider: "google", options: { redirectTo: location.origin + location.pathname } });
     },
     signOut: async () => (await getSb()).auth.signOut(),
-    isAdmin: () => sbRpc("is_admin"),
+    // Droit de la personne connectée : "admin", "leaders" (consultation de l'annuaire des leaders) ou null
+    droit: () => sbRpc("mon_droit"),
 
-    // Administration (refusé par la base pour tout autre compte). Chaque enregistrement est un seul
+    // Annuaire des leaders et administration (refusé par la base pour tout autre compte). Chaque enregistrement est un seul
     // appel à une fonction de la base, qui fait tout ou rien.
     async loadAdmin() {
       const sb = await getSb();
@@ -83,5 +84,8 @@ window.makeApi = function () {
     // Une personne = ses lignes dans contacts (par staff) et pole_responsables (par pôle)
     savePerson: (fields, plan) => sbRpc("admin_save_person", { fields, plan }),
     reorder: (kind, rows) => sbRpc("admin_reorder", { kind, rows }),
+    // Comptes autorisés à se connecter ; droit null = accès retiré
+    acces: async () => (await getSb()).from("acces").select("email, droit").order("email").then(ok),
+    saveAcces: (email, droit) => sbRpc("admin_save_acces", { p_email: email, p_droit: droit }),
   };
 };

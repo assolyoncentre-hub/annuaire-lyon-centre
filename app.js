@@ -203,15 +203,17 @@ $("m-form").addEventListener("submit", async e => {
 
 
 // ---------- Administration ----------
-// Connexion Google (Supabase Auth). Seuls les comptes listés dans la table « admins » sont
-// administrateurs ; la base refuse toute modification venant d'un autre compte.
-let isAdmin = false, session = null, adminTab = "services", adminTerms = [], messages = [];
+// Connexion Google (Supabase Auth). Seuls les comptes listés dans la table « acces » ont des droits :
+// « leaders » (consultation de l'annuaire des leaders) ou « admin » (en plus, l'administration).
+// La base refuse toute lecture ou modification au-delà de ces droits.
+let isAdmin = false, canLeaders = false, session = null, adminTab = "services", adminTerms = [], messages = [], acces = [];
 let authStarted = null, authLoaded = false, lastViewAdmin = null;
 
 async function onSession(s) {
   session = s;
-  isAdmin = s ? await api.isAdmin().catch(() => false) : false;
-  if (isAdmin) await Promise.all([loadAdmin(), api.messages().then(m => { messages = m; }, () => {})]);
+  const droit = s ? await api.droit().catch(() => null) : null;
+  isAdmin = droit === "admin"; canLeaders = !!droit;
+  if (canLeaders) await Promise.all([loadAdmin(), isAdmin && api.messages().then(m => { messages = m; }, () => {}), isAdmin && loadAcces()]);
   route();
 }
 async function loadAdmin() {
@@ -221,20 +223,21 @@ async function loadAdmin() {
   respOf = group(responsables, "pole_id");
   contactRows = contacts; respRows = responsables;
 }
+const loadAcces = () => api.acces().then(a => { acces = a; }, () => {});
 // Après un enregistrement : annuaire et données d'administration rechargés en parallèle
 async function refresh() {
-  await Promise.all([loadPublic(), isAdmin && loadAdmin()]);
+  await Promise.all([loadPublic(), canLeaders && loadAdmin()]);
   render();
   renderAdmin();
   renderServ();
 }
-// Vues : annuaire des propositions (public), annuaire des leaders (administrateurs : sinon écran de connexion)
+// Vues : annuaire des propositions (public), annuaire des leaders (droit « leaders » ou « admin » : sinon écran de connexion)
 // et administration
 function route() {
   // Ancienne adresse de la page (« serviteurs ») : redirigée
   if (location.hash === "#serviteurs") history.replaceState(null, "", "#leaders");
-  const h = location.hash, serv = h === "#leaders", showServ = serv && isAdmin;
-  const admin = h === "#admin" || (serv && !isAdmin);
+  const h = location.hash, serv = h === "#leaders", showServ = serv && canLeaders;
+  const admin = h === "#admin" || (serv && !canLeaders);
   $("dir-view").hidden = admin || serv;
   $("serv-view").hidden = !showServ;
   $("admin-view").hidden = !admin;
@@ -251,11 +254,12 @@ function route() {
   const cur = serv ? "sw-serv" : h === "#admin" ? (isAdmin ? "sw-admin" : null) : "sw-prop";
   if (cur) $(cur).setAttribute("aria-current", "page");
   $("login-title").textContent = serv ? "Accès réservé" : "Administration";
-  $("login-text").textContent = serv ? "L'annuaire des leaders est réservé aux administrateurs. Connectez-vous avec votre compte Google."
+  $("login-text").textContent = serv ? "L'annuaire des leaders est réservé aux personnes autorisées. Connectez-vous avec votre compte Google."
     : "Connectez-vous avec le compte Google d'un administrateur de l'annuaire.";
   if (admin || serv) ensureAuth();
   $("admin-login").hidden = !admin || !!session || !authLoaded;
-  $("admin-denied").hidden = !admin || !session || isAdmin;
+  $("admin-denied").hidden = !admin || !session || (serv ? canLeaders : isAdmin);
+  $("denied-what").textContent = serv ? "n'a pas accès à l'annuaire des leaders." : "n'est pas administrateur de l'annuaire.";
   $("admin-body").hidden = h !== "#admin" || !isAdmin;
   const email = session?.user?.email || "";
   $("me-email").textContent = email;
@@ -292,20 +296,21 @@ $("admin-link").addEventListener("click", () => {
 document.addEventListener("click", e => { if (!$("acct-menu").hidden && !e.target.closest(".acct")) closeAcct(); });
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("acct-menu").hidden) { closeAcct(); $("admin-link").focus(); } });
 $("google-btn").onclick = () => api.signIn();
-$("logout").onclick = $("logout-2").onclick = async () => { closeAcct(); await api.signOut(); isAdmin = false; session = null; contactsOf = {}; respOf = {}; contactRows = []; respRows = []; route(); render(); };
+$("logout").onclick = $("logout-2").onclick = async () => { closeAcct(); await api.signOut(); isAdmin = canLeaders = false; session = null; acces = []; messages = []; contactsOf = {}; respOf = {}; contactRows = []; respRows = []; route(); render(); };
 
 const poleNames = () => Object.keys(poles).sort(byPole);
 const isPoleTab = () => adminTab === "poles";
 function setTab(t) {
   adminTab = t;
-  for (const k of ["services", "poles", "contacts", "messages"]) $("tab-" + k).setAttribute("aria-selected", String(t === k));
+  for (const k of ["services", "poles", "contacts", "messages", "acces"]) $("tab-" + k).setAttribute("aria-selected", String(t === k));
   $("add-btn").hidden = t === "messages";
-  $("add-btn").textContent = { services: "Ajouter un staff", poles: "Ajouter un pôle", contacts: "Ajouter un contact" }[t] || "";
+  $("add-btn").textContent = { services: "Ajouter un staff", poles: "Ajouter un pôle", contacts: "Ajouter un contact", acces: "Ajouter un accès" }[t] || "";
   renderAdmin();
 }
 $("tab-services").onclick = () => setTab("services");
 $("tab-poles").onclick = () => setTab("poles");
 $("tab-contacts").onclick = () => setTab("contacts");
+$("tab-acces").onclick = async () => { await loadAcces(); setTab("acces"); };
 $("tab-messages").onclick = async () => { messages = await api.messages().catch(() => messages); setTab("messages"); };
 $("aq").addEventListener("input", e => { adminTerms = norm(e.target.value).split(/\s+/).filter(Boolean); renderAdmin(); });
 const adminMatch = text => { const w = words(text); return adminTerms.every(t => w.some(x => x.startsWith(t))); };
@@ -320,6 +325,20 @@ function renderAdmin() {
   $("tab-poles").textContent = "Pôles (" + Object.keys(poles).length + ")";
   $("tab-messages").textContent = "Messages (" + messages.length + ")";
   $("tab-contacts").textContent = "Contacts (" + persons().length + ")";
+  $("tab-acces").textContent = "Accès (" + acces.length + ")";
+  if (adminTab === "acces") {
+    const me = String(session?.user?.email || "").toLowerCase();
+    const list = acces.map(a => ({ ...a, p: persons().find(x => x.email && x.email.toLowerCase() === a.email) }))
+      .filter(a => adminMatch([a.email, a.p && fullName(a.p), DROITS[a.droit]].join(" ")))
+      .sort((a, b) => (a.droit === b.droit ? 0 : a.droit === "admin" ? -1 : 1) || (a.p ? fullName(a.p) : a.email).localeCompare(b.p ? fullName(b.p) : b.email, "fr"));
+    $("admin-list").innerHTML = list.length ? '<div class="group">' + list.map(a =>
+      '<div class="row" data-id="' + esc(a.email) + '"><span></span><div><div class="title">' + esc(a.p ? fullName(a.p) : a.email) + "</div>" +
+      '<div class="meta">' + (a.p ? "<span>" + esc(a.email) + "</span>" : "") + '<span class="badge ' + (a.droit === "admin" ? "ok" : "lead") + '">' + esc(DROITS[a.droit]) + "</span></div></div>" +
+      (a.email === me ? '<div class="ops"><span class="you">Vous</span></div>' : '<div class="ops"><button type="button" class="btn btn-ghost btn-sm" data-act="edit">Modifier</button>' +
+      '<button type="button" class="btn btn-ghost btn-sm" data-act="del">Retirer</button></div>') + "</div>").join("") + "</div>" : '<div class="empty">Aucun accès.</div>';
+    $("admin-list").classList.add("no-drag");
+    return;
+  }
   if (adminTab === "contacts") {
     const list = persons().filter(p => adminMatch([p.prenom, p.nom, p.email, p.telephone, ...personRoles(p)].join(" ")));
     $("admin-list").innerHTML = list.length ? '<div class="group">' + list.map(p => {
@@ -458,6 +477,10 @@ document.addEventListener("pointercancel", endDrag);
 $("admin-list").addEventListener("click", e => {
   const b = e.target.closest("[data-act]"); if (!b) return;
   const id = b.closest(".row").dataset.id;
+  if (adminTab === "acces") {
+    const a = acces.find(x => x.email === id); if (!a) return;
+    return b.dataset.act === "edit" ? editAcces(a) : deleteAcces(a);
+  }
   if (adminTab === "contacts") {
     const p = persons().find(x => x.key === id); if (!p) return;
     return b.dataset.act === "edit" ? editPerson(p) : deletePerson(p);
@@ -467,7 +490,7 @@ $("admin-list").addEventListener("click", e => {
   if (b.dataset.act === "edit") (isPoleTab() ? editPole : editService)(item);
   else (isPoleTab() ? deletePole : deleteService)(item);
 });
-$("add-btn").onclick = () => adminTab === "contacts" ? editPerson(null) : isPoleTab() ? editPole(null) : editService(null);
+$("add-btn").onclick = () => adminTab === "acces" ? editAcces(null) : adminTab === "contacts" ? editPerson(null) : isPoleTab() ? editPole(null) : editService(null);
 
 // --- Éditeur (fenêtre) ---
 function openEditor(kicker, title, html, onSave, saveLabel = "Enregistrer", danger = false) {
@@ -775,6 +798,34 @@ function deletePerson(p) {
     }, "Supprimer", true);
 }
 
+// --- Accès : comptes Google autorisés à se connecter, et leur droit ---
+const DROITS = { leaders: "Annuaire des leaders", admin: "Administration" };
+const accesName = a => { const p = persons().find(x => x.email && x.email.toLowerCase() === a.email); return p ? fullName(p) : a.email; };
+function editAcces(a) {
+  const opts = persons().filter(p => p.email && !acces.some(x => x.email === p.email.toLowerCase()))
+    .map(p => '<option value="' + esc(p.email.toLowerCase()) + '">' + esc(fullName(p)) + "</option>").join("");
+  openEditor(a ? "Modifier l'accès" : "Accès", a ? accesName(a) : "Nouvel accès",
+    '<div class="field"><label for="ac-email">Adresse e-mail du compte Google</label>' +
+    (a ? '<input id="ac-email" type="email" value="' + esc(a.email) + '" readonly>'
+       : '<input id="ac-email" type="email" required list="ac-list" autocomplete="off" placeholder="prenom.nom@gmail.com"><datalist id="ac-list">' + opts + "</datalist>" +
+         '<div class="hint">Commencez à taper un nom pour choisir un contact de l\'annuaire.</div>') + "</div>" +
+    '<fieldset class="field droits"><legend>Droit</legend>' +
+    '<label><input type="radio" name="droit" value="leaders"' + (a?.droit !== "admin" ? " checked" : "") + '> <span><strong>Annuaire des leaders</strong><br>Consulter les propositions et l\'annuaire des leaders.</span></label>' +
+    '<label><input type="radio" name="droit" value="admin"' + (a?.droit === "admin" ? " checked" : "") + '> <span><strong>Administration</strong><br>En plus, modifier l\'annuaire et gérer les accès.</span></label></fieldset>',
+    async f => {
+      const email = $("ac-email").value.trim().toLowerCase(), droit = f.querySelector("[name=droit]:checked").value;
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { toast("Adresse e-mail invalide."); return false; }
+      await api.saveAcces(email, droit);
+      await loadAcces(); renderAdmin();
+      toast(a ? "Accès modifié." : "Accès ajouté.");
+    });
+}
+function deleteAcces(a) {
+  openEditor("Retirer l'accès", accesName(a), '<p style="margin:0">Le compte ' + esc(a.email) + " ne pourra plus consulter " +
+    (a.droit === "admin" ? "l'annuaire des leaders ni l'administration" : "l'annuaire des leaders") + ".</p>",
+    async () => { await api.saveAcces(a.email, null); await loadAcces(); renderAdmin(); toast("Accès retiré."); }, "Retirer", true);
+}
+
 // Numéro d'ordre pour placer un élément après tous les autres. Si certains n'ont pas encore de numéro
 // (triés par ordre alphabétique), on numérote d'abord toute la liste dans l'ordre affiché.
 async function lastOrder(kind, list) {
@@ -896,7 +947,7 @@ async function startAuth() {
   else if (authError) location.hash = "admin";
   authLoaded = true;
   await onSession(s);
-  if (isAdmin) render(); // l'annuaire n'est reconstruit que si les données d'administration changent l'affichage
+  if (canLeaders) render(); // l'annuaire n'est reconstruit que si les données d'administration changent l'affichage
   api.onAuth(async s2 => { if ((s2?.user?.id || null) !== (session?.user?.id || null)) { await onSession(s2); render(); } });
 }
 

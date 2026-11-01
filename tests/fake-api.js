@@ -10,8 +10,12 @@ module.exports = function installFakeApi({ data, user }) {
   const log = (name, arg) => window.__calls.push({ name, arg });
   const clone = x => JSON.parse(JSON.stringify(x));
   let session = user ? { user: { id: "u1", email: user.email, user_metadata: { full_name: user.name || "" } } } : null;
-  const admin = () => !!(session && user && user.admin);
+  // Droits : user.admin (tout) ou user.leaders (lecture de l'annuaire des leaders) ; S.acces = comptes autorisés
+  S.acces = S.acces || (user && (user.admin || user.leaders) ? [{ email: user.email, droit: user.admin ? "admin" : "leaders" }] : []);
+  const droit = () => session ? S.acces.find(a => a.email === session.user.email.toLowerCase())?.droit || null : null;
+  const admin = () => droit() === "admin";
   const guard = () => { if (!admin()) throw new Error("refusé (règles d'accès)"); };
+  const guardRead = () => { if (!droit()) throw new Error("refusé (règles d'accès)"); };
   const norm = s => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
   // Annuaire public : seule la civilité « Père » apparaît, devant le prénom
   const publicName = r => ({ prenom: (r.civilite === "Père" ? "Père " : "") + r.prenom, nom: r.nom });
@@ -48,8 +52,8 @@ module.exports = function installFakeApi({ data, user }) {
     async onAuth() {},
     async signIn() { log("signIn"); },
     async signOut() { log("signOut"); session = null; },
-    async isAdmin() { return admin(); },
-    async loadAdmin() { guard(); return { contacts: clone(S.contacts), responsables: clone(S.responsables) }; },
+    async droit() { return droit(); },
+    async loadAdmin() { guardRead(); return { contacts: clone(S.contacts), responsables: clone(S.responsables) }; },
     async messages() { guard(); return clone(S.messages); },
     async saveService(s, people) {
       guard(); log("saveService", { s, people });
@@ -71,6 +75,13 @@ module.exports = function installFakeApi({ data, user }) {
         for (const r of S[kind]) if ((pl.keep || []).includes(r.id)) Object.assign(r, fields);
         for (const a of pl.add || []) S[kind].push({ id: "r" + n++, ...fields, ...a });
       }
+    },
+    async acces() { guard(); return clone(S.acces).sort((a, b) => a.email.localeCompare(b.email)); },
+    async saveAcces(email, d) {
+      guard(); log("saveAcces", { email, droit: d });
+      if (email === session.user.email.toLowerCase()) throw new Error("Vous ne pouvez pas modifier votre propre accès.");
+      S.acces = S.acces.filter(a => a.email !== email);
+      if (d) S.acces.push({ email, droit: d });
     },
     async reorder(kind, rows) { guard(); log("reorder", { kind, rows }); for (const r of rows) S[kind].find(x => x.id === r.id).ordre = r.ordre; },
   };
