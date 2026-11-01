@@ -145,6 +145,6 @@ test("téléphone : filtres par pôle repliés, dépliables, pôle choisi rappel
   const nom = (await pole.innerText()).replace(/\s*\d+$/, "");
   await pole.click();
   await expect(toggle).toContainText(nom);
-  await toggle.click();
   await expect(page.locator("#filters")).toBeHidden();
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
 });

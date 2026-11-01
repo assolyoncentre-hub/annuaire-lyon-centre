@@ -965,10 +965,13 @@ function renderServ() {
 }
 // Téléphone : bouton « Filtrer par pôle » qui déplie ou replie les filtres (pôle choisi affiché à côté)
 function filtCur(id, pole) { $(id).parentNode.querySelector(".filt-cur").textContent = pole ? "· " + pole : ""; }
-for (const t of document.querySelectorAll(".filt-toggle")) t.addEventListener("click", () => {
-  const open = t.closest(".filterbar").classList.toggle("open");
-  t.setAttribute("aria-expanded", String(open));
-});
+for (const t of document.querySelectorAll(".filt-toggle")) {
+  const bar = t.closest(".filterbar");
+  const setOpen = open => { bar.classList.toggle("open", open); t.setAttribute("aria-expanded", String(open)); };
+  t.addEventListener("click", () => setOpen(!bar.classList.contains("open")));
+  // Un pôle choisi : les filtres se replient (le pôle reste affiché dans le bouton)
+  bar.addEventListener("click", e => { if (e.target.closest(".filters .chip")) setOpen(false); });
+}
 $("sfilters").addEventListener("click", e => {
   const b = e.target.closest(".chip"); if (!b) return;
   servPole = b.dataset.pole && servPole !== b.dataset.pole ? b.dataset.pole : null;
