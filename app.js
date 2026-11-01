@@ -965,6 +965,7 @@ async function startAuth() {
 
 (async () => {
   status("Chargement…");
+  route(); // onglet actif et vue dès le chargement, même sans connexion
   if (!api.authNeeded || api.authNeeded()) ensureAuth();
   try { await loadPublic(); render(); renderServ(); }
   catch { status("Impossible de charger l'annuaire pour le moment. Merci de réessayer plus tard."); }

@@ -24,6 +24,8 @@ test("visiteur : annuaire chargé par appels directs, sans la bibliothèque Supa
   const vus = await serveur(page);
   await page.goto(SITE);
   await expect(page.locator("#count")).toHaveText("10 staffs");
+  await expect(page.locator("#sw-prop")).toHaveAttribute("aria-current", "page");
+  await expect(page.locator("#admin-label")).toHaveText("Connexion");
   const carte = page.locator(".card").first();
   await carte.locator("summary").click();
   await expect(carte.locator(".contact li").first()).toHaveText("Damien de LAFORÊT");
