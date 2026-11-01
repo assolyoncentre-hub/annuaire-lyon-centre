@@ -84,7 +84,7 @@ test("personne hors annuaire : fiche sans staff ni pôle, avec un droit", async 
   await page.locator("#ed-form [type=submit]").click();
   await expect(page.locator("#editor")).toBeHidden();
   const hugo = page.locator("#admin-list .row", { hasText: "hugo.lambert@example.org" });
-  await expect(hugo.locator(".title")).toHaveText("Hugo LAMBERT Leader");
+  await expect(hugo.locator(".title")).toHaveText("LAMBERT Hugo Leader");
   await expect(hugo.locator(".meta")).toContainText("Ni staff ni pôle");
   expect(await page.evaluate(() => window.__S.acces.find(a => a.email === "hugo.lambert@example.org"))).toMatchObject({ droit: "leaders", prenom: "Hugo", nom: "Lambert" });
   // Suppression : la fiche et l'accès disparaissent
@@ -113,7 +113,7 @@ test("contact avec le droit Aucun : connexion refusée", async ({ open, page }) 
 test("fiche contact : staffs et pôles choisis dans des listes déroulantes à choix multiple", async ({ open, page }) => {
   await open({ user: ADMIN, hash: "#admin" });
   await page.click("#tab-contacts");
-  await page.locator("#admin-list .row", { hasText: "Jean BRUNET" }).locator("[data-act=edit]").click();
+  await page.locator("#admin-list .row", { hasText: "BRUNET Jean" }).locator("[data-act=edit]").click();
   await expect(page.locator("#pe-svc")).toHaveText("Sacristie");
   await expect(page.locator("#pe-pole")).toHaveText("Solidarité");
   await page.click("#pe-svc");

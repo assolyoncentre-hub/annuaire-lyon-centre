@@ -343,7 +343,7 @@ function renderAdmin() {
       p.hors ? ' <span class="badge lead">Leader</span>' : "";
     const row = p => {
       const roles = p.hors ? ["Ni staff ni pôle"] : personRoles(p);
-      return '<div class="row" data-id="' + esc(p.key) + '"><span></span><div><div class="title">' + esc(fullName(p) || p.email) + badge(p) + "</div>" +
+      return '<div class="row" data-id="' + esc(p.key) + '"><span></span><div><div class="title">' + esc(nomPrenom(p) || p.email) + badge(p) + "</div>" +
         '<div class="meta"><span>' + (p.email ? esc(p.email) : "Pas d'e-mail") + "</span>" + (p.telephone ? "<span>" + esc(p.telephone) + "</span>" : "") + '<span class="ell" title="' + esc(roles.join(", ")) + '">' + esc(roles.join(", ")) + "</span></div></div>" +
         '<div class="ops"><button type="button" class="btn btn-ghost btn-sm" data-act="edit">Modifier</button>' +
         '<button type="button" class="btn btn-ghost btn-sm" data-act="del">Supprimer</button></div></div>';
@@ -744,6 +744,8 @@ function persons() {
 // Fiches de l'administration : les contacts, plus les personnes hors annuaire (ni staff ni pôle, table « acces »),
 // chacune avec son droit (« leaders » par défaut pour un contact qui a un e-mail)
 const myEmail = () => String(session?.user?.email || "").toLowerCase();
+// Liste des contacts : nom de famille d'abord (« BRUNET Jean (Père) »)
+const nomPrenom = p => [nomAff(p.nom), p.prenom, p.civilite === "Père" ? "(Père)" : ""].filter(Boolean).join(" ").trim();
 function fiches() {
   const droits = new Map(acces.map(a => [a.email, a]));
   const list = persons().map(p => {

@@ -96,7 +96,7 @@ test("contacts : personne regroupée sur ses staffs, civilité « Père » affic
   await page.selectOption("#pe-civ", "Père");
   await expect(page.locator("#ed-title")).toHaveText("Père Jean BRUNET");
   await save(page);
-  await expect(page.locator("#admin-list .title")).toHaveText("Père Jean BRUNET");
+  await expect(page.locator("#admin-list .title")).toHaveText("BRUNET Jean (Père)");
   expect((await calls(page, "savePerson"))[0].arg.fields).toMatchObject({ civilite: "Père", prenom: "Jean" });
 });
 
