@@ -340,7 +340,7 @@ function renderAdmin() {
     const list = all.filter(p => (contactFilter === "tous" || (contactFilter === "admin" ? p.droit === "admin" : p.hors)) &&
       adminMatch([p.prenom, p.nom, p.email, p.telephone, ...personRoles(p)].join(" ")));
     const badge = p => p.droit === "admin" ? ' <span class="badge admin">Admin</span>' : p.droit === "aucun" ? ' <span class="badge none">Sans accès</span>' :
-      p.hors ? ' <span class="badge lead">Leaders</span>' : "";
+      p.hors ? ' <span class="badge lead">Leader</span>' : "";
     const row = p => {
       const roles = p.hors ? ["Ni staff ni pôle"] : personRoles(p);
       return '<div class="row" data-id="' + esc(p.key) + '"><span></span><div><div class="title">' + esc(fullName(p) || p.email) + badge(p) + "</div>" +
@@ -796,7 +796,7 @@ function editPerson(p) {
       const d = f.querySelector('input[name="pe-droit"]:checked')?.value || "leaders";
       if (!svcIds.length && !poleIds.length) {
         if (!email) return invalid(f, "#pe-email", "Une personne sans staff ni pôle doit avoir une adresse e-mail pour se connecter.");
-        if (d === "aucun") return toast("Sans staff ni pôle, choisissez le droit Leaders ou Administrateur."), false;
+        if (d === "aucun") return toast("Sans staff ni pôle, choisissez le droit Leader ou Administrateur."), false;
       }
       if (self && email !== p.email.toLowerCase()) return invalid(f, "#pe-email", "Vous ne pouvez pas modifier votre propre adresse e-mail.");
       if (!p || email !== p.email.toLowerCase()) {
@@ -830,13 +830,13 @@ function editPerson(p) {
     if (hors && aucun.checked) f.querySelector('input[name="pe-droit"][value="leaders"]').checked = true;
     f.querySelector("#pe-droit-hint").textContent = self ? "Vous ne pouvez pas modifier votre propre droit." :
       noEmail ? "Sans e-mail, cette personne ne peut pas se connecter : le droit ne s'applique qu'avec une adresse." :
-      "Connexion avec le compte Google de l'adresse e-mail ci-dessus.";
+      "";
   };
   f.addEventListener("change", sync);
   f.querySelector("#pe-email").addEventListener("input", sync);
   sync();
 }
-const DROITS = [["aucun", "Aucun", "Ne peut pas se connecter"], ["leaders", "Leaders", "Voit l'annuaire des leaders"], ["admin", "Administrateur", "Leaders et administration"]];
+const DROITS = [["aucun", "Aucun", "Ne peut pas se connecter"], ["leaders", "Leader", "Voit l'annuaire des leaders"], ["admin", "Administrateur", "Leaders et administration"]];
 function deletePerson(p) {
   const roles = personRoles(p), e = p.email.toLowerCase(), self = e && e === myEmail();
   openEditor("Supprimer le contact", fullName(p), '<p style="margin:0">Cette personne sera retirée' +

@@ -84,7 +84,7 @@ test("personne hors annuaire : fiche sans staff ni pôle, avec un droit", async 
   await page.locator("#ed-form [type=submit]").click();
   await expect(page.locator("#editor")).toBeHidden();
   const hugo = page.locator("#admin-list .row", { hasText: "hugo.lambert@example.org" });
-  await expect(hugo.locator(".title")).toHaveText("Hugo LAMBERT Leaders");
+  await expect(hugo.locator(".title")).toHaveText("Hugo LAMBERT Leader");
   await expect(hugo.locator(".meta")).toContainText("Ni staff ni pôle");
   expect(await page.evaluate(() => window.__S.acces.find(a => a.email === "hugo.lambert@example.org"))).toMatchObject({ droit: "leaders", prenom: "Hugo", nom: "Lambert" });
   // Suppression : la fiche et l'accès disparaissent
