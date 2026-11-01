@@ -50,7 +50,10 @@ h1 { margin: 14px 0 8px; font: 700 clamp(40px, 8vw, 72px)/.95 Phudu, Montserrat,
     background: var(--surface); color: var(--muted); font: 700 12px/1 Montserrat, sans-serif; letter-spacing: .1em; text-transform: uppercase; cursor: pointer; }
   .filt-toggle svg { width: 14px; height: 14px; transition: transform .15s; }
   .filt-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
-  .filt-cur { color: var(--brand); letter-spacing: .04em; }
+  .filt-toggle { max-width: 100%; text-align: left; }
+  .filt-lbl { white-space: nowrap; }
+  .filt-toggle svg { flex: none; }
+  .filt-cur { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--brand); letter-spacing: .04em; }
   .filt-cur:empty { display: none; }
   .filterbar:not(.open) .filters { display: none; }
 }
@@ -438,7 +441,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
   </div>
 </header>
 <div id="dir-view" class="view">
-<div class="bar" role="search" aria-label="Rechercher et filtrer les staffs"><div class="wrap filterbar"><input type="search" id="q" class="search" placeholder="Rechercher un staff, un pôle, une personne…" aria-label="Rechercher" autocomplete="off"><span class="label">Filtrer par pôle</span><button type="button" class="filt-toggle" aria-expanded="false" aria-controls="filters">Filtrer par pôle<span class="filt-cur"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button><div class="filters" id="filters"></div></div></div>
+<div class="bar" role="search" aria-label="Rechercher et filtrer les staffs"><div class="wrap filterbar"><input type="search" id="q" class="search" placeholder="Rechercher un staff, un pôle, une personne…" aria-label="Rechercher" autocomplete="off"><span class="label">Filtrer par pôle</span><button type="button" class="filt-toggle" aria-expanded="false" aria-controls="filters"><span class="filt-lbl">Filtrer par pôle</span><span class="filt-cur"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button><div class="filters" id="filters"></div></div></div>
 <main class="wrap">
   <div id="resp"></div>
   <p class="count" id="count" role="status" aria-live="polite"></p>
@@ -446,7 +449,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 </main>
 </div>
 <div id="serv-view" class="view" hidden>
-<div class="bar" role="search" aria-label="Rechercher et filtrer les leaders"><div class="wrap filterbar"><input type="search" id="sq" class="search" placeholder="Rechercher une personne, un staff…" aria-label="Rechercher un leader" autocomplete="off"><span class="label">Filtrer par pôle</span><button type="button" class="filt-toggle" aria-expanded="false" aria-controls="sfilters">Filtrer par pôle<span class="filt-cur"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button><div class="filters" id="sfilters"></div></div></div>
+<div class="bar" role="search" aria-label="Rechercher et filtrer les leaders"><div class="wrap filterbar"><input type="search" id="sq" class="search" placeholder="Rechercher une personne, un staff…" aria-label="Rechercher un leader" autocomplete="off"><span class="label">Filtrer par pôle</span><button type="button" class="filt-toggle" aria-expanded="false" aria-controls="sfilters"><span class="filt-lbl">Filtrer par pôle</span><span class="filt-cur"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button><div class="filters" id="sfilters"></div></div></div>
 <main class="wrap">
   <p class="count" id="scount" role="status" aria-live="polite"></p>
   <div class="grid serv-grid" id="serv-grid"></div>
