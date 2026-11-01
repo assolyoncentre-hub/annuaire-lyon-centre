@@ -56,7 +56,16 @@ module.exports = function installFakeApi({ data, user, acces }) {
     },
     authNeeded: () => true,
     async session() { return session; },
-    async onAuth() {},
+    async onAuth(cb) { window.__authCb = cb; },
+    // Connexion par code : le bon code est toujours 123456
+    async canSignIn(email) { log("canSignIn", email); return !!droitDe(email.toLowerCase()); },
+    async sendCode(email) { log("sendCode", email); },
+    async verifyCode(email, code) {
+      log("verifyCode", { email, code });
+      if (code !== "123456") throw new Error("Token has expired or is invalid");
+      session = { user: { id: "u-" + email, email, user_metadata: {} } };
+      window.__authCb?.(session);
+    },
     // Bouton Google simulé : un clic compte comme une demande de connexion
     async googleButton(el) {
       el.innerHTML = '<button type="button">Se connecter avec Google</button>';

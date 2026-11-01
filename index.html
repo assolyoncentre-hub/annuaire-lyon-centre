@@ -222,6 +222,18 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .login p[hidden] { display: none; }
 .login h2:has(+ p[hidden]) { margin-bottom: 20px; }
 .login .login-error { margin: 0 0 20px; padding: 10px 12px; border-radius: 8px; background: #fdecec; color: #a12622; text-align: left; }
+.login .login-ok { margin: 0 0 20px; padding: 10px 12px; border-radius: 8px; background: #e8f4ec; color: #1d6b3a; text-align: left; }
+.otp { display: grid; gap: 14px; text-align: left; }
+.otp[hidden] { display: none; }
+.otp .btn { width: 100%; }
+.login .otp-sent { margin: 0; }
+.otp-sent strong { color: var(--text); font-weight: 600; overflow-wrap: anywhere; }
+.field input.otp-code { font: 600 26px/1 "DM Sans", system-ui, sans-serif; letter-spacing: .4em; text-align: center; font-variant-numeric: tabular-nums; }
+.otp-links { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; }
+.otp-links .link-btn:disabled { color: var(--muted); cursor: default; }
+.field input.bad { border-color: #a12622; }
+.login-or { display: flex; align-items: center; gap: 12px; margin: 22px 0 18px; color: var(--muted); font: 600 12px/1 Montserrat, sans-serif; letter-spacing: .08em; text-transform: uppercase; }
+.login-or::before, .login-or::after { content: ""; flex: 1; height: 1px; background: var(--border); }
 .gsi-btn[hidden] { display: none; }
 .gsi-btn { display: flex; justify-content: center; min-height: 44px; }
 .account { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-top: 20px; color: var(--muted); font-size: 14px; }
@@ -433,8 +445,23 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
   <main class="wrap">
     <div id="admin-login" class="login" hidden>
       <h2 id="login-title">Administration</h2>
-      <p id="login-text">Connectez-vous avec le compte Google d'un administrateur de l'annuaire.</p>
-      <p id="login-error" class="login-error" hidden></p>
+      <p id="login-text">Connexion réservée aux personnes autorisées, avec l'adresse e-mail enregistrée dans l'annuaire.</p>
+      <p id="login-error" class="login-error" role="alert" hidden></p>
+      <p id="login-ok" class="login-ok" role="status" hidden></p>
+      <!-- Connexion par code reçu par e-mail : adresse, puis code -->
+      <form id="otp-email-form" class="otp" novalidate>
+        <div class="field"><label for="otp-email">Recevoir un code par e-mail</label>
+          <input type="email" id="otp-email" autocomplete="email" inputmode="email" spellcheck="false" placeholder="prenom.nom@exemple.fr"></div>
+        <button type="submit" class="btn btn-primary" id="otp-send">Recevoir un code</button>
+      </form>
+      <form id="otp-code-form" class="otp" novalidate hidden>
+        <p class="otp-sent">Un code a été envoyé à <strong id="otp-to"></strong>. Il est valable 10 minutes.</p>
+        <div class="field"><label for="otp-code">Code reçu</label>
+          <input type="text" id="otp-code" class="otp-code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*"></div>
+        <button type="submit" class="btn btn-primary" id="otp-verify">Se connecter</button>
+        <div class="otp-links"><button type="button" class="link-btn" id="otp-change">Changer d'adresse</button><button type="button" class="link-btn" id="otp-resend">Renvoyer le code</button></div>
+      </form>
+      <div class="login-or" id="login-or">ou</div>
       <div id="gsi-btn" class="gsi-btn"></div>
       <p id="gsi-error" class="login-error" hidden>Le bouton de connexion Google n'a pas pu se charger. Vérifiez votre connexion ou désactivez le bloqueur de publicités pour ce site, puis rechargez la page.</p>
     </div>

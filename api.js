@@ -79,6 +79,17 @@ window.makeApi = function () {
       });
       google.accounts.id.renderButton(el, { theme: "outline", size: "large", shape: "rectangular", text: "signin_with", logo_alignment: "left", locale: "fr", width: 280 });
     },
+    // Connexion par code reçu par e-mail (sans mot de passe). L'adresse est d'abord vérifiée : aucun code n'est
+    // envoyé à une adresse qui n'a pas accès à l'annuaire.
+    canSignIn: email => rpc("acces_autorise", { p_email: email }),
+    async sendCode(email) {
+      const { error } = await (await getSb()).auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+      if (error) throw error;
+    },
+    async verifyCode(email, token) {
+      const { error } = await (await getSb()).auth.verifyOtp({ email, token, type: "email" });
+      if (error) throw error;
+    },
     signOut: async () => (await getSb()).auth.signOut(),
     // Droit de la personne connectée : "admin", "leaders" (tout contact de l'annuaire) ou null (connexion refusée)
     droit: () => sbRpc("mon_droit"),

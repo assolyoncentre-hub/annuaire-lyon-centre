@@ -203,7 +203,7 @@ $("m-form").addEventListener("submit", async e => {
 
 
 // ---------- Administration ----------
-// Connexion Google (Supabase Auth), réservée aux personnes qui ont un droit : les contacts (« leaders » par défaut)
+// Connexion par code e-mail ou Google (Supabase Auth), réservée aux personnes qui ont un droit : les contacts (« leaders » par défaut)
 // et les fiches hors annuaire, réglés sur la fiche contact
 // (consultation de l'annuaire des leaders). Les administrateurs (table « acces ») ont en plus l'administration.
 // Un autre compte est déconnecté aussitôt ; la base refuse de toute façon toute lecture au-delà de ces droits.
@@ -270,13 +270,12 @@ function route() {
   const cur = serv ? "sw-serv" : adminHash ? (isAdmin ? "sw-admin" : null) : "sw-prop";
   if (cur) $(cur).setAttribute("aria-current", "page");
   $("login-title").textContent = serv ? "Accès réservé" : "Administration";
-  $("login-text").textContent = serv ? "" : "Connexion réservée aux personnes autorisées, avec le compte Google de l'adresse e-mail enregistrée dans l'annuaire.";
-  $("login-text").hidden = serv;
+  $("login-text").textContent = "Connexion réservée aux personnes autorisées, avec l'adresse e-mail enregistrée dans l'annuaire.";
   if (admin || serv) ensureAuth();
   $("admin-login").hidden = !admin || !!session || !authLoaded;
   $("admin-denied").hidden = !admin || !session || (serv ? canLeaders : isAdmin);
   $("denied-what").textContent = serv ? "n'a pas accès à l'annuaire des leaders." : "n'est pas administrateur de l'annuaire.";
-  if (session) $("login-error").hidden = true;
+  if (session) $("login-error").hidden = $("login-ok").hidden = true;
   $("admin-body").hidden = !adminHash || !isAdmin;
   const email = session?.user?.email || "";
   $("denied-email").textContent = email;
@@ -311,7 +310,7 @@ $("admin-link").addEventListener("click", () => {
 });
 document.addEventListener("click", e => { if (!$("acct-menu").hidden && !e.target.closest(".acct")) closeAcct(); });
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("acct-menu").hidden) { closeAcct(); $("admin-link").focus(); } });
-$("logout").onclick = $("logout-2").onclick = async () => { closeAcct(); await api.signOut(); isAdmin = canLeaders = false; session = null; acces = []; messages = []; contactsOf = {}; respOf = {}; contactRows = []; respRows = []; route(); render(); };
+$("logout").onclick = $("logout-2").onclick = async () => { closeAcct(); resetOtp(); await api.signOut(); isAdmin = canLeaders = false; session = null; acces = []; messages = []; contactsOf = {}; respOf = {}; contactRows = []; respRows = []; route(); render(); };
 
 const poleNames = () => Object.keys(poles).sort(byPole);
 const isPoleTab = () => adminTab === "poles";
@@ -1003,6 +1002,97 @@ function setupGoogleButton() {
   const fail = msg => { $("login-error").textContent = "La connexion a échoué : " + msg; $("login-error").hidden = false; };
   googleReady = api.googleButton($("gsi-btn"), fail).catch(() => { $("gsi-btn").hidden = true; $("gsi-error").hidden = false; });
 }
+// Connexion par code reçu par e-mail : adresse (vérifiée avant l'envoi), puis code à saisir
+const CODE_LEN = window.ANNUAIRE_CONFIG?.codeLength || 6;
+const RESEND_DELAY = 60; // secondes avant de pouvoir redemander un code (limite de Supabase)
+let otpEmail = "", otpTimer = null;
+const loginMsg = (id, text) => {
+  for (const k of ["login-error", "login-ok"]) $(k).hidden = true;
+  if (text) { $(id).textContent = text; $(id).hidden = false; }
+};
+function otpStep(code) {
+  $("otp-email-form").hidden = code;
+  $("otp-code-form").hidden = !code;
+  $("otp-code").classList.remove("bad");
+  $("otp-email").classList.remove("bad");
+  if (code) { $("otp-to").textContent = otpEmail; $("otp-code").value = ""; $("otp-code").focus(); }
+  else { clearInterval(otpTimer); $("otp-email").focus(); }
+}
+function resendCountdown() {
+  let left = RESEND_DELAY;
+  const b = $("otp-resend"), tick = () => {
+    b.disabled = left > 0;
+    b.textContent = left > 0 ? "Renvoyer le code (dans " + left + " s)" : "Renvoyer le code";
+    if (left-- <= 0) clearInterval(otpTimer);
+  };
+  clearInterval(otpTimer);
+  tick();
+  otpTimer = setInterval(tick, 1000);
+}
+const sendError = err => /rate|too many|429|seconds/i.test(err?.message || "") || err?.status === 429
+  ? "Trop de demandes de code d'affilée. Patientez une minute, puis réessayez."
+  : "L'envoi du code a échoué. Vérifiez votre connexion et réessayez. (" + (err?.message || err) + ")";
+async function sendCode(again) {
+  const btn = again ? $("otp-resend") : $("otp-send");
+  btn.disabled = true;
+  try {
+    await api.sendCode(otpEmail);
+    if (again) loginMsg("login-ok", "Nouveau code envoyé à " + otpEmail + ". Seul le dernier code reçu fonctionne.");
+    else { loginMsg(); otpStep(true); }
+    if (again) { $("otp-code").value = ""; $("otp-code").focus(); }
+    resendCountdown();
+  } catch (err) {
+    loginMsg("login-error", sendError(err));
+    btn.disabled = false;
+  } finally { if (!again) btn.disabled = false; }
+}
+$("otp-email-form").addEventListener("submit", async e => {
+  e.preventDefault();
+  const email = $("otp-email").value.trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    $("otp-email").classList.add("bad");
+    loginMsg("login-error", "Saisissez une adresse e-mail complète, par exemple prenom.nom@exemple.fr.");
+    return $("otp-email").focus();
+  }
+  $("otp-send").disabled = true;
+  let ok;
+  try { ok = await api.canSignIn(email); }
+  catch (err) { $("otp-send").disabled = false; return loginMsg("login-error", sendError(err)); }
+  if (!ok) {
+    $("otp-send").disabled = false;
+    $("otp-email").classList.add("bad");
+    loginMsg("login-error", "L'adresse " + email + " n'a pas accès à l'annuaire. Essayez l'adresse que vous avez donnée à l'église, ou demandez l'accès à un administrateur.");
+    return $("otp-email").focus();
+  }
+  otpEmail = email;
+  await sendCode(false);
+});
+$("otp-email").addEventListener("input", () => $("otp-email").classList.remove("bad"));
+let verifying = false;
+async function verifyCode() {
+  const code = $("otp-code").value;
+  if (verifying) return;
+  if (code.length < CODE_LEN) { loginMsg("login-error", "Le code reçu par e-mail compte " + CODE_LEN + " chiffres."); return $("otp-code").focus(); }
+  verifying = true; $("otp-verify").disabled = true;
+  try { await api.verifyCode(otpEmail, code); loginMsg(); }
+  catch {
+    $("otp-code").classList.add("bad");
+    loginMsg("login-error", "Ce code est incorrect ou a expiré. Vérifiez le dernier e-mail reçu, ou demandez un nouveau code.");
+    $("otp-code").select();
+  } finally { verifying = false; $("otp-verify").disabled = false; }
+}
+$("otp-code-form").addEventListener("submit", e => { e.preventDefault(); verifyCode(); });
+$("otp-code").addEventListener("input", () => {
+  const el = $("otp-code"), v = el.value.replace(/\D/g, "").slice(0, CODE_LEN);
+  if (v !== el.value) el.value = v;
+  el.classList.remove("bad");
+  if (v.length === CODE_LEN) verifyCode(); // connexion dès le dernier chiffre
+});
+$("otp-change").addEventListener("click", () => { loginMsg(); otpStep(false); });
+$("otp-resend").addEventListener("click", () => sendCode(true));
+// Après une déconnexion, l'écran de connexion repart de l'adresse
+function resetOtp() { clearInterval(otpTimer); $("otp-email-form").hidden = false; $("otp-code-form").hidden = true; $("otp-code").value = ""; loginMsg(); }
+
 async function startAuth() {
   const s = await api.session().catch(() => null);
   // Retour de Google : en cas d'échec, Supabase renvoie l'erreur dans l'adresse (?error_description=…)
