@@ -262,8 +262,8 @@ function route() {
   const cur = serv ? "sw-serv" : h === "#admin" ? (isAdmin ? "sw-admin" : null) : "sw-prop";
   if (cur) $(cur).setAttribute("aria-current", "page");
   $("login-title").textContent = serv ? "Accès réservé" : "Administration";
-  $("login-text").textContent = serv ? "L'annuaire des leaders est réservé aux contacts de l'annuaire. Connectez-vous avec le compte Google de votre adresse e-mail de contact."
-    : "Connexion réservée aux contacts de l'annuaire, avec le compte Google de votre adresse e-mail de contact.";
+  $("login-text").textContent = serv ? "" : "Connexion réservée aux contacts de l'annuaire, avec le compte Google de votre adresse e-mail de contact.";
+  $("login-text").hidden = serv;
   if (admin || serv) ensureAuth();
   $("admin-login").hidden = !admin || !!session || !authLoaded;
   $("admin-denied").hidden = !admin || !session || (serv ? canLeaders : isAdmin);

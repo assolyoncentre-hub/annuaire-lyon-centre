@@ -142,6 +142,8 @@ body.locked { overflow: hidden; }
 body { min-height: 100vh; display: flex; flex-direction: column; }
 .site-footer { margin-top: auto; background: var(--text); color: rgba(255, 255, 255, .78); font-size: 14px; }
 .site-footer .wrap { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 24px; padding-top: 22px; padding-bottom: 22px; }
+.site-footer a { color: rgba(255, 255, 255, .78); }
+.site-footer a:hover { color: #fff; }
 .site-footer strong { color: #fff; font: 700 13px/1 Montserrat, sans-serif; letter-spacing: .14em; text-transform: uppercase; }
 /* Bouton « Connexion » (ou « Administration » une fois connecté), en haut à droite du bandeau */
 .hero .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
@@ -214,6 +216,8 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .login { margin: 40px auto; max-width: 460px; padding: 28px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; text-align: center; }
 .login h2 { margin: 0 0 8px; font: 700 26px/1.1 Phudu, Montserrat, sans-serif; text-transform: uppercase; color: var(--brand); }
 .login p { margin: 0 0 20px; color: var(--muted); }
+.login p[hidden] { display: none; }
+.login h2:has(+ p[hidden]) { margin-bottom: 20px; }
 .login .login-error { margin: 0 0 20px; padding: 10px 12px; border-radius: 8px; background: #fdecec; color: #a12622; text-align: left; }
 .google-btn { display: inline-flex; align-items: center; gap: 10px; padding: 12px 20px; border: 1.5px solid var(--border); border-radius: 6px;
   background: #fff; color: var(--text); font: 600 15px/1 Montserrat, sans-serif; cursor: pointer; }
@@ -421,6 +425,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 <footer class="site-footer">
   <div class="wrap">
     <span>© <span id="year"></span> <strong>Église Lyon Centre</strong></span>
+    <a href="confidentialite.html">Confidentialité</a>
   </div>
 </footer>
 <div class="modal-bg" id="modal" hidden>

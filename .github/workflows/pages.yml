@@ -50,9 +50,9 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/configure-pages@v6
       - run: |
-          mkdir _site && cp index.html app.js api.js config.js favicon.svg favicon-32.png apple-touch-icon.png _site/
+          mkdir _site && cp index.html confidentialite.html app.js api.js config.js favicon.svg favicon-32.png apple-touch-icon.png _site/
           # Numéro de version dans les liens des scripts : le navigateur recharge les fichiers à chaque déploiement
-          sed -i "s/__VERSION__/${GITHUB_SHA::7}/g" _site/index.html
+          sed -i "s/__VERSION__/${GITHUB_SHA::7}/g" _site/index.html _site/confidentialite.html
       - uses: actions/upload-pages-artifact@v5
       - id: deployment
         uses: actions/deploy-pages@v5
