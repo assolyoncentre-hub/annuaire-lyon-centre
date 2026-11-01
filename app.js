@@ -270,7 +270,6 @@ function route() {
   const cur = serv ? "sw-serv" : adminHash ? (isAdmin ? "sw-admin" : null) : "sw-prop";
   if (cur) $(cur).setAttribute("aria-current", "page");
   $("login-title").textContent = serv ? "Accès réservé" : "Connexion";
-  $("login-text").hidden = !serv;
   if (admin || serv) ensureAuth();
   $("admin-login").hidden = !admin || !!session || !authLoaded;
   $("admin-denied").hidden = !admin || !session || (serv ? canLeaders : isAdmin);
