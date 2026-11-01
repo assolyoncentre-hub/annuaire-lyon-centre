@@ -10,7 +10,7 @@ test("visiteur : onglets visibles, « Leaders » demande de se connecter", async
   await expect(page.locator("#admin-login")).toBeVisible();
   await expect(page.locator("#login-title")).toHaveText("Accès réservé");
   await expect(page.locator("#serv-view")).toBeHidden();
-  await expect(page.locator("#h1")).toHaveText("Annuaire des leaders");
+  await expect(page.locator("#h1")).toHaveText("Annuaire");
   await page.click("#gsi-btn button");
   expect(await calls(page, "signIn")).toHaveLength(1);
   await page.click("#sw-prop");
@@ -20,7 +20,7 @@ test("visiteur : onglets visibles, « Leaders » demande de se connecter", async
   await expect(page.locator("#admin-label")).toHaveText("Connexion");
   await page.click("#admin-link");
   await expect(page.locator("#login-title")).toHaveText("Connexion");
-  await expect(page.locator("#h1")).toHaveText("Annuaire");
+  await expect(page.locator("#h1")).toHaveText("Connexion");
   await expect(page.locator(".switch a[aria-current]")).toHaveCount(0);
 });
 
