@@ -154,6 +154,8 @@ body { min-height: 100vh; display: flex; flex-direction: column; }
 .admin-link { display: inline-flex; align-items: center; gap: 8px; }
 .admin-link svg { width: 16px; height: 16px; flex: none; }
 .admin-link[hidden] { display: none; }
+/* Connecté : prénom en casse normale (« Loïc »), pas en capitales */
+.admin-link.signed-in { text-transform: none; letter-spacing: .01em; font-size: 14px; }
 /* Téléphone : l'icône seule, dans un rond (le nom reste lu par les lecteurs d'écran) */
 @media (max-width: 520px) {
   .admin-link { width: 42px; height: 42px; padding: 0; justify-content: center; }

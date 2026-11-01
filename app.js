@@ -253,6 +253,7 @@ function route() {
   // En haut à droite : « Connexion », ou le prénom de la personne connectée (menu avec « Se déconnecter »)
   const label = session ? firstName() : "Connexion";
   $("admin-label").textContent = label;
+  $("admin-link").classList.toggle("signed-in", !!session);
   $("admin-link").setAttribute("aria-label", session ? "Compte de " + label : label);
   if (session) $("admin-link").setAttribute("aria-expanded", String(!$("acct-menu").hidden)); else { $("admin-link").removeAttribute("aria-expanded"); $("acct-menu").hidden = true; }
   // Onglets : Propositions et Leaders pour tous (Leaders sans être administrateur affiche la connexion),
@@ -287,13 +288,14 @@ $("year").textContent = new Date().getFullYear();
 const goHome = () => { history.pushState("", "", location.pathname + location.search); route(); };
 $("sw-prop").addEventListener("click", e => { e.preventDefault(); goHome(); });
 // Prénom de la personne connectée : celui de sa fiche de contact (même e-mail), sinon celui du compte Google
+const capitalize = s => s.toLocaleLowerCase("fr").replace(/(^|[\s'-])(\p{L})/gu, (_m, a, b) => a + b.toLocaleUpperCase("fr"));
 function firstName() {
   const u = session?.user, email = String(u?.email || "").toLowerCase(), m = u?.user_metadata || {};
   const n = (email && persons().find(x => x.email && x.email.toLowerCase() === email)?.prenom) || m.given_name ||
     String(m.full_name || m.name || "").trim().split(/\s+/)[0];
-  if (n) return n;
+  if (n) return capitalize(n);
   const l = email.split("@")[0].split(/[._-]/)[0];
-  return l ? l[0].toUpperCase() + l.slice(1) : "Mon compte";
+  return l ? capitalize(l) : "Mon compte";
 }
 const closeAcct = () => { $("acct-menu").hidden = true; if (session) $("admin-link").setAttribute("aria-expanded", "false"); };
 $("admin-link").addEventListener("click", () => {

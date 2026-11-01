@@ -7,9 +7,16 @@ test("contact de l'annuaire : annuaire des leaders, sans onglet Administration",
   await expect(page.locator("#scount")).toHaveText("16 leaders");
   await expect(page.locator("#sw-admin")).toBeHidden();
   await expect(page.locator("#admin-label")).toHaveText("Damien");
+  // Prénom en casse normale, pas en capitales comme « Connexion »
+  expect(await page.locator("#admin-link").evaluate(e => getComputedStyle(e).textTransform)).toBe("none");
   await page.goto(page.url().replace(/#.*/, "") + "#admin");
   await expect(page.locator("#admin-denied")).toContainText("n'est pas administrateur");
   await expect(page.locator("#admin-body")).toBeHidden();
+});
+
+test("prénom en capitales : affiché avec seulement les initiales en majuscule", async ({ open, page }) => {
+  await open({ user: { email: "jp@example.org", admin: true, name: "JEAN-PAUL DURAND" } });
+  await expect(page.locator("#admin-label")).toHaveText("Jean-Paul");
 });
 
 test("compte absent des contacts : déconnecté aussitôt, avec un message", async ({ open, page }) => {
