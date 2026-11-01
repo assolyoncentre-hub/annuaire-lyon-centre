@@ -9,6 +9,7 @@ test("visiteur : onglets visibles, « Leaders » demande de se connecter", async
   await expect(page.locator("#sw-serv")).toHaveAttribute("aria-current", "page");
   await expect(page.locator("#admin-login")).toBeVisible();
   await expect(page.locator("#login-title")).toHaveText("Accès réservé");
+  await expect(page.locator("#login-text")).toHaveText("Seules les personnes explicitement désignées peuvent y accéder.");
   await expect(page.locator("#serv-view")).toBeHidden();
   await expect(page.locator("#h1")).toHaveText("Annuaire des leaders");
   await page.click("#gsi-btn button");
