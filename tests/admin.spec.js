@@ -16,9 +16,9 @@ test("connexion : écran Google, retour à l'annuaire, compte non administrateur
   await expect(page.locator("#dir-view")).toBeVisible();
 });
 
-test("compte connecté mais non administrateur : accès refusé", async ({ open, page }) => {
-  await open({ user: { email: "autre@example.org", admin: false }, hash: "#admin" });
-  await expect(page.locator("#admin-denied")).toContainText("autre@example.org");
+test("contact connecté mais non administrateur : administration refusée", async ({ open, page }) => {
+  await open({ user: { email: "antoine@example.org" }, hash: "#admin" });
+  await expect(page.locator("#admin-denied")).toContainText("antoine@example.org");
   await expect(page.locator("#admin-body")).toBeHidden();
 });
 
@@ -146,8 +146,8 @@ test("compte connecté : prénom en haut à droite, menu de déconnexion, onglet
   await expect(page.locator("#admin-login")).toBeVisible();
 });
 
-test("compte sans fiche de contact : prénom du compte Google, sinon tiré de l'e-mail", async ({ open, page }) => {
-  await open({ user: { email: "paul.durand@example.org", admin: false, name: "Paul Durand" } });
+test("administrateur sans fiche de contact : prénom du compte Google, sinon tiré de l'e-mail", async ({ open, page }) => {
+  await open({ user: { email: "paul.durand@example.org", admin: true, name: "Paul Durand" } });
   await expect(page.locator("#admin-label")).toHaveText("Paul");
-  await expect(page.locator("#sw-admin")).toBeHidden();
+  await expect(page.locator("#sw-admin")).toBeVisible();
 });

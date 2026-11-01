@@ -23,10 +23,12 @@ test("visiteur : onglets visibles, « Leaders » demande de se connecter", async
   await expect(page.locator(".switch a[aria-current]")).toHaveCount(0);
 });
 
-test("compte non administrateur : accès refusé", async ({ open, page }) => {
-  await open({ user: { email: "autre@example.org", admin: false }, hash: "#leaders" });
-  await expect(page.locator("#admin-denied")).toBeVisible();
+test("compte absent des contacts : connexion refusée", async ({ open, page }) => {
+  await open({ user: { email: "autre@example.org" }, hash: "#leaders" });
+  await expect(page.locator("#login-error")).toContainText("autre@example.org ne fait pas partie des contacts");
+  await expect(page.locator("#admin-login")).toBeVisible();
   await expect(page.locator("#serv-view")).toBeHidden();
+  await expect(page.locator("#admin-label")).toHaveText("Connexion");
 });
 
 test("administrateur : cartes par lettre, rôles, liens d'appel et d'e-mail, filtres, recherche", async ({ open, page }) => {

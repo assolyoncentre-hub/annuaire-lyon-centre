@@ -10,9 +10,14 @@ module.exports = function installFakeApi({ data, user }) {
   const log = (name, arg) => window.__calls.push({ name, arg });
   const clone = x => JSON.parse(JSON.stringify(x));
   let session = user ? { user: { id: "u1", email: user.email, user_metadata: { full_name: user.name || "" } } } : null;
-  // Droits : user.admin (tout) ou user.leaders (lecture de l'annuaire des leaders) ; S.acces = comptes autorisés
-  S.acces = S.acces || (user && (user.admin || user.leaders) ? [{ email: user.email, droit: user.admin ? "admin" : "leaders" }] : []);
-  const droit = () => session ? S.acces.find(a => a.email === session.user.email.toLowerCase())?.droit || null : null;
+  // Droits : administrateurs dans S.acces (user.admin), « leaders » pour tout contact de l'annuaire, sinon aucun
+  S.acces = S.acces || (user && user.admin ? [{ email: user.email, droit: "admin" }] : []);
+  const droit = () => {
+    if (!session) return null;
+    const e = session.user.email.toLowerCase();
+    if (S.acces.some(a => a.email === e)) return "admin";
+    return [...S.contacts, ...S.responsables].some(r => (r.email || "").toLowerCase() === e) ? "leaders" : null;
+  };
   const admin = () => droit() === "admin";
   const guard = () => { if (!admin()) throw new Error("refusé (règles d'accès)"); };
   const guardRead = () => { if (!droit()) throw new Error("refusé (règles d'accès)"); };
@@ -81,7 +86,7 @@ module.exports = function installFakeApi({ data, user }) {
       guard(); log("saveAcces", { email, droit: d });
       if (email === session.user.email.toLowerCase()) throw new Error("Vous ne pouvez pas modifier votre propre accès.");
       S.acces = S.acces.filter(a => a.email !== email);
-      if (d) S.acces.push({ email, droit: d });
+      if (d && !S.acces.some(a => a.email === email)) S.acces.push({ email, droit: d });
     },
     async reorder(kind, rows) { guard(); log("reorder", { kind, rows }); for (const r of rows) S[kind].find(x => x.id === r.id).ordre = r.ordre; },
   };

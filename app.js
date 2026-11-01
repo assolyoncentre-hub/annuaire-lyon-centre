@@ -203,15 +203,23 @@ $("m-form").addEventListener("submit", async e => {
 
 
 // ---------- Administration ----------
-// Connexion Google (Supabase Auth). Seuls les comptes listés dans la table « acces » ont des droits :
-// « leaders » (consultation de l'annuaire des leaders) ou « admin » (en plus, l'administration).
-// La base refuse toute lecture ou modification au-delà de ces droits.
+// Connexion Google (Supabase Auth), réservée aux contacts de l'annuaire : ils ont le droit « leaders »
+// (consultation de l'annuaire des leaders). Les administrateurs (table « acces ») ont en plus l'administration.
+// Un autre compte est déconnecté aussitôt ; la base refuse de toute façon toute lecture au-delà de ces droits.
 let isAdmin = false, canLeaders = false, session = null, adminTab = "services", adminTerms = [], messages = [], acces = [];
 let authStarted = null, authLoaded = false, lastViewAdmin = null;
 
 async function onSession(s) {
   session = s;
-  const droit = s ? await api.droit().catch(() => null) : null;
+  const droit = s ? await api.droit().catch(() => undefined) : null; // undefined : droits illisibles (réseau)
+  if (s && droit === null) {
+    // Compte absent des contacts : pas de connexion
+    await api.signOut().catch(() => {});
+    $("login-error").textContent = "Le compte " + (s.user?.email || "") + " ne fait pas partie des contacts de l'annuaire : la connexion leur est réservée.";
+    $("login-error").hidden = false;
+    s = null;
+  }
+  session = s;
   isAdmin = droit === "admin"; canLeaders = !!droit;
   if (canLeaders) await Promise.all([loadAdmin(), isAdmin && api.messages().then(m => { messages = m; }, () => {}), isAdmin && loadAcces()]);
   route();
@@ -254,12 +262,13 @@ function route() {
   const cur = serv ? "sw-serv" : h === "#admin" ? (isAdmin ? "sw-admin" : null) : "sw-prop";
   if (cur) $(cur).setAttribute("aria-current", "page");
   $("login-title").textContent = serv ? "Accès réservé" : "Administration";
-  $("login-text").textContent = serv ? "L'annuaire des leaders est réservé aux personnes autorisées. Connectez-vous avec votre compte Google."
-    : "Connectez-vous avec le compte Google d'un administrateur de l'annuaire.";
+  $("login-text").textContent = serv ? "L'annuaire des leaders est réservé aux contacts de l'annuaire. Connectez-vous avec le compte Google de votre adresse e-mail de contact."
+    : "Connexion réservée aux contacts de l'annuaire, avec le compte Google de votre adresse e-mail de contact.";
   if (admin || serv) ensureAuth();
   $("admin-login").hidden = !admin || !!session || !authLoaded;
   $("admin-denied").hidden = !admin || !session || (serv ? canLeaders : isAdmin);
   $("denied-what").textContent = serv ? "n'a pas accès à l'annuaire des leaders." : "n'est pas administrateur de l'annuaire.";
+  if (session) $("login-error").hidden = true;
   $("admin-body").hidden = h !== "#admin" || !isAdmin;
   const email = session?.user?.email || "";
   $("me-email").textContent = email;
@@ -304,7 +313,7 @@ function setTab(t) {
   adminTab = t;
   for (const k of ["services", "poles", "contacts", "messages", "acces"]) $("tab-" + k).setAttribute("aria-selected", String(t === k));
   $("add-btn").hidden = t === "messages";
-  $("add-btn").textContent = { services: "Ajouter un staff", poles: "Ajouter un pôle", contacts: "Ajouter un contact", acces: "Ajouter un accès" }[t] || "";
+  $("add-btn").textContent = { services: "Ajouter un staff", poles: "Ajouter un pôle", contacts: "Ajouter un contact", acces: "Ajouter un admin" }[t] || "";
   renderAdmin();
 }
 $("tab-services").onclick = () => setTab("services");
@@ -325,17 +334,17 @@ function renderAdmin() {
   $("tab-poles").textContent = "Pôles (" + Object.keys(poles).length + ")";
   $("tab-messages").textContent = "Messages (" + messages.length + ")";
   $("tab-contacts").textContent = "Contacts (" + persons().length + ")";
-  $("tab-acces").textContent = "Accès (" + acces.length + ")";
+  $("tab-acces").textContent = "Admins (" + acces.length + ")";
   if (adminTab === "acces") {
     const me = String(session?.user?.email || "").toLowerCase();
     const list = acces.map(a => ({ ...a, p: persons().find(x => x.email && x.email.toLowerCase() === a.email) }))
-      .filter(a => adminMatch([a.email, a.p && fullName(a.p), DROITS[a.droit]].join(" ")))
-      .sort((a, b) => (a.droit === b.droit ? 0 : a.droit === "admin" ? -1 : 1) || (a.p ? fullName(a.p) : a.email).localeCompare(b.p ? fullName(b.p) : b.email, "fr"));
+      .filter(a => adminMatch([a.email, a.p && fullName(a.p)].join(" ")))
+      .sort((a, b) => (a.p ? fullName(a.p) : a.email).localeCompare(b.p ? fullName(b.p) : b.email, "fr"));
     $("admin-list").innerHTML = list.length ? '<div class="group">' + list.map(a =>
       '<div class="row" data-id="' + esc(a.email) + '"><span></span><div><div class="title">' + esc(a.p ? fullName(a.p) : a.email) + "</div>" +
-      '<div class="meta">' + (a.p ? "<span>" + esc(a.email) + "</span>" : "") + '<span class="badge ' + (a.droit === "admin" ? "ok" : "lead") + '">' + esc(DROITS[a.droit]) + "</span></div></div>" +
-      (a.email === me ? '<div class="ops"><span class="you">Vous</span></div>' : '<div class="ops"><button type="button" class="btn btn-ghost btn-sm" data-act="edit">Modifier</button>' +
-      '<button type="button" class="btn btn-ghost btn-sm" data-act="del">Retirer</button></div>') + "</div>").join("") + "</div>" : '<div class="empty">Aucun accès.</div>';
+      '<div class="meta">' + (a.p ? "<span>" + esc(a.email) + "</span>" : "<span>Pas dans les contacts</span>") + "</div></div>" +
+      (a.email === me ? '<div class="ops"><span class="you">Vous</span></div>' : '<div class="ops"><button type="button" class="btn btn-ghost btn-sm" data-act="del">Retirer</button></div>') +
+      "</div>").join("") + "</div>" : '<div class="empty">Aucun administrateur.</div>';
     $("admin-list").classList.add("no-drag");
     return;
   }
@@ -479,7 +488,7 @@ $("admin-list").addEventListener("click", e => {
   const id = b.closest(".row").dataset.id;
   if (adminTab === "acces") {
     const a = acces.find(x => x.email === id); if (!a) return;
-    return b.dataset.act === "edit" ? editAcces(a) : deleteAcces(a);
+    return deleteAcces(a);
   }
   if (adminTab === "contacts") {
     const p = persons().find(x => x.key === id); if (!p) return;
@@ -798,32 +807,27 @@ function deletePerson(p) {
     }, "Supprimer", true);
 }
 
-// --- Accès : comptes Google autorisés à se connecter, et leur droit ---
-const DROITS = { leaders: "Annuaire des leaders", admin: "Administration" };
+// --- Administrateurs (table « acces ») : les contacts ont déjà le droit « leaders » ---
 const accesName = a => { const p = persons().find(x => x.email && x.email.toLowerCase() === a.email); return p ? fullName(p) : a.email; };
-function editAcces(a) {
+function editAcces() {
   const opts = persons().filter(p => p.email && !acces.some(x => x.email === p.email.toLowerCase()))
     .map(p => '<option value="' + esc(p.email.toLowerCase()) + '">' + esc(fullName(p)) + "</option>").join("");
-  openEditor(a ? "Modifier l'accès" : "Accès", a ? accesName(a) : "Nouvel accès",
+  openEditor("Administrateurs", "Nouvel administrateur",
     '<div class="field"><label for="ac-email">Adresse e-mail du compte Google</label>' +
-    (a ? '<input id="ac-email" type="email" value="' + esc(a.email) + '" readonly>'
-       : '<input id="ac-email" type="email" required list="ac-list" autocomplete="off" placeholder="prenom.nom@gmail.com"><datalist id="ac-list">' + opts + "</datalist>" +
-         '<div class="hint">Commencez à taper un nom pour choisir un contact de l\'annuaire.</div>') + "</div>" +
-    '<fieldset class="field droits"><legend>Droit</legend>' +
-    '<label><input type="radio" name="droit" value="leaders"' + (a?.droit !== "admin" ? " checked" : "") + '> <span><strong>Annuaire des leaders</strong><br>Consulter les propositions et l\'annuaire des leaders.</span></label>' +
-    '<label><input type="radio" name="droit" value="admin"' + (a?.droit === "admin" ? " checked" : "") + '> <span><strong>Administration</strong><br>En plus, modifier l\'annuaire et gérer les accès.</span></label></fieldset>',
-    async f => {
-      const email = $("ac-email").value.trim().toLowerCase(), droit = f.querySelector("[name=droit]:checked").value;
+    '<input id="ac-email" type="email" required list="ac-list" autocomplete="off" placeholder="prenom.nom@gmail.com"><datalist id="ac-list">' + opts + "</datalist>" +
+    '<div class="hint">Commencez à taper un nom pour choisir un contact de l\'annuaire. Un administrateur peut modifier l\'annuaire et nommer d\'autres administrateurs.</div></div>',
+    async () => {
+      const email = $("ac-email").value.trim().toLowerCase();
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { toast("Adresse e-mail invalide."); return false; }
-      await api.saveAcces(email, droit);
+      await api.saveAcces(email, "admin");
       await loadAcces(); renderAdmin();
-      toast(a ? "Accès modifié." : "Accès ajouté.");
-    });
+      toast("Administrateur ajouté.");
+    }, "Ajouter");
 }
 function deleteAcces(a) {
-  openEditor("Retirer l'accès", accesName(a), '<p style="margin:0">Le compte ' + esc(a.email) + " ne pourra plus consulter " +
-    (a.droit === "admin" ? "l'annuaire des leaders ni l'administration" : "l'annuaire des leaders") + ".</p>",
-    async () => { await api.saveAcces(a.email, null); await loadAcces(); renderAdmin(); toast("Accès retiré."); }, "Retirer", true);
+  openEditor("Retirer l'administration", accesName(a), '<p style="margin:0">Le compte ' + esc(a.email) + " n'aura plus accès à l'administration" +
+    (persons().some(p => p.email && p.email.toLowerCase() === a.email) ? " (il garde l'annuaire des leaders, comme tous les contacts)." : ", ni à l'annuaire des leaders : il ne fait pas partie des contacts.") + "</p>",
+    async () => { await api.saveAcces(a.email, null); await loadAcces(); renderAdmin(); toast("Administrateur retiré."); }, "Retirer", true);
 }
 
 // Numéro d'ordre pour placer un élément après tous les autres. Si certains n'ont pas encore de numéro
