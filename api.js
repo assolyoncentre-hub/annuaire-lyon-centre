@@ -4,7 +4,7 @@
 // Visiteurs : lectures publiques par de simples appels HTTP, sans la bibliothèque Supabase.
 // Administration : la bibliothèque (connexion Google, session) n'est chargée qu'au besoin.
 window.makeApi = function () {
-  const { supabaseUrl, supabaseKey } = window.ANNUAIRE_CONFIG;
+  const { supabaseUrl, supabaseKey, googleClientId } = window.ANNUAIRE_CONFIG;
   const SUPABASE_JS = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js";
   const headers = { apikey: supabaseKey, "Content-Type": "application/json" };
 
@@ -25,6 +25,13 @@ window.makeApi = function () {
     s.onerror = () => reject(new Error("Chargement de Supabase impossible."));
     document.head.append(s);
   });
+  // Bouton officiel « Se connecter avec Google » (Google Identity Services), chargé à la demande
+  const loadScript = src => new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = src; s.async = true; s.onload = resolve; s.onerror = () => reject(new Error("Chargement de " + src + " impossible."));
+    document.head.append(s);
+  });
+  const sha256 = async t => [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(t)))].map(b => b.toString(16).padStart(2, "0")).join("");
   const ok = ({ data, error }) => { if (error) throw error; return data; };
   const sbRpc = async (name, args) => ok(await (await getSb()).rpc(name, args));
   const ref = new URL(supabaseUrl).hostname.split(".")[0];
@@ -61,6 +68,21 @@ window.makeApi = function () {
       // Retour sur la page demandée (administration ou leaders) après la connexion Google
       try { sessionStorage.setItem("annuaire-admin", location.hash === "#leaders" ? "#leaders" : "#admin"); } catch {}
       return (await getSb()).auth.signInWithOAuth({ provider: "google", options: { redirectTo: location.origin + location.pathname } });
+    },
+    // Connexion dans une fenêtre Google ouverte par-dessus la page (le jeton est ensuite confié à Supabase).
+    // Google y affiche le site (ou le nom de l'application) au lieu de l'adresse technique de Supabase.
+    async googleButton(el, onError) {
+      if (!googleClientId) throw new Error("Identifiant Google absent.");
+      const [sb] = await Promise.all([getSb(), window.google?.accounts?.id || loadScript("https://accounts.google.com/gsi/client")]);
+      const nonce = [...crypto.getRandomValues(new Uint8Array(16))].map(b => b.toString(16).padStart(2, "0")).join("");
+      google.accounts.id.initialize({
+        client_id: googleClientId, nonce: await sha256(nonce), auto_select: false, cancel_on_tap_outside: true,
+        callback: async ({ credential }) => {
+          const { error } = await sb.auth.signInWithIdToken({ provider: "google", token: credential, nonce });
+          if (error) onError(error.message);
+        },
+      });
+      google.accounts.id.renderButton(el, { theme: "outline", size: "large", shape: "pill", text: "signin_with", logo_alignment: "left", locale: "fr", width: 280 });
     },
     signOut: async () => (await getSb()).auth.signOut(),
     // Droit de la personne connectée : "admin", "leaders" (tout contact de l'annuaire) ou null (connexion refusée)

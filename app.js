@@ -935,6 +935,13 @@ async function loadPublic() {
 
 // Connexion : la bibliothèque Supabase n'est chargée que pour l'administration (ou une session existante)
 function ensureAuth() { return authStarted ||= startAuth(); }
+// Bouton officiel de Google (fenêtre par-dessus la page) ; s'il ne peut pas se charger, l'ancien bouton (redirection) reste
+let googleReady = null;
+function setupGoogleButton() {
+  if (googleReady || !api.googleButton) return;
+  const fail = msg => { $("login-error").textContent = "La connexion a échoué : " + msg; $("login-error").hidden = false; };
+  googleReady = api.googleButton($("gsi-btn"), fail).then(() => { $("google-btn").hidden = true; $("gsi-btn").hidden = false; }, () => {});
+}
 async function startAuth() {
   const s = await api.session().catch(() => null);
   // Retour de Google : en cas d'échec, Supabase renvoie l'erreur dans l'adresse (?error_description=…)
@@ -950,6 +957,7 @@ async function startAuth() {
   if (fromLogin && s) location.hash = fromLogin === "#leaders" ? "leaders" : "admin";
   else if (authError) location.hash = "admin";
   authLoaded = true;
+  setupGoogleButton();
   await onSession(s);
   if (canLeaders) render(); // l'annuaire n'est reconstruit que si les données d'administration changent l'affichage
   api.onAuth(async s2 => { if ((s2?.user?.id || null) !== (session?.user?.id || null)) { await onSession(s2); render(); } });
