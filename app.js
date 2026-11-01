@@ -1,5 +1,5 @@
 // Couleurs des pôles, reprises d'egliselyoncentre.fr (bandeaux des événements, boutons, fonds et feuille de style du site)
-const COLORS = { "Croissance dans la foi": "#009498", "Le dimanche": "#fa772f", "Équipes centrales": "#0060aa",
+const COLORS = { "Croissance dans la foi": "#009498", "Le dimanche": "#78d8da", "Équipes centrales": "#a4d4f8",
   "Jeunes": "#fa772f", "Prière, écoute et guérison": "#4760ff", "Écosystème": "#0060aa", "Solidarité": "#0e0f17", "Support": "#797881" };
 const FALLBACK = ["#414e8a", "#df683d", "#535259", "#ffccbd"];
 const api = window.__api || window.makeApi();
