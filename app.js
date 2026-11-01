@@ -269,8 +269,7 @@ function route() {
   for (const k of ["sw-prop", "sw-serv", "sw-admin"]) $(k).removeAttribute("aria-current");
   const cur = serv ? "sw-serv" : adminHash ? (isAdmin ? "sw-admin" : null) : "sw-prop";
   if (cur) $(cur).setAttribute("aria-current", "page");
-  $("login-title").textContent = serv ? "Accès réservé" : "Administration";
-  $("login-text").textContent = "Connexion réservée aux personnes autorisées, avec l'adresse e-mail enregistrée dans l'annuaire.";
+  $("login-title").textContent = serv ? "Accès réservé" : "Connexion";
   if (admin || serv) ensureAuth();
   $("admin-login").hidden = !admin || !!session || !authLoaded;
   $("admin-denied").hidden = !admin || !session || (serv ? canLeaders : isAdmin);
@@ -1061,7 +1060,7 @@ $("otp-email-form").addEventListener("submit", async e => {
   if (!ok) {
     $("otp-send").disabled = false;
     $("otp-email").classList.add("bad");
-    loginMsg("login-error", "L'adresse " + email + " n'a pas accès à l'annuaire. Essayez l'adresse que vous avez donnée à l'église, ou demandez l'accès à un administrateur.");
+    loginMsg("login-error", "Vous n'êtes pas autorisé à accéder à cette page.");
     return $("otp-email").focus();
   }
   otpEmail = email;

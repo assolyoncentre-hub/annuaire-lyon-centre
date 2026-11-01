@@ -27,7 +27,7 @@ test("code e-mail : adresse non autorisée → message clair, aucun envoi", asyn
   await open({ hash: "#admin" });
   await page.fill("#otp-email", "inconnu@example.org");
   await page.press("#otp-email", "Enter");
-  await expect(page.locator("#login-error")).toContainText("L'adresse inconnu@example.org n'a pas accès à l'annuaire");
+  await expect(page.locator("#login-error")).toHaveText("Vous n'êtes pas autorisé à accéder à cette page.");
   await expect(page.locator("#otp-email")).toHaveClass(/bad/);
   await expect(page.locator("#otp-code-form")).toBeHidden();
   expect(await calls(page, "sendCode")).toHaveLength(0);
