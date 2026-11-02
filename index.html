@@ -231,6 +231,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .field .hint { margin-top: 4px; font-size: 13px; color: var(--muted); }
 #ed-form textarea { min-height: 70px; }
 .people { display: grid; gap: 8px; }
+.people-field { margin-top: 14px; }
 .add-person { justify-self: start; background: none; border: 0; padding: 4px 0; color: var(--brand); font: 600 13px/1 Montserrat, sans-serif; cursor: pointer; }
 .btn-danger { background: #c62828; border-color: #c62828; color: #fff; }
 @media (max-width: 520px) { .row { grid-template-columns: auto 1fr; } .row .ops { grid-column: 2; } }
@@ -326,6 +327,8 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .badge.ok { background: #e3f4ea; color: #1d6b43; } .badge.ko { background: #fde8e6; color: #a3261c; }
 /* Droits sur les fiches contact */
 .row .title .badge { margin-left: 8px; vertical-align: 1px; }
+.badge.masked { display: inline-flex; align-items: center; gap: 4px; }
+.badge.masked svg { width: 12px; height: 12px; }
 .badge.admin { background: var(--text); color: #fff; } .badge.lead { background: var(--tint); color: var(--brand); } .badge.none { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
 .afilters { display: flex; flex-wrap: wrap; gap: 6px; margin-left: auto; justify-content: flex-end; }
 .afilters[hidden] { display: none; }

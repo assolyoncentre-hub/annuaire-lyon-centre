@@ -81,6 +81,8 @@ function contact(s) {
   return '<details class="contact"><summary><span>' + (nbContacts(s) > 1 ? "Leaders" : "Leader") + '</span></summary><ul>' + contactList(s) + "</ul></details>";
 }
 
+// Icône « œil barré » du badge « Masqué »
+const EYE_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.7 5.1A10.9 10.9 0 0 1 12 5c6.5 0 10 7 10 7a17.6 17.6 0 0 1-2.2 3.2M6.6 6.6C3.9 8.4 2 12 2 12s3.5 7 10 7a10 10 0 0 0 5.4-1.6"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/><path d="M2 2l20 20"/></svg>';
 // Staffs visibles dans les annuaires (un staff masqué ne figure que dans l'administration)
 const shownServices = () => services.filter(s => !s.masque);
 function render() {
@@ -412,7 +414,7 @@ function renderAdmin() {
     html = groups.map(g => '<div class="group-head">' + esc(g || "Sans pôle") + '</div><div class="group" data-kind="services">' +
       sorted.filter(s => (s.pole || "") === g).map(s => {
         const n = peopleOf(s).length;
-        return '<div class="row" data-id="' + esc(s._id) + '">' + handle + '<div><div class="title">' + esc(s.name) + (s.masque ? ' <span class="badge none">Masqué</span>' : "") + "</div>" +
+        return '<div class="row" data-id="' + esc(s._id) + '">' + handle + '<div><div class="title">' + esc(s.name) + (s.masque ? ' <span class="badge none masked">' + EYE_OFF + "Masqué</span>" : "") + "</div>" +
           '<div class="meta"><span>' + n + " contact" + (n > 1 ? "s" : "") + "</span>" + (s.description ? '<span class="ell" title="' + esc(s.description) + '">' + esc(s.description) + "</span>" : "") + "</div></div>" + ops + "</div>";
       }).join("") + "</div>").join("");
   }
@@ -574,7 +576,7 @@ const personRow = p => '<div class="person">' + gripBtn + '<div class="fields"><
   '<input placeholder="Nom" aria-label="Nom" value="' + esc(p?.nom || "") + '">' +
   '<input type="email" placeholder="E-mail (privé)" aria-label="E-mail" value="' + esc(p?.email || "") + '">' +
   '<input type="tel" placeholder="Téléphone" aria-label="Téléphone" value="' + esc(p?.telephone || "") + '"></div>' + trashBtn + "</div>";
-const peopleField = (label, list) => '<div class="field"><label>' + label + '</label><div class="people">' +
+const peopleField = (label, list) => '<div class="field people-field"><label>' + label + '</label><div class="people">' +
   (list || []).map(linkedRow).join("") +
   '<div class="people-add"><div class="picker"><input type="search" class="pick" placeholder="Choisir un contact existant…" aria-label="Choisir un contact existant" autocomplete="off">' +
   '<div class="suggest" hidden></div></div><button type="button" class="add-person">+ Créer un nouveau contact</button></div></div></div>';

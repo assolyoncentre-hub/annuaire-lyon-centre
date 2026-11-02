@@ -179,6 +179,7 @@ test("staff masqué : absent des annuaires, signalé dans l'administration", asy
   await save(page);
   await expect(page.locator("#toast")).toHaveText("Staff enregistré.");
   expect((await calls(page, "saveService"))[0].arg.s).toMatchObject({ name: "Louange", masque: true });
+  await expect(page.locator("#admin-list .row", { hasText: "Louange" }).locator(".badge.masked svg")).toBeVisible();
   await expect(page.locator("#admin-list .row", { hasText: "Louange" }).locator(".badge")).toHaveText("Masqué");
   // Annuaire des propositions : plus de carte Louange, compteur à jour
   await page.click("#sw-prop");
