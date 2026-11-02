@@ -170,3 +170,22 @@ test("administration : une adresse par onglet, rouverte au rechargement", async 
   await page.click("#tab-services");
   expect(new URL(page.url()).hash).toBe("#admin");
 });
+
+test("staff masqué : absent des annuaires, signalé dans l'administration", async ({ open, page }) => {
+  await open({ user: ADMIN, hash: "#admin" });
+  await editRow(page, "Louange");
+  await expect(page.locator("#ed-masque")).not.toBeChecked();
+  await page.check("#ed-masque");
+  await save(page);
+  await expect(page.locator("#toast")).toHaveText("Staff enregistré.");
+  expect((await calls(page, "saveService"))[0].arg.s).toMatchObject({ name: "Louange", masque: true });
+  await expect(page.locator("#admin-list .row", { hasText: "Louange" }).locator(".badge")).toHaveText("Masqué");
+  // Annuaire des propositions : plus de carte Louange, compteur à jour
+  await page.click("#sw-prop");
+  await expect(page.locator("#count")).toHaveText("9 staffs");
+  await expect(page.locator("#grid")).not.toContainText("Louange");
+  // Annuaire des leaders : plus de rôle « Louange »
+  await page.click("#sw-serv");
+  await expect(page.locator("#serv-grid")).toBeVisible();
+  await expect(page.locator("#serv-grid")).not.toContainText("Louange");
+});

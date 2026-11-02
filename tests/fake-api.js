@@ -36,7 +36,7 @@ module.exports = function installFakeApi({ data, user, acces }) {
       log("loadPublic");
       return { poles: clone(S.poles), services: S.services.map(s => ({ ...s, nb_contacts: S.contacts.filter(c => c.service_id === s.id).length })) };
     },
-    async contacts(id) { log("contacts", id); return S.contacts.filter(c => c.service_id === id).sort(byPos).map(publicName); },
+    async contacts(id) { log("contacts", id); if (S.services.find(s => s.id === id)?.masque) return []; return S.contacts.filter(c => c.service_id === id).sort(byPos).map(publicName); },
     async responsables(id) { log("responsables", id); return S.responsables.filter(c => c.pole_id === id).sort(byPos).map(publicName); },
     async searchPeople(q) {
       log("searchPeople", q);

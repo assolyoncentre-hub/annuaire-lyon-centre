@@ -81,8 +81,11 @@ function contact(s) {
   return '<details class="contact"><summary><span>' + (nbContacts(s) > 1 ? "Leaders" : "Leader") + '</span></summary><ul>' + contactList(s) + "</ul></details>";
 }
 
+// Staffs visibles dans les annuaires (un staff masqué ne figure que dans l'administration)
+const shownServices = () => services.filter(s => !s.masque);
 function render() {
-  const names = [...new Set(services.map(s => s.pole).filter(Boolean))].sort(byPole);
+  const pub = shownServices();
+  const names = [...new Set(pub.map(s => s.pole).filter(Boolean))].sort(byPole);
   if (active && !names.includes(active)) active = null;
   const filters = $("filters");
   filters.innerHTML = "";
@@ -97,7 +100,7 @@ function render() {
     if (pole) b.onpointerenter = b.onfocus = () => { const p = poles[pole]; if (p && !respOf[p._id]) loadDoc("responsables", p._id, respOf).catch(() => {}); };
     filters.append(b);
   };
-  const found = services.filter(matches);
+  const found = pub.filter(matches);
   filtCur("filters", active);
   chip("Tous", null, found.length);
   names.forEach(p => chip(p, p, found.filter(s => s.pole === p).length));
@@ -109,7 +112,7 @@ function render() {
   $("resp").innerHTML = resp && resp.length
     ? '<div class="resp" style="--c:' + color(active) + '"><p><strong>' + (resp.length > 1 ? "Responsables" : "Responsable") + ' du pôle :</strong> ' +
       andList(resp.map(esc)) + '</p><button type="button" class="msg">' + MAIL_ICON + "Message</button></div>" : "";
-  status(!services.length ? "Aucun staff pour l'instant."
+  status(!pub.length ? "Aucun staff pour l'instant."
     : list.length ? list.length + " staff" + (list.length > 1 ? "s" : "") : "Aucun résultat pour cette recherche.");
   shown = list;
   $("grid").innerHTML = list.map((s, i) =>
@@ -409,7 +412,7 @@ function renderAdmin() {
     html = groups.map(g => '<div class="group-head">' + esc(g || "Sans pôle") + '</div><div class="group" data-kind="services">' +
       sorted.filter(s => (s.pole || "") === g).map(s => {
         const n = peopleOf(s).length;
-        return '<div class="row" data-id="' + esc(s._id) + '">' + handle + '<div><div class="title">' + esc(s.name) + "</div>" +
+        return '<div class="row" data-id="' + esc(s._id) + '">' + handle + '<div><div class="title">' + esc(s.name) + (s.masque ? ' <span class="badge none">Masqué</span>' : "") + "</div>" +
           '<div class="meta"><span>' + n + " contact" + (n > 1 ? "s" : "") + "</span>" + (s.description ? '<span class="ell" title="' + esc(s.description) + '">' + esc(s.description) + "</span>" : "") + "</div></div>" + ops + "</div>";
       }).join("") + "</div>").join("");
   }
@@ -722,6 +725,8 @@ function editService(s) {
     '<div class="field w-fit"><label for="ed-pole">Pôle</label><select id="ed-pole">' + opts + "</select></div>" +
     '<div class="field"><label for="ed-desc">Description <span class="opt">(facultatif)</span></label><textarea id="ed-desc">' + esc(s?.description || "") + "</textarea>" +
     '</div>' +
+    '<div class="field"><label class="check"><input type="checkbox" id="ed-masque"' + (s?.masque ? " checked" : "") + '> Masquer ce staff</label>' +
+    '<div class="hint">Un staff masqué n\'apparaît plus dans l\'annuaire des propositions ni dans celui des leaders ; il reste visible ici.</div></div>' +
     peopleField("Contacts", s ? contactsOf[s._id] : []),
     async f => {
       const name = f.querySelector("#ed-name").value.trim();
@@ -729,7 +734,7 @@ function editService(s) {
       const people = readPeople(f);
       const pole = f.querySelector("#ed-pole").value;
       const data = { id: s ? s._id : newId(name, services.map(x => x._id)), name, pole_id: poles[pole]?._id ?? null,
-        description: f.querySelector("#ed-desc").value.trim(), ordre: s?.ordre ?? null };
+        description: f.querySelector("#ed-desc").value.trim(), ordre: s?.ordre ?? null, masque: f.querySelector("#ed-masque").checked };
       // Nouveau service (ou changement de pôle) : en dernière position du pôle
       if (!s || s.pole !== pole) data.ordre = await lastOrder("services", services.filter(x => x.pole === pole && x._id !== s?._id).sort(bySvc));
       await api.saveService(data, people);
@@ -791,7 +796,7 @@ function editPerson(p) {
   const box = (name, value, label, on) => '<label><input type="checkbox" name="' + name + '" value="' + esc(value) + '"' + (on ? " checked" : "") + ">" + esc(label) + "</label>";
   const svcBoxes = poleNames().map(n => {
     const list = services.filter(s => s.pole === n).sort(bySvc);
-    return list.length ? '<div class="grp">' + esc(n) + "</div>" + list.map(s => box("svc", s._id, s.name, mine.has(s._id))).join("") : "";
+    return list.length ? '<div class="grp">' + esc(n) + "</div>" + list.map(s => box("svc", s._id, s.name + (s.masque ? " (masqué)" : ""), mine.has(s._id))).join("") : "";
   }).join("") + (services.some(s => !s.pole) ? '<div class="grp">Sans pôle</div>' + services.filter(s => !s.pole).map(s => box("svc", s._id, s.name, mine.has(s._id))).join("") : "");
   const poleBoxes = poleNames().map(n => box("pole", poles[n]._id, n, myPoles.has(poles[n]._id))).join("");
   const self = !!p?.email && p.email.toLowerCase() === myEmail(), droit = p?.droit || "leaders";
@@ -945,10 +950,10 @@ const initials = p => (String(p.prenom || "").trim()[0] || "") + (String(p.nom |
 function renderServ() {
   if ($("serv-view").hidden) return;
   const all = persons().map(p => {
-    const svc = [...new Set(p.contacts.map(r => r.service_id))].map(svcById).filter(Boolean).sort(bySvc);
+    const svc = [...new Set(p.contacts.map(r => r.service_id))].map(svcById).filter(s => s && !s.masque).sort(bySvc);
     const resp = [...new Set(p.responsables.map(r => r.pole_id))].map(poleById).filter(Boolean).sort((a, b) => byPole(a.name, b.name));
     return { p, svc, resp, poles: new Set([...resp.map(x => x.name), ...svc.map(s => s.pole).filter(Boolean)]) };
-  });
+  }).filter(x => x.svc.length || x.resp.length || !x.p.contacts.length);
   const found = all.filter(x => {
     const w = words([prenomAff(x.p), x.p.nom, x.p.email, x.p.telephone, ...x.svc.map(s => s.name), ...x.resp.map(r => r.name)].join(" "));
     return servTerms.every(t => w.some(v => v.startsWith(t)));
@@ -1013,7 +1018,7 @@ async function loadPublic() {
   poles = Object.fromEntries(data.poles.map(p => [p.name, { _id: p.id, name: p.name, ordre: p.ordre }]));
   const poleName = Object.fromEntries(data.poles.map(p => [p.id, p.name]));
   services = data.services.map(s => ({ _id: s.id, name: s.name, pole: poleName[s.pole_id] || "", description: s.description,
-    ordre: s.ordre, nbContacts: s.nb_contacts }));
+    ordre: s.ordre, nbContacts: s.nb_contacts, masque: !!s.masque }));
 }
 
 // Connexion : la bibliothèque Supabase n'est chargée que pour l'administration (ou une session existante)
