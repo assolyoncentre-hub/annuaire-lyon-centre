@@ -190,3 +190,18 @@ test("staff masqué : absent des annuaires, signalé dans l'administration", asy
   await expect(page.locator("#serv-grid")).toBeVisible();
   await expect(page.locator("#serv-grid")).not.toContainText("Louange");
 });
+
+test("« Pour qui ? » : saisi dans le staff, affiché en bleu sur la carte s'il est rempli", async ({ open, page }) => {
+  await open({ user: ADMIN, hash: "#admin" });
+  await editRow(page, "Louange");
+  await expect(page.locator("#ed-pourqui")).toHaveValue("");
+  await page.fill("#ed-pourqui", "  Musiciens et chanteurs ");
+  await save(page);
+  expect((await calls(page, "saveService"))[0].arg.s).toMatchObject({ name: "Louange", pour_qui: "Musiciens et chanteurs" });
+  await page.click("#sw-prop");
+  const louange = page.locator(".card", { hasText: "Louange" }).locator(".pourqui");
+  await expect(louange).toHaveText("Pour qui ? Musiciens et chanteurs");
+  await expect(louange.locator("strong")).toHaveCSS("color", "rgb(0, 96, 170)");
+  // Champ vide : pas de ligne « Pour qui ? »
+  await expect(page.locator(".card", { hasText: "Sacristie" }).locator(".pourqui")).toHaveCount(0);
+});

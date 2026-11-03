@@ -11,7 +11,7 @@ module.exports = {
   services: [
     { id: "bapteme", name: "Baptême bébé", pole_id: "croissance", description: "Préparation au baptême des tout-petits.", ordre: 10 },
     { id: "catechumenat", name: "Catéchuménat", pole_id: "croissance", description: "Préparation des adultes au baptême.", ordre: 20 },
-    { id: "forever", name: "Forever", pole_id: "croissance", description: "Trois soirées à deux.", ordre: 30 },
+    { id: "forever", name: "Forever", pole_id: "croissance", description: "Trois soirées à deux.", ordre: 30, pour_qui: "Couples fiancés ou mariés" },
     { id: "accueil", name: "Accueil", pole_id: "dimanche", description: "Accueillir les paroissiens à la messe.", ordre: null },
     { id: "louange", name: "Louange", pole_id: "dimanche", description: "", ordre: null },
     { id: "sacristie", name: "Sacristie", pole_id: "dimanche", description: "", ordre: null },

@@ -39,7 +39,7 @@ let nameHits = { services: new Set(), poles: new Set() };
 const byPerson = s => nameHits.services.has(s._id) || nameHits.poles.has(poles[s.pole]?._id);
 const matches = s => byPerson(s) || textMatches(s);
 const textMatches = s => {
-  const hay = words([s.name, s.pole, s.description].join(" "));
+  const hay = words([s.name, s.pole, s.description, s.pourQui].join(" "));
   return terms.every(t => hay.some(w => w.startsWith(t)));
 };
 
@@ -122,6 +122,7 @@ function render() {
       '<span class="tag">' + esc(s.pole) + "</span>" +
       "<h2>" + esc(s.name) + "</h2>" +
       (s.description ? '<p class="desc">' + esc(s.description) + "</p>" : "") +
+      (s.pourQui ? '<p class="pourqui"><strong>Pour qui ?</strong> ' + esc(s.pourQui) + "</p>" : "") +
       contact(s) +
     "</article>").join("");
 }
@@ -727,6 +728,7 @@ function editService(s) {
     '<div class="field w-fit"><label for="ed-pole">Pôle</label><select id="ed-pole">' + opts + "</select></div>" +
     '<div class="field"><label for="ed-desc">Description <span class="opt">(facultatif)</span></label><textarea id="ed-desc">' + esc(s?.description || "") + "</textarea>" +
     '</div>' +
+    '<div class="field"><label for="ed-pourqui">Pour qui ? <span class="opt">(facultatif)</span></label><input id="ed-pourqui" value="' + esc(s?.pourQui || "") + '"></div>' +
     '<div class="field"><label class="check"><input type="checkbox" id="ed-masque"' + (s?.masque ? " checked" : "") + '> Masquer ce staff</label>' +
     '<div class="hint">Un staff masqué n\'apparaît plus dans l\'annuaire des propositions ni dans celui des leaders ; il reste visible ici.</div></div>' +
     peopleField("Contacts", s ? contactsOf[s._id] : []),
@@ -736,7 +738,8 @@ function editService(s) {
       const people = readPeople(f);
       const pole = f.querySelector("#ed-pole").value;
       const data = { id: s ? s._id : newId(name, services.map(x => x._id)), name, pole_id: poles[pole]?._id ?? null,
-        description: f.querySelector("#ed-desc").value.trim(), ordre: s?.ordre ?? null, masque: f.querySelector("#ed-masque").checked };
+        description: f.querySelector("#ed-desc").value.trim(), ordre: s?.ordre ?? null, masque: f.querySelector("#ed-masque").checked,
+        pour_qui: f.querySelector("#ed-pourqui").value.trim() };
       // Nouveau service (ou changement de pôle) : en dernière position du pôle
       if (!s || s.pole !== pole) data.ordre = await lastOrder("services", services.filter(x => x.pole === pole && x._id !== s?._id).sort(bySvc));
       await api.saveService(data, people);
@@ -1079,7 +1082,7 @@ async function loadPublic() {
   poles = Object.fromEntries(data.poles.map(p => [p.name, { _id: p.id, name: p.name, ordre: p.ordre }]));
   const poleName = Object.fromEntries(data.poles.map(p => [p.id, p.name]));
   services = data.services.map(s => ({ _id: s.id, name: s.name, pole: poleName[s.pole_id] || "", description: s.description,
-    ordre: s.ordre, nbContacts: s.nb_contacts, masque: !!s.masque }));
+    ordre: s.ordre, nbContacts: s.nb_contacts, masque: !!s.masque, pourQui: s.pour_qui || "" }));
 }
 
 // Connexion : la bibliothèque Supabase n'est chargée que pour l'administration (ou une session existante)
