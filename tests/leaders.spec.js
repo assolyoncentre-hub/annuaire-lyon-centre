@@ -153,3 +153,31 @@ test("annuaire des leaders : filtre par staff une fois un pôle choisi @mobile",
   await pickPole(page, "sfilters", "Tous");
   await expect(page.locator("#sstaff-group")).toBeHidden();
 });
+
+test("annuaire des leaders : copier les coordonnées d'une carte ou de toute la liste @mobile", async ({ open, page }) => {
+  await page.addInitScript(() => {
+    window.__copied = [];
+    Object.defineProperty(navigator, "clipboard", { value: { writeText: async t => { window.__copied.push(t); } }, configurable: true });
+  });
+  await open({ user: ADMIN, hash: "#leaders" });
+  await pickPole(page, "sfilters", "Le dimanche");
+  await page.click(".filt-toggle[aria-controls='sstaff']");
+  await page.locator("#sstaff .chip", { hasText: "Louange" }).click();
+  const n = await page.locator(".serv-card").count();
+  // Une carte : nom, staffs, téléphone, e-mail, une ligne chacun
+  const card = page.locator(".serv-card").first();
+  await card.locator(".copy-ico").click();
+  await expect(card.locator(".copy-ico")).toHaveClass(/done/);
+  await expect(page.locator("#toast")).toContainText("copiées");
+  const one = (await page.evaluate(() => window.__copied))[0].split("\n");
+  expect(one[0]).toBe((await card.locator(".prenom").innerText()) + " " + (await card.locator(".nom").innerText()));
+  expect(one[1]).toContain("Louange");
+  // Toute la liste affichée : une ligne d'en-tête, puis une ligne par leader en colonnes
+  await expect(page.locator("#scopy")).toHaveText("Copier les coordonnées (" + n + ")");
+  await page.click("#scopy");
+  await expect(page.locator("#scopy")).toHaveText("Copié");
+  const rows = (await page.evaluate(() => window.__copied))[1].split("\n");
+  expect(rows[0]).toBe("Nom\tStaffs\tTéléphone\tE-mail");
+  expect(rows).toHaveLength(n + 1);
+  expect(rows[1].split("\t")).toHaveLength(4);
+});

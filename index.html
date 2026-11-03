@@ -438,6 +438,19 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .coords a { align-self: flex-start; padding-block: 3px; color: var(--brand); text-decoration: underline; text-decoration-thickness: 1px;
   text-underline-offset: 3px; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
 .coords a:hover { text-decoration-thickness: 2px; }
+/* Copier les coordonnées : icône sur chaque carte, bouton pour toute la liste affichée */
+.countbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 16px; }
+.countbar .count { margin: 0; }
+.serv-card .name { flex: 1; }
+.copy-ico { flex: none; align-self: flex-start; display: grid; place-items: center; width: 40px; height: 40px; padding: 0; border: 1.5px solid var(--border); border-radius: 50%;
+  background: var(--surface); color: var(--muted); cursor: pointer; }
+.copy-all { display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border: 1.5px solid #000; border-radius: 6px; background: #000; color: #fff;
+  font: 600 13px/1 Montserrat, sans-serif; cursor: pointer; }
+.copy-all[hidden] { display: none; }
+.copy-ico svg, .copy-all svg { width: 16px; height: 16px; flex: none; }
+@media (hover: hover) { .copy-ico:hover { border-color: var(--brand); color: var(--brand); } .copy-all:hover { opacity: .85; } }
+.copy-ico.done { border-color: #1d6b3a; color: #1d6b3a; background: #e8f4ec; }
+.copy-all.done { border-color: #1d6b3a; background: #1d6b3a; }
 .person .fields input[type=tel] { grid-column: 1 / -1; }
 </style>
 </head>
@@ -464,7 +477,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 <div id="serv-view" class="view" hidden>
 <div class="bar" role="search" aria-label="Rechercher et filtrer les leaders"><div class="wrap filterbar"><input type="search" id="sq" class="search" placeholder="Rechercher une personne, un staff…" aria-label="Rechercher un leader" autocomplete="off"><div class="fgroup" data-multi="1"><button type="button" class="filt-toggle" aria-expanded="false" aria-controls="sfilters"><span class="filt-lbl">Filtrer par pôle</span><span class="filt-cur"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button><div class="filters" id="sfilters"></div></div><div class="fgroup" id="sstaff-group" data-multi="1" hidden><button type="button" class="filt-toggle" aria-expanded="false" aria-controls="sstaff"><span class="filt-lbl">Filtrer par staff</span><span class="filt-cur"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button><div class="filters" id="sstaff"></div></div></div></div>
 <main class="wrap">
-  <p class="count" id="scount" role="status" aria-live="polite"></p>
+  <div class="countbar"><p class="count" id="scount" role="status" aria-live="polite"></p><button type="button" class="copy-all" id="scopy" hidden></button></div>
   <div class="grid serv-grid" id="serv-grid"></div>
 </main>
 </div>

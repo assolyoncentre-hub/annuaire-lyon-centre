@@ -948,6 +948,42 @@ function deletePole(p) {
 // rangées par lettre du nom de famille (sans la particule : « de Laforêt » à L)
 // Filtres à choix multiple : ensembles vides = « Tous »
 let servPoles = new Set(), servStaffs = new Set(), servTerms = [];
+// Copier les coordonnées : une personne (icône de la carte) ou toute la liste affichée (bouton à côté du nombre)
+let servList = [];
+const COPY_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+const CHECK_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
+const servName = p => [prenomAff(p), nomAff(p.nom)].filter(Boolean).join(" ");
+const servRoles = x => [...x.resp.map(r => "Responsable du pôle " + r.name), ...x.svc.map(s => s.name)].join(", ");
+function copyDone(b, done) {
+  if (b.id === "scopy") b.innerHTML = (done ? CHECK_ICON + "Copié" : COPY_ICON + "Copier les coordonnées (" + servList.length + ")");
+  else b.innerHTML = done ? CHECK_ICON : COPY_ICON;
+  b.classList.toggle("done", done);
+  clearTimeout(b._t);
+  if (done) b._t = setTimeout(() => copyDone(b, false), 1800);
+}
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); return true; }
+  catch {
+    // Repli (navigateurs sans presse-papiers asynchrone) : zone de texte temporaire
+    const t = document.createElement("textarea");
+    t.value = text; t.setAttribute("readonly", ""); t.style.position = "fixed"; t.style.opacity = "0";
+    document.body.append(t); t.select();
+    const ok = document.execCommand("copy"); t.remove(); return ok;
+  }
+}
+async function copyServ(b, text, msg) {
+  if (await copyText(text)) { copyDone(b, true); toast(msg); } else toast("La copie a échoué : sélectionnez le texte à la main.");
+}
+$("serv-grid").addEventListener("click", e => {
+  const b = e.target.closest(".copy-ico"); if (!b) return;
+  const x = servList[+b.dataset.i]; if (!x) return;
+  copyServ(b, [servName(x.p), servRoles(x), x.p.telephone, x.p.email].filter(Boolean).join("\n"), "Coordonnées de " + servName(x.p) + " copiées.");
+});
+$("scopy").addEventListener("click", () => {
+  const rows = servList.map(x => [servName(x.p), servRoles(x), x.p.telephone || "", x.p.email || ""].join("\t"));
+  copyServ($("scopy"), ["Nom\tStaffs\tTéléphone\tE-mail", ...rows].join("\n"),
+    servList.length + " coordonnée" + (servList.length > 1 ? "s" : "") + " copiée" + (servList.length > 1 ? "s" : "") + ".");
+});
 const servKey = p => norm(String(p.nom || p.prenom || "").trim().replace(PARTICLE, ""));
 const initials = p => (String(p.prenom || "").trim()[0] || "") + (String(p.nom || "").trim().replace(PARTICLE, "")[0] || "");
 function renderServ() {
@@ -981,7 +1017,10 @@ function renderServ() {
     .sort((a, b) => byName(servKey(a.p), servKey(b.p)) || byName(a.p.prenom || "", b.p.prenom || ""));
   $("scount").textContent = !all.length ? "Aucun leader pour l'instant." : list.length ? list.length + " leader" + (list.length > 1 ? "s" : "") : "Aucun résultat pour cette recherche.";
   let last = null;
-  $("serv-grid").innerHTML = list.map(({ p, svc, resp }) => {
+  servList = list;
+  $("scopy").hidden = !list.length;
+  copyDone($("scopy"), false);
+  $("serv-grid").innerHTML = list.map(({ p, svc, resp }, i) => {
     const l = (servKey(p)[0] || "#").toUpperCase(), head = l !== last ? '<h2 class="letter">' + esc(l) + "</h2>" : "";
     last = l;
     const roles = [...resp.map(x => '<li style="--c:' + color(x.name) + '"><span>Responsable du pôle <strong>' + esc(x.name) + "</strong></span></li>"),
@@ -989,7 +1028,8 @@ function renderServ() {
     const coords = (p.telephone ? '<a href="' + esc(telHref(p.telephone)) + '">' + esc(p.telephone) + "</a>" : "") +
       (p.email ? '<a href="mailto:' + esc(p.email) + '">' + esc(p.email) + "</a>" : "");
     return head + '<article class="card serv-card"><div class="who"><div class="avatar" aria-hidden="true">' + esc(initials(p).toUpperCase()) + "</div>" +
-      '<h3 class="name"><span class="nom">' + esc(nomAff(p.nom)) + '</span><span class="prenom">' + esc(prenomAff(p)) + "</span></h3></div>" +
+      '<h3 class="name"><span class="nom">' + esc(nomAff(p.nom)) + '</span><span class="prenom">' + esc(prenomAff(p)) + "</span></h3>" +
+      '<button type="button" class="copy-ico" data-i="' + i + '" aria-label="Copier les coordonnées de ' + esc(fullName(p)) + '" title="Copier les coordonnées">' + COPY_ICON + "</button></div>" +
       (roles ? '<ul class="roles">' + roles + "</ul>" : "") + (coords ? '<p class="coords">' + coords + "</p>" : "") + "</article>";
   }).join("");
 }
