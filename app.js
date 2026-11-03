@@ -946,7 +946,7 @@ function deletePole(p) {
 // ---------- Annuaire des leaders (administrateurs) ----------
 // Une carte par personne (contacts des staffs et responsables de pôle, regroupés comme dans l'onglet Contacts),
 // rangées par lettre du nom de famille (sans la particule : « de Laforêt » à L)
-let servPole = null, servTerms = [];
+let servPole = null, servStaff = null, servTerms = [];
 const servKey = p => norm(String(p.nom || p.prenom || "").trim().replace(PARTICLE, ""));
 const initials = p => (String(p.prenom || "").trim()[0] || "") + (String(p.nom || "").trim().replace(PARTICLE, "")[0] || "");
 function renderServ() {
@@ -966,7 +966,16 @@ function renderServ() {
     ' aria-pressed="' + (pole === servPole) + '">' + (pole ? '<span class="dot"></span>' : "") + esc(label) + ' <span class="n">' + n + "</span></button>";
   filtCur("sfilters", servPole);
   $("sfilters").innerHTML = chip("Tous", null, found.length) + names.map(n => chip(n, n, found.filter(x => x.poles.has(n)).length)).join("");
-  const list = found.filter(x => !servPole || x.poles.has(servPole))
+  // Pôle choisi : filtre par staff de ce pôle
+  const inPole = found.filter(x => !servPole || x.poles.has(servPole));
+  const staffs = servPole ? services.filter(s => s.pole === servPole && !s.masque && all.some(x => x.svc.includes(s))).sort(bySvc) : [];
+  if (servStaff && !staffs.some(s => s._id === servStaff)) servStaff = null;
+  $("sstaff").hidden = !staffs.length;
+  $("sstaff").innerHTML = staffs.length ? '<span class="label">Staff</span>' +
+    ['<button type="button" class="chip" data-staff="" aria-pressed="' + !servStaff + '">Tous <span class="n">' + inPole.length + "</span></button>",
+     ...staffs.map(s => '<button type="button" class="chip" data-staff="' + esc(s._id) + '" style="--c:' + color(servPole) + '" aria-pressed="' + (s._id === servStaff) + '">' +
+       esc(s.name) + ' <span class="n">' + inPole.filter(x => x.svc.includes(s)).length + "</span></button>")].join("") : "";
+  const list = inPole.filter(x => !servStaff || x.svc.some(s => s._id === servStaff))
     .sort((a, b) => byName(servKey(a.p), servKey(b.p)) || byName(a.p.prenom || "", b.p.prenom || ""));
   $("scount").textContent = !all.length ? "Aucun leader pour l'instant." : list.length ? list.length + " leader" + (list.length > 1 ? "s" : "") : "Aucun résultat pour cette recherche.";
   let last = null;
@@ -995,6 +1004,12 @@ for (const t of document.querySelectorAll(".filt-toggle")) {
 $("sfilters").addEventListener("click", e => {
   const b = e.target.closest(".chip"); if (!b) return;
   servPole = b.dataset.pole && servPole !== b.dataset.pole ? b.dataset.pole : null;
+  servStaff = null;
+  renderServ();
+});
+$("sstaff").addEventListener("click", e => {
+  const b = e.target.closest(".chip"); if (!b) return;
+  servStaff = b.dataset.staff && servStaff !== b.dataset.staff ? b.dataset.staff : null;
   renderServ();
 });
 $("sq").addEventListener("input", e => { servTerms = norm(e.target.value).split(/\s+/).filter(Boolean); renderServ(); });

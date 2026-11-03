@@ -116,3 +116,23 @@ test("téléphone : trois onglets sans débordement @mobile", async ({ open, pag
   const top = await page.locator("#switch a").evaluateAll(as => as.map(a => Math.round(a.getBoundingClientRect().top)));
   expect(new Set(top).size).toBe(1);
 });
+
+test("annuaire des leaders : filtre par staff une fois un pôle choisi @mobile", async ({ open, page }) => {
+  await open({ user: ADMIN, hash: "#leaders" });
+  await expect(page.locator("#serv-grid")).toBeVisible();
+  await expect(page.locator("#sstaff")).toBeHidden();
+  await pickPole(page, "sfilters", "Le dimanche");
+  await expect(page.locator("#sstaff")).toBeVisible();
+  await expect(page.locator("#sstaff .chip").first()).toHaveAttribute("aria-pressed", "true");
+  const louange = page.locator("#sstaff .chip", { hasText: "Louange" });
+  const n = Number(await louange.locator(".n").innerText());
+  await louange.click();
+  await expect(louange).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator(".serv-card")).toHaveCount(n);
+  for (const card of await page.locator(".serv-card").all()) await expect(card.locator(".roles")).toContainText("Louange");
+  // Retour à « Tous » puis changement de pôle : le filtre par staff disparaît
+  await page.locator("#sstaff .chip").first().click();
+  await expect(page.locator("#sstaff .chip").first()).toHaveAttribute("aria-pressed", "true");
+  await pickPole(page, "sfilters", "Tous");
+  await expect(page.locator("#sstaff")).toBeHidden();
+});
