@@ -131,13 +131,23 @@ test("annuaire des leaders : filtre par staff une fois un pôle choisi @mobile",
   const louange = page.locator("#sstaff .chip", { hasText: "Louange" });
   const n = Number(await louange.locator(".n").innerText());
   await louange.click();
-  // Staff choisi : les staffs se replient, le nom reste dans le bouton
-  await expect(page.locator("#sstaff")).toBeHidden();
+  // Choix multiple : les staffs restent ouverts, le nom s'affiche dans le bouton
+  await expect(page.locator("#sstaff")).toBeVisible();
+  await expect(louange).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("#sstaff .chip").first()).toHaveAttribute("aria-pressed", "false");
   await expect(toggle).toContainText("Louange");
   await expect(page.locator(".serv-card")).toHaveCount(n);
   for (const card of await page.locator(".serv-card").all()) await expect(card.locator(".roles")).toContainText("Louange");
-  // Retour à « Tous » puis changement de pôle : le filtre par staff disparaît
-  await toggle.click();
+  // Deuxième staff : leaders de l'un ou de l'autre
+  const sacristie = page.locator("#sstaff .chip", { hasText: "Sacristie" });
+  await sacristie.click();
+  await expect(toggle).toContainText("Louange, Sacristie");
+  await expect(page.locator(".serv-card")).toHaveCount(n + Number(await sacristie.locator(".n").innerText()));
+  // Deuxième pôle : leurs leaders s'ajoutent, les staffs des deux pôles sont proposés
+  await pickPole(page, "sfilters", "Jeunes");
+  await expect(page.locator(".filt-toggle[aria-controls='sfilters']")).toContainText("Le dimanche, Jeunes");
+  await expect(page.locator("#sstaff .chip", { hasText: "Scouts" })).toBeVisible();
+  // Retour à « Tous » puis plus aucun pôle : le filtre par staff disparaît
   await page.locator("#sstaff .chip").first().click();
   await expect(toggle).not.toContainText("Louange");
   await pickPole(page, "sfilters", "Tous");

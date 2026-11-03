@@ -946,7 +946,8 @@ function deletePole(p) {
 // ---------- Annuaire des leaders (administrateurs) ----------
 // Une carte par personne (contacts des staffs et responsables de pôle, regroupés comme dans l'onglet Contacts),
 // rangées par lettre du nom de famille (sans la particule : « de Laforêt » à L)
-let servPole = null, servStaff = null, servTerms = [];
+// Filtres à choix multiple : ensembles vides = « Tous »
+let servPoles = new Set(), servStaffs = new Set(), servTerms = [];
 const servKey = p => norm(String(p.nom || p.prenom || "").trim().replace(PARTICLE, ""));
 const initials = p => (String(p.prenom || "").trim()[0] || "") + (String(p.nom || "").trim().replace(PARTICLE, "")[0] || "");
 function renderServ() {
@@ -961,22 +962,22 @@ function renderServ() {
     return servTerms.every(t => w.some(v => v.startsWith(t)));
   });
   const names = poleNames().filter(n => all.some(x => x.poles.has(n)));
-  if (servPole && !names.includes(servPole)) servPole = null;
+  for (const n of servPoles) if (!names.includes(n)) servPoles.delete(n);
   const chip = (label, pole, n) => '<button type="button" class="chip" data-pole="' + esc(pole || "") + '"' + (pole ? ' style="--c:' + color(pole) + '"' : "") +
-    ' aria-pressed="' + (pole === servPole) + '">' + (pole ? '<span class="dot"></span>' : "") + esc(label) + ' <span class="n">' + n + "</span></button>";
-  filtCur("sfilters", servPole);
+    ' aria-pressed="' + (pole ? servPoles.has(pole) : !servPoles.size) + '">' + (pole ? '<span class="dot"></span>' : "") + esc(label) + ' <span class="n">' + n + "</span></button>";
+  filtCur("sfilters", [...servPoles].sort(byPole).join(", "));
   $("sfilters").innerHTML = chip("Tous", null, found.length) + names.map(n => chip(n, n, found.filter(x => x.poles.has(n)).length)).join("");
   // Pôle choisi : filtre par staff de ce pôle
-  const inPole = found.filter(x => !servPole || x.poles.has(servPole));
-  const staffs = servPole ? services.filter(s => s.pole === servPole && !s.masque && all.some(x => x.svc.includes(s))).sort(bySvc) : [];
-  if (servStaff && !staffs.some(s => s._id === servStaff)) servStaff = null;
+  const inPole = found.filter(x => !servPoles.size || [...servPoles].some(n => x.poles.has(n)));
+  const staffs = servPoles.size ? services.filter(s => servPoles.has(s.pole) && !s.masque && all.some(x => x.svc.includes(s))).sort(bySvc) : [];
+  for (const id of servStaffs) if (!staffs.some(s => s._id === id)) servStaffs.delete(id);
   $("sstaff-group").hidden = !staffs.length;
-  filtCur("sstaff", services.find(s => s._id === servStaff)?.name);
+  filtCur("sstaff", staffs.filter(s => servStaffs.has(s._id)).map(s => s.name).join(", "));
   $("sstaff").innerHTML = staffs.length ?
-    ['<button type="button" class="chip" data-staff="" aria-pressed="' + !servStaff + '">Tous <span class="n">' + inPole.length + "</span></button>",
-     ...staffs.map(s => '<button type="button" class="chip" data-staff="' + esc(s._id) + '" style="--c:' + color(servPole) + '" aria-pressed="' + (s._id === servStaff) + '">' +
+    ['<button type="button" class="chip" data-staff="" aria-pressed="' + !servStaffs.size + '">Tous <span class="n">' + inPole.length + "</span></button>",
+     ...staffs.map(s => '<button type="button" class="chip" data-staff="' + esc(s._id) + '" style="--c:' + color(s.pole) + '" aria-pressed="' + servStaffs.has(s._id) + '">' +
        esc(s.name) + ' <span class="n">' + inPole.filter(x => x.svc.includes(s)).length + "</span></button>")].join("") : "";
-  const list = inPole.filter(x => !servStaff || x.svc.some(s => s._id === servStaff))
+  const list = inPole.filter(x => !servStaffs.size || x.svc.some(s => servStaffs.has(s._id)))
     .sort((a, b) => byName(servKey(a.p), servKey(b.p)) || byName(a.p.prenom || "", b.p.prenom || ""));
   $("scount").textContent = !all.length ? "Aucun leader pour l'instant." : list.length ? list.length + " leader" + (list.length > 1 ? "s" : "") : "Aucun résultat pour cette recherche.";
   let last = null;
@@ -1000,17 +1001,19 @@ for (const t of document.querySelectorAll(".filt-toggle")) {
   t.addEventListener("click", () => setOpen(!bar.classList.contains("open")));
   // Un pôle choisi : les filtres se replient (le pôle reste affiché dans le bouton)
   // (à la capture : sur Propositions, le filtre cliqué est aussitôt reconstruit et sort de la page)
-  bar.addEventListener("click", e => { if (e.target.closest(".filters .chip")) setOpen(false); }, true);
+  // Choix multiple (annuaire des leaders) : les filtres restent ouverts pour cocher plusieurs pastilles
+  bar.addEventListener("click", e => { if (e.target.closest(".filters .chip") && !bar.dataset.multi) setOpen(false); }, true);
 }
 $("sfilters").addEventListener("click", e => {
   const b = e.target.closest(".chip"); if (!b) return;
-  servPole = b.dataset.pole && servPole !== b.dataset.pole ? b.dataset.pole : null;
-  servStaff = null;
+  const n = b.dataset.pole;
+  if (!n) servPoles.clear(); else if (!servPoles.delete(n)) servPoles.add(n);
   renderServ();
 });
 $("sstaff").addEventListener("click", e => {
   const b = e.target.closest(".chip"); if (!b) return;
-  servStaff = b.dataset.staff && servStaff !== b.dataset.staff ? b.dataset.staff : null;
+  const id = b.dataset.staff;
+  if (!id) servStaffs.clear(); else if (!servStaffs.delete(id)) servStaffs.add(id);
   renderServ();
 });
 $("sq").addEventListener("input", e => { servTerms = norm(e.target.value).split(/\s+/).filter(Boolean); renderServ(); });
