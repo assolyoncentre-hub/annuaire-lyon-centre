@@ -120,19 +120,26 @@ test("téléphone : trois onglets sans débordement @mobile", async ({ open, pag
 test("annuaire des leaders : filtre par staff une fois un pôle choisi @mobile", async ({ open, page }) => {
   await open({ user: ADMIN, hash: "#leaders" });
   await expect(page.locator("#serv-grid")).toBeVisible();
-  await expect(page.locator("#sstaff")).toBeHidden();
+  await expect(page.locator("#sstaff-group")).toBeHidden();
   await pickPole(page, "sfilters", "Le dimanche");
-  await expect(page.locator("#sstaff")).toBeVisible();
+  // Bouton « Filtrer par staff » replié, comme celui des pôles
+  const toggle = page.locator(".filt-toggle[aria-controls='sstaff']");
+  await expect(toggle).toBeVisible();
+  await expect(page.locator("#sstaff")).toBeHidden();
+  await toggle.click();
   await expect(page.locator("#sstaff .chip").first()).toHaveAttribute("aria-pressed", "true");
   const louange = page.locator("#sstaff .chip", { hasText: "Louange" });
   const n = Number(await louange.locator(".n").innerText());
   await louange.click();
-  await expect(louange).toHaveAttribute("aria-pressed", "true");
+  // Staff choisi : les staffs se replient, le nom reste dans le bouton
+  await expect(page.locator("#sstaff")).toBeHidden();
+  await expect(toggle).toContainText("Louange");
   await expect(page.locator(".serv-card")).toHaveCount(n);
   for (const card of await page.locator(".serv-card").all()) await expect(card.locator(".roles")).toContainText("Louange");
   // Retour à « Tous » puis changement de pôle : le filtre par staff disparaît
+  await toggle.click();
   await page.locator("#sstaff .chip").first().click();
-  await expect(page.locator("#sstaff .chip").first()).toHaveAttribute("aria-pressed", "true");
+  await expect(toggle).not.toContainText("Louange");
   await pickPole(page, "sfilters", "Tous");
-  await expect(page.locator("#sstaff")).toBeHidden();
+  await expect(page.locator("#sstaff-group")).toBeHidden();
 });

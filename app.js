@@ -970,8 +970,9 @@ function renderServ() {
   const inPole = found.filter(x => !servPole || x.poles.has(servPole));
   const staffs = servPole ? services.filter(s => s.pole === servPole && !s.masque && all.some(x => x.svc.includes(s))).sort(bySvc) : [];
   if (servStaff && !staffs.some(s => s._id === servStaff)) servStaff = null;
-  $("sstaff").hidden = !staffs.length;
-  $("sstaff").innerHTML = staffs.length ? '<span class="label">Staff</span>' +
+  $("sstaff-group").hidden = !staffs.length;
+  filtCur("sstaff", services.find(s => s._id === servStaff)?.name);
+  $("sstaff").innerHTML = staffs.length ?
     ['<button type="button" class="chip" data-staff="" aria-pressed="' + !servStaff + '">Tous <span class="n">' + inPole.length + "</span></button>",
      ...staffs.map(s => '<button type="button" class="chip" data-staff="' + esc(s._id) + '" style="--c:' + color(servPole) + '" aria-pressed="' + (s._id === servStaff) + '">' +
        esc(s.name) + ' <span class="n">' + inPole.filter(x => x.svc.includes(s)).length + "</span></button>")].join("") : "";
@@ -994,7 +995,7 @@ function renderServ() {
 // Téléphone : bouton « Filtrer par pôle » qui déplie ou replie les filtres (pôle choisi affiché à côté)
 function filtCur(id, pole) { $(id).parentNode.querySelector(".filt-cur").textContent = pole ? "· " + pole : ""; }
 for (const t of document.querySelectorAll(".filt-toggle")) {
-  const bar = t.closest(".filterbar");
+  const bar = t.closest(".fgroup");
   const setOpen = open => { bar.classList.toggle("open", open); t.setAttribute("aria-expanded", String(open)); };
   t.addEventListener("click", () => setOpen(!bar.classList.contains("open")));
   // Un pôle choisi : les filtres se replient (le pôle reste affiché dans le bouton)
