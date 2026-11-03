@@ -528,11 +528,12 @@ $("admin-list").addEventListener("click", e => {
 $("add-btn").onclick = () => adminTab === "contacts" ? editPerson(null) : isPoleTab() ? editPole(null) : editService(null);
 
 // --- Éditeur (fenêtre) ---
-function openEditor(kicker, title, html, onSave, saveLabel = "Enregistrer", danger = false) {
+// left : contenu facultatif placé à gauche des boutons (ex. case « Masquer ce staff »)
+function openEditor(kicker, title, html, onSave, saveLabel = "Enregistrer", danger = false, left = "") {
   $("ed-kicker").textContent = kicker;
   $("ed-title").textContent = title;
   const f = $("ed-form");
-  f.innerHTML = html + '<div class="actions"><button type="button" class="btn btn-ghost" data-close>Annuler</button>' +
+  f.innerHTML = html + '<div class="actions">' + (left ? '<div class="actions-left">' + left + "</div>" : "") + '<button type="button" class="btn btn-ghost" data-close>Annuler</button>' +
     '<button type="submit" class="btn ' + (danger ? "btn-danger" : "btn-primary") + '">' + esc(saveLabel) + "</button></div>";
   f.onsubmit = async ev => {
     ev.preventDefault();
@@ -729,8 +730,6 @@ function editService(s) {
     '<div class="field"><label for="ed-desc">Description <span class="opt">(facultatif)</span></label><textarea id="ed-desc">' + esc(s?.description || "") + "</textarea>" +
     '</div>' +
     '<div class="field"><label for="ed-pourqui">Pour qui ? <span class="opt">(facultatif)</span></label><input id="ed-pourqui" value="' + esc(s?.pourQui || "") + '"></div>' +
-    '<div class="field"><label class="check"><input type="checkbox" id="ed-masque"' + (s?.masque ? " checked" : "") + '> Masquer ce staff</label>' +
-    '<div class="hint">Un staff masqué n\'apparaît plus dans l\'annuaire des propositions ni dans celui des leaders ; il reste visible ici.</div></div>' +
     peopleField("Contacts", s ? contactsOf[s._id] : []),
     async f => {
       const name = f.querySelector("#ed-name").value.trim();
@@ -745,7 +744,9 @@ function editService(s) {
       await api.saveService(data, people);
       await refresh();
       toast(s ? "Staff enregistré." : "Staff ajouté.");
-    });
+    }, "Enregistrer", false,
+    '<label class="check" title="Un staff masqué n\'apparaît plus dans l\'annuaire des propositions ni dans celui des leaders ; il reste visible ici.">' +
+    '<input type="checkbox" id="ed-masque"' + (s?.masque ? " checked" : "") + "> Masquer ce staff</label>");
 }
 function deleteService(s) {
   openEditor("Supprimer le staff", s.name, '<p style="margin:0">Le staff « ' + esc(s.name) + ' » et ses contacts seront supprimés de l\'annuaire. Cette action est définitive.</p>',

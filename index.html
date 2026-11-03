@@ -149,20 +149,21 @@ main.wrap { padding-top: 24px; padding-bottom: 56px; }
 .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .field label { display: block; margin-bottom: 6px; font: 600 12px/1 Montserrat, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 .field label .opt { text-transform: none; letter-spacing: 0; font-weight: 500; }
-.field label.check { display: inline-flex; align-items: center; gap: 10px; margin: 0; font: 500 15px/1.3 "DM Sans", system-ui, sans-serif;
+.field label.check, .actions-left label.check { display: inline-flex; align-items: center; gap: 10px; margin: 0; font: 500 15px/1.3 "DM Sans", system-ui, sans-serif;
   letter-spacing: 0; text-transform: none; color: var(--text); cursor: pointer; }
-.field label.check input { width: 18px; height: 18px; margin: 0; accent-color: var(--brand); }
+.field label.check input, .actions-left label.check input { width: 18px; height: 18px; margin: 0; accent-color: var(--brand); }
 .field input, .field textarea { width: 100%; padding: 11px 12px; border: 1.5px solid var(--border); border-radius: 6px; background: #fff;
   font: 16px/1.4 "DM Sans", sans-serif; color: var(--text); outline: none; }
 .field input:focus, .field textarea:focus { border-color: var(--brand); }
 .field textarea { min-height: 130px; resize: vertical; }
 .actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }
+.actions-left { margin-right: auto; align-self: center; }
 .btn { padding: 12px 20px; border-radius: 6px; font: 600 14px/1 Montserrat, sans-serif; cursor: pointer; border: 1.5px solid #000; }
 .btn-ghost { background: #fff; color: #000; }
 .btn-primary { background: #000; color: #fff; }
 .btn:hover { opacity: .85; }
 body.locked { overflow: hidden; }
-@media (max-width: 520px) { .row2 { grid-template-columns: 1fr; } .actions .btn { flex: 1; } }
+@media (max-width: 520px) { .row2 { grid-template-columns: 1fr; } .actions { flex-wrap: wrap; } .actions-left { flex-basis: 100%; padding-bottom: 6px; } .actions .btn { flex: 1; } }
 /* Administration */
 /* Pied de page */
 body { min-height: 100vh; display: flex; flex-direction: column; }
