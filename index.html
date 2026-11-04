@@ -127,7 +127,10 @@ main.wrap { padding-top: 24px; padding-bottom: 56px; }
 .tag { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px;
   border-radius: 999px; background: var(--tint); color: var(--text);
   font: 600 11px/1 Montserrat, sans-serif; letter-spacing: .1em; text-transform: uppercase; }
-.tag::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--c); }
+.tag::before { content: ""; flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--c); }
+/* Pôle trop long : une seule ligne, terminée par « … » */
+.tag { max-width: 100%; min-width: 0; }
+.tag-t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .card h2 { margin: 0; font: 700 26px/1.05 Phudu, Montserrat, sans-serif; text-transform: uppercase; color: var(--brand); }
 .card .desc { margin: 0; font-size: 15px; line-height: 1.5; color: var(--text); }
 .card .pourqui { margin: 0; font-size: 15px; line-height: 1.5; color: var(--text); }

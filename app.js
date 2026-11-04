@@ -119,7 +119,7 @@ function render() {
   shown = list;
   $("grid").innerHTML = list.map((s, i) =>
     '<article class="card" data-i="' + i + '" style="--c:' + color(s.pole || "") + '">' +
-      '<span class="tag">' + esc(s.pole) + "</span>" +
+      '<span class="tag" title="' + esc(s.pole) + '"><span class="tag-t">' + esc(s.pole) + "</span></span>" +
       "<h2>" + esc(s.name) + "</h2>" +
       (s.description ? '<p class="desc">' + esc(s.description) + "</p>" : "") +
       (s.pourQui ? '<p class="pourqui"><strong>Pour qui ?</strong> ' + esc(s.pourQui) + "</p>" : "") +
