@@ -125,6 +125,9 @@ test("annuaire des leaders : filtres par pôle et par staff en listes à cocher 
   await toggle.click();
   await expect(page.locator("#sstaff .opt", { hasText: "Scouts" })).toBeVisible();
   await expect(page.locator("#sstaff .opt", { hasText: "Louange" })).toBeVisible();
+  // Staffs par ordre alphabétique
+  const noms = await page.locator("#sstaff .opt .nm").allInnerTexts();
+  expect(noms).toEqual([...noms].sort((a, b) => a.localeCompare(b, "fr")));
   // Liste des pôles : cases à cocher sous le bouton, elle reste ouverte après un choix
   await pickPole(page, "sfilters", "Le dimanche");
   await expect(page.locator("#sfilters")).toBeVisible();

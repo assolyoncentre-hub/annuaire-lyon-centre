@@ -1009,8 +1009,8 @@ function renderServ() {
   $("sfilters").innerHTML = ddList(names.map(n => [n, n, color(n), found.filter(x => x.poles.has(n)).length]), servPoles);
   // Pôle choisi : filtre par staff de ce pôle
   const inPole = found.filter(x => !servPoles.size || [...servPoles].some(n => x.poles.has(n)));
-  // Staffs proposés : ceux des pôles cochés (tous si aucun pôle), avec au moins un leader
-  const staffs = services.filter(s => (!servPoles.size || servPoles.has(s.pole)) && !s.masque && all.some(x => x.svc.includes(s))).sort(bySvc);
+  // Staffs proposés : ceux des pôles cochés (tous si aucun pôle), avec au moins un leader, par ordre alphabétique
+  const staffs = services.filter(s => (!servPoles.size || servPoles.has(s.pole)) && !s.masque && all.some(x => x.svc.includes(s))).sort((a, b) => byName(a.name, b.name));
   for (const id of servStaffs) if (!staffs.some(s => s._id === id)) servStaffs.delete(id);
   servCur("sstaff", staffs.filter(s => servStaffs.has(s._id)).map(s => s.name));
   $("sstaff").innerHTML = staffs.length ? ddList(staffs.map(s => [s._id, s.name, color(s.pole), inPole.filter(x => x.svc.includes(s)).length]), servStaffs) : "";
