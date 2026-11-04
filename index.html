@@ -68,6 +68,13 @@ h1 { margin: 14px 0 8px; font: 700 clamp(40px, 8vw, 72px)/.95 Phudu, Montserrat,
 .search-clear[hidden] { display: none; }
 .search-clear svg { width: 18px; height: 18px; }
 @media (hover: hover) { .search-clear:hover { background: var(--tint); color: var(--text); } }
+/* Ordinateur : filtres à gauche, recherche calée à droite sur la même ligne, pastilles dépliées en dessous sur toute la largeur.
+   Téléphone : recherche au-dessus en pleine largeur. */
+.filterbar .filters { flex-basis: 100%; order: 2; }
+@media (min-width: 721px) {
+  .filterbar > .search-wrap { order: 1; flex: 0 1 360px; margin-left: auto; }
+  .filterbar > .search-wrap .search { padding-top: 9px; padding-bottom: 9px; font-size: 15px; }
+}
 .chip { border: 1.5px solid var(--border); background: var(--surface); color: var(--text);
   border-radius: 999px; padding: 10px 16px; font: 600 14px/1 Montserrat, sans-serif; cursor: pointer;
   display: inline-flex; align-items: center; gap: 8px; transition: border-color .15s, background .15s; }
@@ -470,7 +477,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
   </div>
 </header>
 <div id="dir-view" class="view">
-<div class="bar" role="search" aria-label="Rechercher et filtrer les staffs"><div class="wrap filterbar"><input type="search" id="q" class="search" placeholder="Rechercher un staff, un pôle, une personne…" aria-label="Rechercher" autocomplete="off"><div class="fgroup"><button type="button" class="filt-toggle" aria-expanded="false" aria-controls="filters"><span class="filt-lbl">Filtrer par pôle</span><span class="filt-cur"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button><div class="filters" id="filters"></div></div></div></div>
+<div class="bar" role="search" aria-label="Rechercher et filtrer les staffs"><div class="wrap filterbar"><input type="search" id="q" class="search" placeholder="Rechercher un staff, une personne…" aria-label="Rechercher" autocomplete="off"><div class="fgroup"><button type="button" class="filt-toggle" aria-expanded="false" aria-controls="filters"><span class="filt-lbl">Filtrer par pôle</span><span class="filt-cur"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button><div class="filters" id="filters"></div></div></div></div>
 <main class="wrap">
   <div id="resp"></div>
   <p class="count" id="count" role="status" aria-live="polite"></p>

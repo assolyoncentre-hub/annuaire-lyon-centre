@@ -15,7 +15,7 @@ test("affiche les staffs et les pôles, sans aucun nom de leader", async ({ open
   await expect(page.locator("#count")).toHaveText("10 staffs");
   await expect(page.locator("#filters .chip")).toHaveCount(5);
   await expect(page.locator("body")).not.toContainText("Laforêt");
-  await expect(page.locator("#q")).toHaveAttribute("placeholder", "Rechercher un staff, un pôle, une personne…");
+  await expect(page.locator("#q")).toHaveAttribute("placeholder", "Rechercher un staff, une personne…");
 });
 
 test("leaders : préchargés au survol, affichés au clic avec particules et civilité « Père »", async ({ open }) => {
