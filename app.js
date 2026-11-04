@@ -1031,8 +1031,11 @@ function renderServ() {
       (p.email ? '<a href="mailto:' + esc(p.email) + '">' + esc(p.email) + "</a>" : "");
     return head + '<article class="card serv-card"><div class="who"><div class="avatar" aria-hidden="true">' + esc(initials(p).toUpperCase()) + "</div>" +
       '<h3 class="name"><span class="nom">' + esc(nomAff(p.nom)) + '</span><span class="prenom">' + esc(prenomAff(p)) + "</span></h3>" +
-      '<button type="button" class="copy-ico" data-i="' + i + '" aria-label="Copier les coordonnées de ' + esc(fullName(p)) + '" title="Copier les coordonnées">' + COPY_ICON + "</button></div>" +
-      (roles ? '<ul class="roles">' + roles + "</ul>" : "") + (coords ? '<p class="coords">' + coords + "</p>" : "") + "</article>";
+      "</div>" +
+      (roles ? '<ul class="roles">' + roles + "</ul>" : "") +
+      // Coordonnées à gauche, bouton copier à droite, centré sur la hauteur du bloc (pas de bouton sans coordonnées)
+      (coords ? '<div class="coords"><p class="lines">' + coords + '</p><button type="button" class="copy-ico" data-i="' + i + '" aria-label="Copier les coordonnées de ' +
+        esc(fullName(p)) + '" title="Copier les coordonnées">' + COPY_ICON + "</button></div>" : "") + "</article>";
   }).join("");
 }
 // Téléphone : bouton « Filtrer par pôle » qui déplie ou replie les filtres (pôle choisi affiché à côté)

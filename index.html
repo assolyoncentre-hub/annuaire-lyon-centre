@@ -455,7 +455,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .switch a:hover { opacity: 1; background: rgba(255, 255, 255, .1); }
 .switch a[aria-current="page"] { background: var(--bg); color: var(--brand); opacity: 1; }
 /* Annuaire des leaders : une carte par personne, rangées par lettre du nom de famille */
-.serv-grid { grid-auto-rows: auto !important; }
+.serv-grid { grid-auto-rows: auto !important; grid-template-columns: repeat(auto-fill, minmax(min(330px, 100%), 1fr)); }
 .letter { grid-column: 1 / -1; margin: 8px 0 -4px; font: 700 28px/1 Phudu, Montserrat, sans-serif; color: var(--brand);
   display: flex; align-items: center; gap: 14px; }
 .letter::after { content: ""; flex: 1; border-top: 1px solid var(--border); }
@@ -473,11 +473,13 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .coords a { align-self: flex-start; padding-block: 3px; color: var(--brand); text-decoration: underline; text-decoration-thickness: 1px;
   text-underline-offset: 3px; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
 .coords a:hover { text-decoration-thickness: 2px; }
+.serv-card .coords { flex-direction: row; align-items: center; gap: 12px; }
+.serv-card .coords .lines { flex: 1; min-width: 0; margin: 0; display: flex; flex-direction: column; gap: 2px; }
 /* Copier les coordonnées : icône sur chaque carte, bouton pour toute la liste affichée */
 .countbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 16px; }
 .countbar .count { margin: 0; }
 .serv-card .name { flex: 1; }
-.copy-ico { flex: none; align-self: flex-start; display: grid; place-items: center; width: 40px; height: 40px; padding: 0; border: 1.5px solid var(--border); border-radius: 50%;
+.copy-ico { flex: none; display: grid; place-items: center; width: 40px; height: 40px; padding: 0; border: 1.5px solid var(--border); border-radius: 50%;
   background: var(--surface); color: var(--muted); cursor: pointer; }
 .copy-all { display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border: 1.5px solid #000; border-radius: 6px; background: #000; color: #fff;
   font: 600 13px/1 Montserrat, sans-serif; cursor: pointer; }
