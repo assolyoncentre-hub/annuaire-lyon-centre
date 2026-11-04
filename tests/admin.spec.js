@@ -205,3 +205,42 @@ test("« Pour qui ? » : saisi dans le staff, affiché en bleu sur la carte s'il
   // Champ vide : pas de ligne « Pour qui ? »
   await expect(page.locator(".card", { hasText: "Sacristie" }).locator(".pourqui")).toHaveCount(0);
 });
+
+test("photo d'un contact : envoyée depuis la fiche, en noir et blanc dans l'annuaire des leaders, puis retirée", async ({ open, page }) => {
+  await open({ user: ADMIN, hash: "#admin" });
+  await page.click("#tab-contacts");
+  await page.fill("#aq", "brunet");
+  await page.locator("#admin-list [data-act=edit]").click();
+  await expect(page.locator("#pe-photo-prev")).toHaveText("JB");
+  await expect(page.locator("#pe-photo-rm")).toBeHidden();
+  // Image fictive (rectangle de couleur), recadrée en carré JPEG dans le navigateur
+  const png = await page.evaluate(() => { const c = document.createElement("canvas"); c.width = 400; c.height = 300;
+    const g = c.getContext("2d"); g.fillStyle = "#c33"; g.fillRect(0, 0, 400, 300); return c.toDataURL("image/png").split(",")[1]; });
+  await page.setInputFiles("#pe-photo", { name: "visage.png", mimeType: "image/png", buffer: Buffer.from(png, "base64") });
+  await expect(page.locator("#pe-photo-prev img")).toBeVisible();
+  await expect(page.locator("#pe-photo-pick")).toHaveText("Changer la photo");
+  await save(page);
+  await expect(page.locator("#toast")).toHaveText("Contact enregistré.");
+  const sent = (await calls(page, "savePhoto"))[0].arg;
+  expect(sent.email).toBe("jean@example.org");
+  expect(sent.data).toMatch(/^data:image\/jpeg;base64,/);
+  const size = await page.evaluate(d => new Promise(r => { const i = new Image(); i.onload = () => r([i.width, i.height]); i.src = d; }), sent.data);
+  expect(size).toEqual([300, 300]);
+  // Annuaire des leaders : photo à la place des initiales, en noir et blanc
+  await page.click("#sw-serv");
+  const avatar = page.locator(".serv-card", { hasText: "BRUNET" }).locator(".avatar");
+  await expect(avatar).toHaveJSProperty("tagName", "IMG");
+  await expect(avatar).toHaveCSS("filter", "grayscale(1)");
+  // Retirer la photo : retour aux initiales
+  await page.click("#sw-admin");
+  await page.click("#tab-contacts");
+  await page.fill("#aq", "brunet");
+  await page.locator("#admin-list [data-act=edit]").click();
+  await page.click("#pe-photo-rm");
+  await expect(page.locator("#pe-photo-prev")).toHaveText("JB");
+  await save(page);
+  await expect(page.locator("#toast")).toHaveText("Contact enregistré.");
+  expect((await calls(page, "savePhoto"))[1].arg).toEqual({ email: "jean@example.org", data: "" });
+  await page.click("#sw-serv");
+  await expect(page.locator(".serv-card", { hasText: "BRUNET" }).locator(".avatar")).toHaveText("JB");
+});

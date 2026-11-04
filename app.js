@@ -244,8 +244,12 @@ async function onSession(s) {
   if (canLeaders) await Promise.all([loadAdmin(), isAdmin && api.messages().then(m => { messages = m; }, () => {}), isAdmin && loadAcces()]);
   route();
 }
+// Photos des leaders, par e-mail en minuscules (affichées en noir et blanc)
+let photoOf = {};
+const photoFor = p => (p?.email && photoOf[p.email.toLowerCase()]) || "";
 async function loadAdmin() {
-  const { contacts, responsables } = await api.loadAdmin();
+  const [{ contacts, responsables }, photos] = await Promise.all([api.loadAdmin(), api.photos().catch(() => [])]);
+  photoOf = Object.fromEntries((photos || []).map(x => [String(x.email).toLowerCase(), x.data]));
   const group = (rows, key) => rows.reduce((m, r) => ((m[r[key]] ||= []).push({ civilite: r.civilite || "", prenom: r.prenom, nom: r.nom, email: r.email || "", telephone: r.telephone || "" }), m), {});
   contactsOf = group(contacts, "service_id");
   respOf = group(responsables, "pole_id");
@@ -545,7 +549,7 @@ function openEditor(kicker, title, html, onSave, saveLabel = "Enregistrer", dang
   f.querySelector("[data-close]").onclick = closeEditor;
   $("editor").hidden = false;
   document.body.classList.add("locked");
-  f.querySelector("input, textarea, select, button")?.focus();
+  f.querySelector("input:not([hidden]), textarea, select, button")?.focus();
   setPageInert(true);
 }
 function closeEditor() { setPageInert(false); $("editor").hidden = true; document.body.classList.remove("locked"); }
@@ -797,6 +801,19 @@ function personRoles(p) {
   const pl = [...new Set(p.responsables.map(r => r.pole_id))].map(id => poleById(id)?.name).filter(Boolean).map(n => "Responsable " + n);
   return [...svc, ...pl];
 }
+// Image choisie → carré de 320 px centré, en JPEG (une centaine de Ko au plus)
+async function squarePhoto(file) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok(i); i.onerror = ko; i.src = url; });
+    const side = Math.min(img.naturalWidth, img.naturalHeight), out = Math.min(320, side);
+    if (!side) throw new Error("image vide");
+    const c = document.createElement("canvas"); c.width = c.height = out;
+    const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, out, out);
+    g.drawImage(img, (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2, side, side, 0, 0, out, out);
+    return c.toDataURL("image/jpeg", .85);
+  } finally { URL.revokeObjectURL(url); }
+}
 function editPerson(p) {
   const mine = new Set(p ? p.contacts.map(r => r.service_id) : []), myPoles = new Set(p ? p.responsables.map(r => r.pole_id) : []);
   const box = (name, value, label, on) => '<label><input type="checkbox" name="' + name + '" value="' + esc(value) + '"' + (on ? " checked" : "") + ">" + esc(label) + "</label>";
@@ -807,7 +824,12 @@ function editPerson(p) {
   const poleBoxes = poleNames().map(n => box("pole", poles[n]._id, n, myPoles.has(poles[n]._id))).join("");
   const self = !!p?.email && p.email.toLowerCase() === myEmail(), droit = p?.droit || "leaders";
   openEditor(p ? "Modifier le contact" : "Ajouter un contact", p ? fullName(p) : "Nouveau contact",
-    '<section class="ed-sec"><div class="field w-fit"><label for="pe-civ">Civilité</label>' + civSelect("pe-civ", p?.civilite) + "</div>" +
+    '<section class="ed-sec"><div class="field photo-field"><span class="flabel" id="pe-photo-l">Photo <span class="opt">(facultatif)</span></span><div class="ph-row">' +
+      '<span class="ph-prev" id="pe-photo-prev"></span><input type="file" id="pe-photo" accept="image/*" hidden>' +
+      '<button type="button" class="btn btn-ghost ph-pick" id="pe-photo-pick" aria-describedby="pe-photo-l">Choisir une photo</button>' +
+      '<button type="button" class="ph-rm" id="pe-photo-rm">Retirer</button></div>' +
+      '<div class="hint">Affichée en noir et blanc dans l\'annuaire des leaders. Une adresse e-mail est nécessaire.</div></div>' +
+    '<div class="field w-fit"><label for="pe-civ">Civilité</label>' + civSelect("pe-civ", p?.civilite) + "</div>" +
     '<div class="row2 names"><div class="field"><label for="pe-prenom">Prénom</label><input id="pe-prenom" value="' + esc(p?.prenom || "") + '"></div>' +
     '<div class="field"><label for="pe-nom">Nom</label><input id="pe-nom" value="' + esc(p?.nom || "") + '"></div></div>' +
     '<div class="field"><label for="pe-email">E-mail <span class="opt">(privé : visible seulement des leaders)</span></label><input id="pe-email" type="email" value="' + esc(p?.email || "") + '"></div>' +
@@ -845,15 +867,37 @@ function editPerson(p) {
           position: Math.max(-1, ...all.filter(r => r[col] === id).map(r => r.position ?? 0)) + 1 }));
         return { keep, del, add };
       };
+      if (photo.data && !email) return invalid(f, "#pe-email", "Ajoutez une adresse e-mail pour enregistrer la photo.");
       await api.savePerson({ civilite: f.querySelector("#pe-civ").value || null, prenom, nom, email: email || null, telephone: telephone || null,
         ancien_email: p?.email ? p.email.toLowerCase() : null }, {
         contacts: plan(p?.contacts || [], svcIds, "service_id", contactRows),
         responsables: plan(p?.responsables || [], poleIds, "pole_id", respRows),
       }, d);
+      // Photo : enregistrée sous l'e-mail ; si l'e-mail change, elle suit
+      const ancien = p?.email ? p.email.toLowerCase() : "";
+      if (email && (photo.changed || (ancien && ancien !== email && photo.data))) await api.savePhoto(email, photo.data);
+      if (ancien && ancien !== email && photoFor(p)) await api.savePhoto(ancien, null);
       await refresh();
       toast(p ? "Contact enregistré." : "Contact ajouté.");
     });
   const f = $("ed-form");
+  // Photo : recadrée en carré et réduite dans le navigateur avant l'envoi
+  const photo = { data: photoFor(p), changed: false };
+  const drawPhoto = () => {
+    f.querySelector("#pe-photo-prev").innerHTML = photo.data ? '<img src="' + esc(photo.data) + '" alt="">' : esc(initials({ prenom: f.querySelector("#pe-prenom").value, nom: f.querySelector("#pe-nom").value }).toUpperCase());
+    f.querySelector("#pe-photo-rm").hidden = !photo.data;
+    f.querySelector("#pe-photo-pick").textContent = photo.data ? "Changer la photo" : "Choisir une photo";
+  };
+  drawPhoto();
+  f.querySelector("#pe-photo-pick").onclick = () => f.querySelector("#pe-photo").click();
+  f.querySelector("#pe-photo-rm").onclick = () => { photo.data = ""; photo.changed = true; drawPhoto(); };
+  f.querySelector("#pe-photo").onchange = async e => {
+    const file = e.target.files[0]; e.target.value = "";
+    if (!file) return;
+    try { photo.data = await squarePhoto(file); photo.changed = true; drawPhoto(); }
+    catch { toast("Cette image n'a pas pu être lue : choisissez une photo JPEG ou PNG."); }
+  };
+  for (const id of ["#pe-prenom", "#pe-nom"]) f.querySelector(id).addEventListener("input", () => { if (!photo.data) drawPhoto(); });
   // Sans staff ni pôle : bandeau d'avertissement, e-mail requis et droit « Aucun » impossible
   const sync = () => {
     const hors = !f.querySelector('input[name="svc"]:checked, input[name="pole"]:checked');
@@ -1029,7 +1073,8 @@ function renderServ() {
       ...svc.map(s => '<li style="--c:' + color(s.pole || "") + '"><span>Leader du staff <strong>' + esc(s.name) + "</strong></span></li>")].join("");
     const coords = (p.telephone ? '<a href="' + esc(telHref(p.telephone)) + '">' + esc(p.telephone) + "</a>" : "") +
       (p.email ? '<a href="mailto:' + esc(p.email) + '">' + esc(p.email) + "</a>" : "");
-    return head + '<article class="card serv-card"><div class="who"><div class="avatar" aria-hidden="true">' + esc(initials(p).toUpperCase()) + "</div>" +
+    return head + '<article class="card serv-card"><div class="who">' + (photoFor(p) ? '<img class="avatar photo" src="' + esc(photoFor(p)) + '" alt="" loading="lazy">'
+      : '<div class="avatar" aria-hidden="true">' + esc(initials(p).toUpperCase()) + "</div>") +
       '<h3 class="name"><span class="nom">' + esc(nomAff(p.nom)) + '</span><span class="prenom">' + esc(prenomAff(p)) + "</span></h3>" +
       "</div>" +
       (roles ? '<ul class="roles">' + roles + "</ul>" : "") +

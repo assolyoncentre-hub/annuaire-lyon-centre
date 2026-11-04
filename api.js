@@ -109,6 +109,9 @@ window.makeApi = function () {
       ]);
       return { contacts, responsables };
     },
+    // Photos (par e-mail) : lecture réservée aux leaders, enregistrement aux administrateurs (data vide = retirer)
+    photos: () => sbRpc("annuaire_photos"),
+    savePhoto: (email, data) => sbRpc("admin_save_photo", { p_email: email, p_data: data || null }),
     messages: async () => (await getSb()).from("messages").select("*, services(name), poles(name)").order("created_at", { ascending: false }).limit(100).then(ok),
     saveService: (s, people) => sbRpc("admin_save_service", { s, people }),
     deleteService: async id => (await getSb()).from("services").delete().eq("id", id).then(ok),
