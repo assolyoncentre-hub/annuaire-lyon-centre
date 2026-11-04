@@ -1143,7 +1143,14 @@ function servCur(id, names) {
   t.querySelector(".filt-n").textContent = names.length > 1 ? names.length : "";
   t.querySelector(".filt-toggle").title = names.join(", ");
 }
-function ddOpen(g, open) { g.classList.toggle("open", open); g.querySelector(".filt-toggle").setAttribute("aria-expanded", String(open)); }
+function ddOpen(g, open) {
+  g.classList.toggle("open", open);
+  const t = g.querySelector(".filt-toggle"), list = g.querySelector(".filters");
+  t.setAttribute("aria-expanded", String(open));
+  // Ordinateur : la liste tient dans la fenêtre (elle défile, son pied « Tout effacer / OK » reste visible)
+  list.style.maxHeight = open && getComputedStyle(list).position === "absolute"
+    ? Math.max(160, Math.min(420, innerHeight - t.getBoundingClientRect().bottom - 20)) + "px" : "";
+}
 for (const [id, set] of [["sfilters", servPoles], ["sstaff", servStaffs]]) {
   const list = $(id), g = list.parentNode;
   list.addEventListener("change", e => {
@@ -1157,7 +1164,10 @@ for (const [id, set] of [["sfilters", servPoles], ["sstaff", servStaffs]]) {
     else if (e.target.closest(".dd-ok")) { ddOpen(g, false); g.querySelector(".filt-toggle").focus(); }
   });
   // Ouvrir une liste referme l'autre
-  g.querySelector(".filt-toggle").addEventListener("click", () => { for (const o of document.querySelectorAll(".fgroup.dd.open")) if (o !== g) ddOpen(o, false); });
+  g.querySelector(".filt-toggle").addEventListener("click", () => {
+    for (const o of document.querySelectorAll(".fgroup.dd.open")) if (o !== g) ddOpen(o, false);
+    ddOpen(g, g.classList.contains("open"));
+  });
 }
 // Clic à côté ou Échap : la liste se referme
 document.addEventListener("click", e => { if (!e.target.isConnected) return; for (const g of document.querySelectorAll(".fgroup.dd.open")) if (!g.contains(e.target)) ddOpen(g, false); });
