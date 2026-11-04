@@ -1033,7 +1033,22 @@ async function copyServ(b, text, msg) {
 }
 // Coordonnées d'un leader : nom, staffs, téléphone, e-mail, une ligne chacun
 const servBlock = x => [servName(x.p), servRoles(x), x.p.telephone, x.p.email].filter(Boolean).join("\n");
+// Clic sur une photo : agrandie en rond au milieu de l'écran (clic, Échap ou × pour fermer)
+function zoomPhoto(x, from) {
+  const z = document.createElement("div");
+  z.className = "ph-zoom"; z.setAttribute("role", "dialog"); z.setAttribute("aria-modal", "true"); z.setAttribute("aria-label", "Photo de " + fullName(x.p));
+  z.innerHTML = '<figure><img src="' + esc(photoFor(x.p)) + '" alt="Photo de ' + esc(fullName(x.p)) + '"><figcaption>' + esc(servName(x.p)) + "</figcaption></figure>" +
+    '<button type="button" class="ph-zoom-x" aria-label="Fermer">×</button>';
+  const close = () => { z.remove(); document.removeEventListener("keydown", key, true); from.focus(); };
+  const key = e => { if (e.key === "Escape") { e.stopPropagation(); close(); } };
+  z.addEventListener("click", close);
+  document.addEventListener("keydown", key, true);
+  document.body.append(z);
+  z.querySelector(".ph-zoom-x").focus();
+}
 $("serv-grid").addEventListener("click", e => {
+  const zb = e.target.closest(".avatar-btn");
+  if (zb) { const x = servList[+zb.dataset.zoom]; if (x) zoomPhoto(x, zb); return; }
   const b = e.target.closest(".copy-ico"); if (!b) return;
   const x = servList[+b.dataset.i]; if (!x) return;
   copyServ(b, servBlock(x), "Coordonnées de " + servName(x.p) + " copiées.");
@@ -1082,7 +1097,8 @@ function renderServ() {
       ...svc.map(s => '<li style="--c:' + color(s.pole || "") + '"><span>Leader du staff <strong>' + esc(s.name) + "</strong></span></li>")].join("");
     const coords = (p.telephone ? '<a href="' + esc(telHref(p.telephone)) + '">' + esc(p.telephone) + "</a>" : "") +
       (p.email ? '<a href="mailto:' + esc(p.email) + '">' + esc(p.email) + "</a>" : "");
-    return head + '<article class="card serv-card"><div class="who">' + (photoFor(p) ? '<img class="avatar photo" src="' + esc(photoFor(p)) + '" alt="" loading="lazy">'
+    return head + '<article class="card serv-card"><div class="who">' + (photoFor(p) ? '<button type="button" class="avatar-btn" data-zoom="' + i + '" aria-label="Agrandir la photo de ' + esc(fullName(p)) + '">' +
+        '<img class="avatar photo" src="' + esc(photoFor(p)) + '" alt="" loading="lazy"></button>'
       : '<div class="avatar" aria-hidden="true">' + esc(initials(p).toUpperCase()) + "</div>") +
       '<h3 class="name"><span class="nom">' + esc(nomAff(p.nom)) + '</span><span class="prenom">' + esc(prenomAff(p)) + "</span></h3>" +
       "</div>" +

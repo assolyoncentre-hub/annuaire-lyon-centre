@@ -486,6 +486,21 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
   background: #009498; color: #fff; font: 700 19px/1 Phudu, Montserrat, sans-serif; letter-spacing: .02em; }
 /* Photo : toujours en noir et blanc, quelle que soit l'image envoyée */
 .serv-card .avatar.photo { object-fit: cover; filter: grayscale(1); background: var(--border); }
+.avatar-btn { flex: none; padding: 0; border: 0; border-radius: 50%; background: none; cursor: zoom-in; display: block; }
+.avatar-btn:focus-visible { outline: 3px solid rgba(0, 96, 170, .35); outline-offset: 3px; }
+/* Photo agrandie : toujours ronde et en noir et blanc */
+.ph-zoom { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 24px; background: rgba(8, 20, 34, .82); cursor: zoom-out;
+  animation: ph-fade .18s ease-out; }
+.ph-zoom figure { margin: 0; display: grid; justify-items: center; gap: 16px; animation: ph-pop .22s cubic-bezier(.2, .8, .3, 1.1); }
+.ph-zoom img { width: min(420px, 80vw, 70vh); aspect-ratio: 1; border-radius: 50%; object-fit: cover; filter: grayscale(1); background: #33414f;
+  box-shadow: 0 0 0 6px rgba(255, 255, 255, .9), 0 30px 60px -20px rgba(0, 0, 0, .6); }
+.ph-zoom figcaption { color: #fff; font: 700 20px/1.2 "DM Sans", system-ui, sans-serif; text-align: center; }
+.ph-zoom-x { position: absolute; top: max(16px, env(safe-area-inset-top, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); width: 44px; height: 44px;
+  border: 0; border-radius: 50%; background: rgba(255, 255, 255, .15); color: #fff; font: 400 28px/1 system-ui, sans-serif; cursor: pointer; }
+.ph-zoom-x:hover, .ph-zoom-x:focus-visible { background: rgba(255, 255, 255, .3); outline: none; }
+@keyframes ph-fade { from { opacity: 0; } }
+@keyframes ph-pop { from { transform: scale(.6); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .ph-zoom, .ph-zoom figure { animation: none; } }
 .serv-card .name { margin: 0; min-width: 0; font: 700 19px/1.2 "DM Sans", system-ui, sans-serif; text-transform: none; color: var(--text); overflow-wrap: anywhere; }
 .serv-card .name span { display: block; }
 .serv-card .name .prenom { margin-top: 2px; font-weight: 400; font-size: 16px; }

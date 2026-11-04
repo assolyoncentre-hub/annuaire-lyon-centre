@@ -240,6 +240,15 @@ test("photo d'un contact : envoyée depuis la fiche, en noir et blanc dans l'ann
   const avatar = page.locator(".serv-card", { hasText: "BRUNET" }).locator(".avatar");
   await expect(avatar).toHaveJSProperty("tagName", "IMG");
   await expect(avatar).toHaveCSS("filter", "grayscale(1)");
+  // Clic sur la photo : agrandie, ronde, en noir et blanc ; Échap la referme
+  await page.locator(".serv-card", { hasText: "BRUNET" }).locator(".avatar-btn").click();
+  const zoom = page.locator(".ph-zoom img");
+  await expect(zoom).toBeVisible();
+  await expect(zoom).toHaveCSS("border-radius", "50%");
+  await expect(zoom).toHaveCSS("filter", "grayscale(1)");
+  await expect(page.locator(".ph-zoom figcaption")).toHaveText("Jean BRUNET");
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".ph-zoom")).toHaveCount(0);
   // Retirer la photo : retour aux initiales
   await page.click("#sw-admin");
   await page.click("#tab-contacts");
