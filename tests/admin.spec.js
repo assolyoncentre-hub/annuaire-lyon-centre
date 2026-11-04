@@ -233,19 +233,22 @@ test("photo d'un contact : envoyée depuis la fiche, en noir et blanc dans l'ann
   const sent = (await calls(page, "savePhoto"))[0].arg;
   expect(sent.email).toBe("jean@example.org");
   expect(sent.data).toMatch(/^data:image\/jpeg;base64,/);
-  const size = await page.evaluate(d => new Promise(r => { const i = new Image(); i.onload = () => r([i.width, i.height]); i.src = d; }), sent.data);
-  expect(size).toEqual([300, 300]);
+  // Miniature de 200 px, version grande limitée à la taille de l'image (300 px ici, 600 au plus)
+  const size = d => page.evaluate(d => new Promise(r => { const i = new Image(); i.onload = () => r([i.width, i.height]); i.src = d; }), d);
+  expect(await size(sent.data)).toEqual([200, 200]);
+  expect(await size(sent.grand)).toEqual([300, 300]);
   // Annuaire des leaders : photo à la place des initiales, en noir et blanc
   await page.click("#sw-serv");
   const avatar = page.locator(".serv-card", { hasText: "BRUNET" }).locator(".avatar");
   await expect(avatar).toHaveJSProperty("tagName", "IMG");
   await expect(avatar).toHaveCSS("filter", "grayscale(1)");
-  // Clic sur la photo : agrandie, ronde, en noir et blanc ; Échap la referme
+  // Clic sur la photo : agrandie, ronde, en couleur (version grande) ; Échap la referme
   await page.locator(".serv-card", { hasText: "BRUNET" }).locator(".avatar-btn").click();
   const zoom = page.locator(".ph-zoom img");
   await expect(zoom).toBeVisible();
   await expect(zoom).toHaveCSS("border-radius", "50%");
-  await expect(zoom).toHaveCSS("filter", "grayscale(1)");
+  await expect(zoom).toHaveCSS("filter", "none");
+  await expect(zoom).toHaveAttribute("src", sent.grand);
   await expect(page.locator(".ph-zoom figcaption")).toHaveText("Jean BRUNET");
   await page.keyboard.press("Escape");
   await expect(page.locator(".ph-zoom")).toHaveCount(0);
@@ -260,7 +263,7 @@ test("photo d'un contact : envoyée depuis la fiche, en noir et blanc dans l'ann
   await expect(page.locator("#pe-photo-prev")).toHaveText("JB");
   await save(page);
   await expect(page.locator("#toast")).toHaveText("Contact enregistré.");
-  expect((await calls(page, "savePhoto"))[1].arg).toEqual({ email: "jean@example.org", data: "" });
+  expect((await calls(page, "savePhoto"))[1].arg).toEqual({ email: "jean@example.org", data: "", grand: "" });
   await page.click("#sw-serv");
   await expect(page.locator(".serv-card", { hasText: "BRUNET" }).locator(".avatar")).toHaveText("JB");
 });

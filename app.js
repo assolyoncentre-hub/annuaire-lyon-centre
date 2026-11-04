@@ -802,17 +802,17 @@ function personRoles(p) {
   return [...svc, ...pl];
 }
 const CAMERA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7.5 6.5H4A2 2 0 0 0 2 8.5v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-10a2 2 0 0 0-2-2h-3.5z"/><circle cx="12" cy="13" r="3.5"/></svg>';
-// Image choisie → carré de 320 px centré, en JPEG (une centaine de Ko au plus)
-async function squarePhoto(file) {
+// Image choisie → carré centré en JPEG : miniature de 200 px pour la liste, 600 px pour l'agrandissement
+async function squarePhoto(file, max) {
   const url = URL.createObjectURL(file);
   try {
     const img = await new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok(i); i.onerror = ko; i.src = url; });
-    const side = Math.min(img.naturalWidth, img.naturalHeight), out = Math.min(320, side);
+    const side = Math.min(img.naturalWidth, img.naturalHeight), out = Math.min(max, side);
     if (!side) throw new Error("image vide");
     const c = document.createElement("canvas"); c.width = c.height = out;
     const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, out, out);
     g.drawImage(img, (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2, side, side, 0, 0, out, out);
-    return c.toDataURL("image/jpeg", .85);
+    return c.toDataURL("image/jpeg", max > 300 ? .82 : .85);
   } finally { URL.revokeObjectURL(url); }
 }
 function editPerson(p) {
@@ -877,14 +877,18 @@ function editPerson(p) {
       }, d);
       // Photo : enregistrée sous l'e-mail ; si l'e-mail change, elle suit
       const ancien = p?.email ? p.email.toLowerCase() : "";
-      if (email && (photo.changed || (ancien && ancien !== email && photo.data))) await api.savePhoto(email, photo.data);
+      if (email && (photo.changed || (ancien && ancien !== email && photo.data))) {
+        // E-mail changé sans nouvelle photo : la version grande suit aussi
+        if (!photo.changed) photo.grand = await api.photoGrande(ancien).catch(() => "");
+        await api.savePhoto(email, photo.data, photo.grand);
+      }
       if (ancien && ancien !== email && photoFor(p)) await api.savePhoto(ancien, null);
       await refresh();
       toast(p ? "Contact enregistré." : "Contact ajouté.");
     });
   const f = $("ed-form");
   // Photo : recadrée en carré et réduite dans le navigateur avant l'envoi
-  const photo = { data: photoFor(p), changed: false };
+  const photo = { data: photoFor(p), grand: "", changed: false };
   const drawPhoto = () => {
     f.querySelector("#pe-photo-prev").innerHTML = photo.data ? '<img src="' + esc(photo.data) + '" alt="">' : esc(initials({ prenom: f.querySelector("#pe-prenom").value, nom: f.querySelector("#pe-nom").value }).toUpperCase());
     f.querySelector("#pe-photo-rm").hidden = !photo.data;
@@ -897,13 +901,13 @@ function editPerson(p) {
   // Sans photo : le clic ouvre directement le choix du fichier ; avec photo : menu « Changer » / « Supprimer »
   phBtn.onclick = () => photo.data ? phOpen(phMenu.hidden) : f.querySelector("#pe-photo").click();
   f.querySelector("#pe-photo-pick").onclick = () => { phOpen(false); f.querySelector("#pe-photo").click(); };
-  f.querySelector("#pe-photo-rm").onclick = () => { phOpen(false); photo.data = ""; photo.changed = true; drawPhoto(); phBtn.focus(); };
+  f.querySelector("#pe-photo-rm").onclick = () => { phOpen(false); photo.data = photo.grand = ""; photo.changed = true; drawPhoto(); phBtn.focus(); };
   f.addEventListener("click", e => { if (!phMenu.hidden && !e.target.closest(".ph-wrap")) phOpen(false); });
   phMenu.addEventListener("keydown", e => { if (e.key === "Escape") { e.stopPropagation(); phOpen(false); phBtn.focus(); } });
   f.querySelector("#pe-photo").onchange = async e => {
     const file = e.target.files[0]; e.target.value = "";
     if (!file) return;
-    try { photo.data = await squarePhoto(file); photo.changed = true; drawPhoto(); }
+    try { [photo.data, photo.grand] = await Promise.all([squarePhoto(file, 200), squarePhoto(file, 600)]); photo.changed = true; drawPhoto(); }
     catch { toast("Cette image n'a pas pu être lue : choisissez une photo JPEG ou PNG."); }
   };
   for (const id of ["#pe-prenom", "#pe-nom"]) f.querySelector(id).addEventListener("input", () => { if (!photo.data) drawPhoto(); });
@@ -1033,7 +1037,8 @@ async function copyServ(b, text, msg) {
 }
 // Coordonnées d'un leader : nom, staffs, téléphone, e-mail, une ligne chacun
 const servBlock = x => [servName(x.p), servRoles(x), x.p.telephone, x.p.email].filter(Boolean).join("\n");
-// Clic sur une photo : agrandie en rond au milieu de l'écran (clic, Échap ou × pour fermer)
+// Clic sur une photo : agrandie en rond et en couleur au milieu de l'écran (clic, Échap ou × pour fermer).
+// La miniature s'affiche tout de suite, remplacée par la version 600 px une fois chargée.
 function zoomPhoto(x, from) {
   const z = document.createElement("div");
   z.className = "ph-zoom"; z.setAttribute("role", "dialog"); z.setAttribute("aria-modal", "true"); z.setAttribute("aria-label", "Photo de " + fullName(x.p));
@@ -1045,6 +1050,12 @@ function zoomPhoto(x, from) {
   document.addEventListener("keydown", key, true);
   document.body.append(z);
   z.querySelector(".ph-zoom-x").focus();
+  api.photoGrande(x.p.email).then(src => {
+    if (!src || !z.isConnected) return;
+    const big = new Image();
+    big.onload = () => { const im = z.querySelector("img"); if (im) im.src = src; };
+    big.src = src;
+  }, () => {});
 }
 $("serv-grid").addEventListener("click", e => {
   const zb = e.target.closest(".avatar-btn");

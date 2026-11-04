@@ -81,10 +81,12 @@ module.exports = function installFakeApi({ data, user, acces }) {
     async signOut() { log("signOut"); session = null; },
     async droit() { return droit(); },
     async photos() { guardRead(); return Object.entries(S.photos || {}).map(([email, data]) => ({ email, data })); },
-    async savePhoto(email, data) {
-      guard(); log("savePhoto", { email, data });
-      S.photos ||= {};
-      if (data) S.photos[email.toLowerCase()] = data; else delete S.photos[email.toLowerCase()];
+    async photoGrande(email) { guardRead(); log("photoGrande", email); const e = email.toLowerCase(); return (S.grandes || {})[e] || (S.photos || {})[e] || null; },
+    async savePhoto(email, data, grand) {
+      guard(); log("savePhoto", { email, data, grand });
+      S.photos ||= {}; S.grandes ||= {};
+      const e = email.toLowerCase();
+      if (data) { S.photos[e] = data; S.grandes[e] = grand || null; } else { delete S.photos[e]; delete S.grandes[e]; }
     },
     async loadAdmin() { guardRead(); return { contacts: clone(S.contacts), responsables: clone(S.responsables) }; },
     async messages() { guard(); return clone(S.messages); },
