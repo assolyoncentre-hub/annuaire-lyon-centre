@@ -172,12 +172,12 @@ test("annuaire des leaders : copier les coordonnées d'une carte ou de toute la 
   const one = (await page.evaluate(() => window.__copied))[0].split("\n");
   expect(one[0]).toBe((await card.locator(".prenom").innerText()) + " " + (await card.locator(".nom").innerText()));
   expect(one[1]).toContain("Louange");
-  // Toute la liste affichée : une ligne d'en-tête, puis une ligne par leader en colonnes
+  // Toute la liste affichée : les fiches les unes sous les autres, séparées par une ligne blanche
   await expect(page.locator("#scopy")).toHaveText("Copier les coordonnées (" + n + ")");
   await page.click("#scopy");
   await expect(page.locator("#scopy")).toHaveText("Copié");
-  const rows = (await page.evaluate(() => window.__copied))[1].split("\n");
-  expect(rows[0]).toBe("Nom\tStaffs\tTéléphone\tE-mail");
-  expect(rows).toHaveLength(n + 1);
-  expect(rows[1].split("\t")).toHaveLength(4);
+  const blocks = (await page.evaluate(() => window.__copied))[1].split("\n\n");
+  expect(blocks).toHaveLength(n);
+  expect(blocks[0]).toBe(one.join("\n"));
+  expect(blocks.every(b => b.split("\n").length >= 2 && !b.includes("\t"))).toBe(true);
 });

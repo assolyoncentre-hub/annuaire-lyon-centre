@@ -978,14 +978,16 @@ async function copyText(text) {
 async function copyServ(b, text, msg) {
   if (await copyText(text)) { copyDone(b, true); toast(msg); } else toast("La copie a échoué : sélectionnez le texte à la main.");
 }
+// Coordonnées d'un leader : nom, staffs, téléphone, e-mail, une ligne chacun
+const servBlock = x => [servName(x.p), servRoles(x), x.p.telephone, x.p.email].filter(Boolean).join("\n");
 $("serv-grid").addEventListener("click", e => {
   const b = e.target.closest(".copy-ico"); if (!b) return;
   const x = servList[+b.dataset.i]; if (!x) return;
-  copyServ(b, [servName(x.p), servRoles(x), x.p.telephone, x.p.email].filter(Boolean).join("\n"), "Coordonnées de " + servName(x.p) + " copiées.");
+  copyServ(b, servBlock(x), "Coordonnées de " + servName(x.p) + " copiées.");
 });
 $("scopy").addEventListener("click", () => {
-  const rows = servList.map(x => [servName(x.p), servRoles(x), x.p.telephone || "", x.p.email || ""].join("\t"));
-  copyServ($("scopy"), ["Nom\tStaffs\tTéléphone\tE-mail", ...rows].join("\n"),
+  // Les leaders affichés les uns sous les autres, séparés par une ligne blanche
+  copyServ($("scopy"), servList.map(servBlock).join("\n\n"),
     servList.length + " coordonnée" + (servList.length > 1 ? "s" : "") + " copiée" + (servList.length > 1 ? "s" : "") + ".");
 });
 const servKey = p => norm(String(p.nom || p.prenom || "").trim().replace(PARTICLE, ""));
