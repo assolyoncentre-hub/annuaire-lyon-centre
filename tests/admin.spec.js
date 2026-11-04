@@ -211,14 +211,23 @@ test("photo d'un contact : envoyée depuis la fiche, en noir et blanc dans l'ann
   await page.click("#tab-contacts");
   await page.fill("#aq", "brunet");
   await page.locator("#admin-list [data-act=edit]").click();
+  // Rond en haut à droite, au niveau de la civilité ; sans photo, initiales
   await expect(page.locator("#pe-photo-prev")).toHaveText("JB");
-  await expect(page.locator("#pe-photo-rm")).toBeHidden();
+  const civ = await page.locator("#pe-civ").boundingBox(), rond = await page.locator("#pe-photo-btn").boundingBox();
+  expect(rond.x).toBeGreaterThan(civ.x + civ.width);
+  expect(rond.y).toBeLessThan(civ.y + civ.height);
   // Image fictive (rectangle de couleur), recadrée en carré JPEG dans le navigateur
   const png = await page.evaluate(() => { const c = document.createElement("canvas"); c.width = 400; c.height = 300;
     const g = c.getContext("2d"); g.fillStyle = "#c33"; g.fillRect(0, 0, 400, 300); return c.toDataURL("image/png").split(",")[1]; });
   await page.setInputFiles("#pe-photo", { name: "visage.png", mimeType: "image/png", buffer: Buffer.from(png, "base64") });
   await expect(page.locator("#pe-photo-prev img")).toBeVisible();
+  // Avec photo, le rond ouvre un menu : changer ou supprimer
+  await page.click("#pe-photo-btn");
+  await expect(page.locator("#pe-photo-menu")).toBeVisible();
   await expect(page.locator("#pe-photo-pick")).toHaveText("Changer la photo");
+  await page.keyboard.press("Escape");
+  await expect(page.locator("#pe-photo-menu")).toBeHidden();
+  await expect(page.locator("#editor")).toBeVisible();
   await save(page);
   await expect(page.locator("#toast")).toHaveText("Contact enregistré.");
   const sent = (await calls(page, "savePhoto"))[0].arg;
@@ -236,6 +245,8 @@ test("photo d'un contact : envoyée depuis la fiche, en noir et blanc dans l'ann
   await page.click("#tab-contacts");
   await page.fill("#aq", "brunet");
   await page.locator("#admin-list [data-act=edit]").click();
+  await expect(page.locator("#pe-photo-prev img")).toBeVisible();
+  await page.click("#pe-photo-btn");
   await page.click("#pe-photo-rm");
   await expect(page.locator("#pe-photo-prev")).toHaveText("JB");
   await save(page);

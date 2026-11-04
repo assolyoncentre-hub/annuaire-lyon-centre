@@ -193,16 +193,24 @@ main.wrap { padding-top: 24px; padding-bottom: 56px; }
 .btn { padding: 12px 20px; border-radius: 6px; font: 600 14px/1 Montserrat, sans-serif; cursor: pointer; border: 1.5px solid #000; }
 .btn-ghost { background: #fff; color: #000; }
 /* Fiche contact : photo */
-.photo-field .flabel { display: block; margin-bottom: 8px; font: 600 12px/1 Montserrat, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
-.photo-field .flabel .opt { text-transform: none; letter-spacing: 0; font-weight: 500; }
-.ph-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
-.ph-prev { flex: none; width: 64px; height: 64px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: #009498; color: #fff;
-  font: 700 22px/1 Phudu, Montserrat, sans-serif; }
+.pe-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; }
+.ph-wrap { position: relative; flex: none; }
+.ph-btn { position: relative; display: block; padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer; }
+.ph-btn:focus-visible { outline: 3px solid rgba(0, 96, 170, .35); outline-offset: 3px; }
+.ph-prev { width: 76px; height: 76px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: #009498; color: #fff;
+  font: 700 24px/1 Phudu, Montserrat, sans-serif; box-shadow: 0 0 0 3px #fff; }
 .ph-prev img { width: 100%; height: 100%; object-fit: cover; filter: grayscale(1); }
-.ph-pick { padding: 10px 16px; }
-.ph-rm { padding: 0; border: 0; background: none; color: #a3261c; font: 600 13px/1 Montserrat, sans-serif; cursor: pointer; }
-.ph-rm[hidden] { display: none; }
-.photo-field .hint { margin-top: 8px; }
+.ph-cam { position: absolute; right: -2px; bottom: -2px; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center;
+  background: #fff; color: var(--brand); border: 1.5px solid var(--border); }
+.ph-cam svg { width: 15px; height: 15px; }
+@media (hover: hover) { .ph-btn:hover .ph-cam { border-color: var(--brand); } }
+.ph-menu { position: absolute; top: calc(100% + 8px); right: 0; z-index: 10; min-width: 200px; padding: 6px; background: #fff; border: 1px solid var(--border); border-radius: 10px;
+  box-shadow: 0 14px 30px -12px rgba(0, 40, 80, .35); display: grid; }
+.ph-menu[hidden] { display: none; }
+.ph-menu button { padding: 10px 12px; border: 0; border-radius: 6px; background: none; text-align: left; font: 500 15px/1.2 "DM Sans", system-ui, sans-serif; color: var(--text); cursor: pointer; }
+.ph-menu button[hidden] { display: none; }
+.ph-menu button:hover, .ph-menu button:focus-visible { background: var(--tint); outline: none; }
+.ph-menu .danger { color: #a3261c; }
 .btn-primary { background: #000; color: #fff; }
 .btn:hover { opacity: .85; }
 body.locked { overflow: hidden; }

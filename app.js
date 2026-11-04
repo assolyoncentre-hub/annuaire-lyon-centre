@@ -801,6 +801,7 @@ function personRoles(p) {
   const pl = [...new Set(p.responsables.map(r => r.pole_id))].map(id => poleById(id)?.name).filter(Boolean).map(n => "Responsable " + n);
   return [...svc, ...pl];
 }
+const CAMERA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7.5 6.5H4A2 2 0 0 0 2 8.5v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-10a2 2 0 0 0-2-2h-3.5z"/><circle cx="12" cy="13" r="3.5"/></svg>';
 // Image choisie → carré de 320 px centré, en JPEG (une centaine de Ko au plus)
 async function squarePhoto(file) {
   const url = URL.createObjectURL(file);
@@ -824,12 +825,13 @@ function editPerson(p) {
   const poleBoxes = poleNames().map(n => box("pole", poles[n]._id, n, myPoles.has(poles[n]._id))).join("");
   const self = !!p?.email && p.email.toLowerCase() === myEmail(), droit = p?.droit || "leaders";
   openEditor(p ? "Modifier le contact" : "Ajouter un contact", p ? fullName(p) : "Nouveau contact",
-    '<section class="ed-sec"><div class="field photo-field"><span class="flabel" id="pe-photo-l">Photo <span class="opt">(facultatif)</span></span><div class="ph-row">' +
-      '<span class="ph-prev" id="pe-photo-prev"></span><input type="file" id="pe-photo" accept="image/*" hidden>' +
-      '<button type="button" class="btn btn-ghost ph-pick" id="pe-photo-pick" aria-describedby="pe-photo-l">Choisir une photo</button>' +
-      '<button type="button" class="ph-rm" id="pe-photo-rm">Retirer</button></div>' +
-      '<div class="hint">Affichée en noir et blanc dans l\'annuaire des leaders. Une adresse e-mail est nécessaire.</div></div>' +
-    '<div class="field w-fit"><label for="pe-civ">Civilité</label>' + civSelect("pe-civ", p?.civilite) + "</div>" +
+    // En haut : civilité à gauche, photo ronde à droite (clic : changer ou supprimer)
+    '<section class="ed-sec"><div class="pe-top"><div class="field w-fit"><label for="pe-civ">Civilité</label>' + civSelect("pe-civ", p?.civilite) + "</div>" +
+      '<div class="ph-wrap"><button type="button" class="ph-btn" id="pe-photo-btn" aria-haspopup="menu" aria-expanded="false" title="Photo, affichée en noir et blanc dans l\'annuaire des leaders">' +
+      '<span class="ph-prev" id="pe-photo-prev"></span><span class="ph-cam" aria-hidden="true">' + CAMERA + "</span></button>" +
+      '<input type="file" id="pe-photo" accept="image/*" hidden>' +
+      '<div class="ph-menu" id="pe-photo-menu" role="menu" hidden><button type="button" role="menuitem" id="pe-photo-pick">Choisir une photo</button>' +
+      '<button type="button" role="menuitem" class="danger" id="pe-photo-rm">Supprimer la photo</button></div></div></div>' +
     '<div class="row2 names"><div class="field"><label for="pe-prenom">Prénom</label><input id="pe-prenom" value="' + esc(p?.prenom || "") + '"></div>' +
     '<div class="field"><label for="pe-nom">Nom</label><input id="pe-nom" value="' + esc(p?.nom || "") + '"></div></div>' +
     '<div class="field"><label for="pe-email">E-mail <span class="opt">(privé : visible seulement des leaders)</span></label><input id="pe-email" type="email" value="' + esc(p?.email || "") + '"></div>' +
@@ -887,10 +889,17 @@ function editPerson(p) {
     f.querySelector("#pe-photo-prev").innerHTML = photo.data ? '<img src="' + esc(photo.data) + '" alt="">' : esc(initials({ prenom: f.querySelector("#pe-prenom").value, nom: f.querySelector("#pe-nom").value }).toUpperCase());
     f.querySelector("#pe-photo-rm").hidden = !photo.data;
     f.querySelector("#pe-photo-pick").textContent = photo.data ? "Changer la photo" : "Choisir une photo";
+    f.querySelector("#pe-photo-btn").setAttribute("aria-label", photo.data ? "Photo : changer ou supprimer" : "Ajouter une photo");
   };
   drawPhoto();
-  f.querySelector("#pe-photo-pick").onclick = () => f.querySelector("#pe-photo").click();
-  f.querySelector("#pe-photo-rm").onclick = () => { photo.data = ""; photo.changed = true; drawPhoto(); };
+  const phBtn = f.querySelector("#pe-photo-btn"), phMenu = f.querySelector("#pe-photo-menu");
+  const phOpen = open => { phMenu.hidden = !open; phBtn.setAttribute("aria-expanded", String(open)); if (open) phMenu.querySelector("button:not([hidden])").focus(); };
+  // Sans photo : le clic ouvre directement le choix du fichier ; avec photo : menu « Changer » / « Supprimer »
+  phBtn.onclick = () => photo.data ? phOpen(phMenu.hidden) : f.querySelector("#pe-photo").click();
+  f.querySelector("#pe-photo-pick").onclick = () => { phOpen(false); f.querySelector("#pe-photo").click(); };
+  f.querySelector("#pe-photo-rm").onclick = () => { phOpen(false); photo.data = ""; photo.changed = true; drawPhoto(); phBtn.focus(); };
+  f.addEventListener("click", e => { if (!phMenu.hidden && !e.target.closest(".ph-wrap")) phOpen(false); });
+  phMenu.addEventListener("keydown", e => { if (e.key === "Escape") { e.stopPropagation(); phOpen(false); phBtn.focus(); } });
   f.querySelector("#pe-photo").onchange = async e => {
     const file = e.target.files[0]; e.target.value = "";
     if (!file) return;
