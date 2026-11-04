@@ -1005,20 +1005,16 @@ function renderServ() {
   });
   const names = poleNames().filter(n => all.some(x => x.poles.has(n)));
   for (const n of servPoles) if (!names.includes(n)) servPoles.delete(n);
-  const chip = (label, pole, n) => '<button type="button" class="chip" data-pole="' + esc(pole || "") + '"' + (pole ? ' style="--c:' + color(pole) + '"' : "") +
-    ' aria-pressed="' + (pole ? servPoles.has(pole) : !servPoles.size) + '">' + (pole ? '<span class="dot"></span>' : "") + esc(label) + ' <span class="n">' + n + "</span></button>";
-  filtCur("sfilters", [...servPoles].sort(byPole).join(", "));
-  $("sfilters").innerHTML = chip("Tous", null, found.length) + names.map(n => chip(n, n, found.filter(x => x.poles.has(n)).length)).join("");
+  servCur("sfilters", [...servPoles].sort(byPole));
+  $("sfilters").innerHTML = ddList(names.map(n => [n, n, color(n), found.filter(x => x.poles.has(n)).length]), servPoles);
   // Pôle choisi : filtre par staff de ce pôle
   const inPole = found.filter(x => !servPoles.size || [...servPoles].some(n => x.poles.has(n)));
-  const staffs = servPoles.size ? services.filter(s => servPoles.has(s.pole) && !s.masque && all.some(x => x.svc.includes(s))).sort(bySvc) : [];
+  // Staffs proposés : ceux des pôles cochés (tous si aucun pôle), avec au moins un leader
+  const staffs = services.filter(s => (!servPoles.size || servPoles.has(s.pole)) && !s.masque && all.some(x => x.svc.includes(s))).sort(bySvc);
   for (const id of servStaffs) if (!staffs.some(s => s._id === id)) servStaffs.delete(id);
-  $("sstaff-group").hidden = !staffs.length;
-  filtCur("sstaff", staffs.filter(s => servStaffs.has(s._id)).map(s => s.name).join(", "));
-  $("sstaff").innerHTML = staffs.length ?
-    ['<button type="button" class="chip" data-staff="" aria-pressed="' + !servStaffs.size + '">Tous <span class="n">' + inPole.length + "</span></button>",
-     ...staffs.map(s => '<button type="button" class="chip" data-staff="' + esc(s._id) + '" style="--c:' + color(s.pole) + '" aria-pressed="' + servStaffs.has(s._id) + '">' +
-       esc(s.name) + ' <span class="n">' + inPole.filter(x => x.svc.includes(s)).length + "</span></button>")].join("") : "";
+  servCur("sstaff", staffs.filter(s => servStaffs.has(s._id)).map(s => s.name));
+  $("sstaff").innerHTML = staffs.length ? ddList(staffs.map(s => [s._id, s.name, color(s.pole), inPole.filter(x => x.svc.includes(s)).length]), servStaffs) : "";
+  if (!staffs.length) ddOpen($("sstaff-group"), false);
   const list = inPole.filter(x => !servStaffs.size || x.svc.some(s => servStaffs.has(s._id)))
     .sort((a, b) => byName(servKey(a.p), servKey(b.p)) || byName(a.p.prenom || "", b.p.prenom || ""));
   $("scount").textContent = !all.length ? "Aucun leader pour l'instant." : list.length ? list.length + " leader" + (list.length > 1 ? "s" : "") : "Aucun résultat pour cette recherche.";
@@ -1050,17 +1046,40 @@ for (const t of document.querySelectorAll(".filt-toggle")) {
   // Choix multiple (annuaire des leaders) : les filtres restent ouverts pour cocher plusieurs pastilles
   bar.addEventListener("click", e => { if (e.target.closest(".filters .chip") && !bar.dataset.multi) setOpen(false); }, true);
 }
-$("sfilters").addEventListener("click", e => {
-  const b = e.target.closest(".chip"); if (!b) return;
-  const n = b.dataset.pole;
-  if (!n) servPoles.clear(); else if (!servPoles.delete(n)) servPoles.add(n);
-  renderServ();
-});
-$("sstaff").addEventListener("click", e => {
-  const b = e.target.closest(".chip"); if (!b) return;
-  const id = b.dataset.staff;
-  if (!id) servStaffs.clear(); else if (!servStaffs.delete(id)) servStaffs.add(id);
-  renderServ();
+// Annuaire des leaders : filtres en liste déroulante à cases à cocher (choix multiple), sous leur bouton
+function ddList(items, set) {
+  return items.map(([v, label, c, n]) => '<label class="opt" style="--c:' + c + '"><input type="checkbox" value="' + esc(v) + '"' + (set.has(v) ? " checked" : "") + ">" +
+    '<span class="dot"></span><span class="nm">' + esc(label) + '</span><span class="n">' + n + "</span></label>").join("") +
+    '<div class="dd-foot"><button type="button" class="dd-clear"' + (set.size ? "" : " disabled") + '>Tout effacer</button><button type="button" class="dd-ok">OK</button></div>';
+}
+// Bouton : le nom s'il n'y a qu'un choix, sinon leur nombre
+function servCur(id, names) {
+  const t = $(id).parentNode;
+  t.querySelector(".filt-cur").textContent = names.length === 1 ? "· " + names[0] : "";
+  t.querySelector(".filt-n").textContent = names.length > 1 ? names.length : "";
+  t.querySelector(".filt-toggle").title = names.join(", ");
+}
+function ddOpen(g, open) { g.classList.toggle("open", open); g.querySelector(".filt-toggle").setAttribute("aria-expanded", String(open)); }
+for (const [id, set] of [["sfilters", servPoles], ["sstaff", servStaffs]]) {
+  const list = $(id), g = list.parentNode;
+  list.addEventListener("change", e => {
+    const v = e.target.value;
+    if (e.target.checked) set.add(v); else set.delete(v);
+    renderServ();
+    list.querySelector('input[value="' + CSS.escape(v) + '"]')?.focus();
+  });
+  list.addEventListener("click", e => {
+    if (e.target.closest(".dd-clear")) { set.clear(); renderServ(); list.querySelector("input")?.focus(); }
+    else if (e.target.closest(".dd-ok")) { ddOpen(g, false); g.querySelector(".filt-toggle").focus(); }
+  });
+  // Ouvrir une liste referme l'autre
+  g.querySelector(".filt-toggle").addEventListener("click", () => { for (const o of document.querySelectorAll(".fgroup.dd.open")) if (o !== g) ddOpen(o, false); });
+}
+// Clic à côté ou Échap : la liste se referme
+document.addEventListener("click", e => { if (!e.target.isConnected) return; for (const g of document.querySelectorAll(".fgroup.dd.open")) if (!g.contains(e.target)) ddOpen(g, false); });
+document.addEventListener("keydown", e => {
+  if (e.key !== "Escape") return;
+  for (const g of document.querySelectorAll(".fgroup.dd.open")) { ddOpen(g, false); g.querySelector(".filt-toggle").focus(); }
 });
 $("sq").addEventListener("input", e => { servTerms = norm(e.target.value).split(/\s+/).filter(Boolean); renderServ(); });
 

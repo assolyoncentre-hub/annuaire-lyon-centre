@@ -24,7 +24,11 @@ const test = base.extend({
 async function pickPole(page, list, name) {
   const toggle = page.locator(".filt-toggle[aria-controls='" + list + "']");
   if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
-  await page.locator("#" + list + " .chip", { hasText: name }).click();
+  // Annuaire des leaders : cases à cocher (« Tous » = tout effacer) ; propositions : pastilles
+  if (list === "sfilters" || list === "sstaff") {
+    if (name === "Tous") await page.locator("#" + list + " .dd-clear").click();
+    else await page.locator("#" + list + " .opt", { hasText: name }).locator("input").click();
+  } else await page.locator("#" + list + " .chip", { hasText: name }).click();
 }
 
 const calls = (page, name) => page.evaluate(n => window.__calls.filter(c => c.name === n), name);

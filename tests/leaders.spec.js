@@ -117,41 +117,60 @@ test("téléphone : trois onglets sans débordement @mobile", async ({ open, pag
   expect(new Set(top).size).toBe(1);
 });
 
-test("annuaire des leaders : filtre par staff une fois un pôle choisi @mobile", async ({ open, page }) => {
+test("annuaire des leaders : filtres par pôle et par staff en listes à cocher @mobile", async ({ open, page }) => {
   await open({ user: ADMIN, hash: "#leaders" });
   await expect(page.locator("#serv-grid")).toBeVisible();
-  await expect(page.locator("#sstaff-group")).toBeHidden();
-  await pickPole(page, "sfilters", "Le dimanche");
-  // Bouton « Filtrer par staff » replié, comme celui des pôles
+  // Filtre par staff toujours visible : sans pôle, tous les staffs sont proposés
   const toggle = page.locator(".filt-toggle[aria-controls='sstaff']");
-  await expect(toggle).toBeVisible();
-  await expect(page.locator("#sstaff")).toBeHidden();
   await toggle.click();
-  await expect(page.locator("#sstaff .chip").first()).toHaveAttribute("aria-pressed", "true");
-  const louange = page.locator("#sstaff .chip", { hasText: "Louange" });
+  await expect(page.locator("#sstaff .opt", { hasText: "Scouts" })).toBeVisible();
+  await expect(page.locator("#sstaff .opt", { hasText: "Louange" })).toBeVisible();
+  // Liste des pôles : cases à cocher sous le bouton, elle reste ouverte après un choix
+  await pickPole(page, "sfilters", "Le dimanche");
+  await expect(page.locator("#sfilters")).toBeVisible();
+  await expect(page.locator("#sfilters .opt", { hasText: "Le dimanche" }).locator("input")).toBeChecked();
+  const poleToggle = page.locator(".filt-toggle[aria-controls='sfilters']");
+  await expect(poleToggle).toContainText("Le dimanche");
+  // Ouvrir la liste des staffs referme celle des pôles ; seuls les staffs du pôle coché sont proposés
+  await toggle.click();
+  await expect(page.locator("#sstaff .opt", { hasText: "Scouts" })).toHaveCount(0);
+  await expect(page.locator("#sfilters")).toBeHidden();
+  await expect(page.locator("#sstaff .dd-clear")).toBeDisabled();
+  const louange = page.locator("#sstaff .opt", { hasText: "Louange" });
   const n = Number(await louange.locator(".n").innerText());
-  await louange.click();
-  // Choix multiple : les staffs restent ouverts, le nom s'affiche dans le bouton
+  await louange.locator("input").click();
+  // Choix multiple : la liste reste ouverte, le nom s'affiche dans le bouton
   await expect(page.locator("#sstaff")).toBeVisible();
-  await expect(louange).toHaveAttribute("aria-pressed", "true");
-  await expect(page.locator("#sstaff .chip").first()).toHaveAttribute("aria-pressed", "false");
+  await expect(louange.locator("input")).toBeChecked();
   await expect(toggle).toContainText("Louange");
   await expect(page.locator(".serv-card")).toHaveCount(n);
   for (const card of await page.locator(".serv-card").all()) await expect(card.locator(".roles")).toContainText("Louange");
-  // Deuxième staff : leaders de l'un ou de l'autre
-  const sacristie = page.locator("#sstaff .chip", { hasText: "Sacristie" });
-  await sacristie.click();
-  await expect(toggle).toContainText("Louange, Sacristie");
+  // Deuxième staff : leaders de l'un ou de l'autre, le bouton affiche le nombre de choix
+  const sacristie = page.locator("#sstaff .opt", { hasText: "Sacristie" });
+  await sacristie.locator("input").click();
+  await expect(toggle.locator(".filt-n")).toHaveText("2");
+  await expect(toggle.locator(".filt-cur")).toHaveText("");
   await expect(page.locator(".serv-card")).toHaveCount(n + Number(await sacristie.locator(".n").innerText()));
+  // OK referme la liste
+  await page.click("#sstaff .dd-ok");
+  await expect(page.locator("#sstaff")).toBeHidden();
   // Deuxième pôle : leurs leaders s'ajoutent, les staffs des deux pôles sont proposés
   await pickPole(page, "sfilters", "Jeunes");
-  await expect(page.locator(".filt-toggle[aria-controls='sfilters']")).toContainText("Le dimanche, Jeunes");
-  await expect(page.locator("#sstaff .chip", { hasText: "Scouts" })).toBeVisible();
-  // Retour à « Tous » puis plus aucun pôle : le filtre par staff disparaît
-  await page.locator("#sstaff .chip").first().click();
-  await expect(toggle).not.toContainText("Louange");
+  await expect(poleToggle.locator(".filt-n")).toHaveText("2");
+  // Clic à côté : la liste se referme
+  await page.locator("h1").click();
+  await expect(page.locator("#sfilters")).toBeHidden();
+  await toggle.click();
+  await expect(page.locator("#sstaff .opt", { hasText: "Scouts" })).toBeVisible();
+  // Tout effacer (staffs), la liste reste ouverte ; Échap la referme
+  await page.click("#sstaff .dd-clear");
+  await expect(page.locator("#sstaff")).toBeVisible();
+  await expect(toggle.locator(".filt-n")).toHaveText("");
+  await page.keyboard.press("Escape");
+  await expect(page.locator("#sstaff")).toBeHidden();
+  // Plus aucun pôle : le filtre par staff reste là et propose de nouveau tous les staffs
   await pickPole(page, "sfilters", "Tous");
-  await expect(page.locator("#sstaff-group")).toBeHidden();
+  await expect(page.locator("#sstaff-group")).toBeVisible();
 });
 
 test("annuaire des leaders : copier les coordonnées d'une carte ou de toute la liste @mobile", async ({ open, page }) => {
@@ -162,7 +181,7 @@ test("annuaire des leaders : copier les coordonnées d'une carte ou de toute la 
   await open({ user: ADMIN, hash: "#leaders" });
   await pickPole(page, "sfilters", "Le dimanche");
   await page.click(".filt-toggle[aria-controls='sstaff']");
-  await page.locator("#sstaff .chip", { hasText: "Louange" }).click();
+  await page.locator("#sstaff .opt", { hasText: "Louange" }).locator("input").click();
   const n = await page.locator(".serv-card").count();
   // Une carte : nom, staffs, téléphone, e-mail, une ligne chacun
   const card = page.locator(".serv-card").first();

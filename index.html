@@ -55,6 +55,31 @@ h1 { margin: 14px 0 8px; font: 700 clamp(40px, 8vw, 72px)/.95 Phudu, Montserrat,
 .fgroup { display: contents; }
 .fgroup[hidden] { display: none; }
 .fgroup:not(.open) .filters { display: none; }
+/* Annuaire des leaders : liste déroulante à cases à cocher, juste sous le bouton */
+.fgroup.dd { display: block; position: relative; max-width: 100%; }
+.fgroup.dd[hidden] { display: none; }
+.filterbar .dd .filters { position: absolute; top: calc(100% + 6px); left: 0; z-index: 20; width: 300px; max-height: min(420px, 60vh); overflow-y: auto;
+  flex-direction: column; flex-wrap: nowrap; gap: 0; padding: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+  box-shadow: 0 18px 36px -14px rgba(0, 40, 80, .35), 0 2px 6px rgba(0, 40, 80, .06); }
+.dd .opt { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; cursor: pointer; font-size: 15px; line-height: 1.3; }
+@media (hover: hover) { .dd .opt:hover { background: var(--tint); } }
+.dd .opt:focus-within { background: var(--tint); }
+.dd .opt input { flex: none; width: 18px; height: 18px; margin: 0; accent-color: var(--brand); }
+.dd .opt .dot { flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--c); }
+.dd .opt .nm { flex: 1; min-width: 0; }
+.dd .opt .n { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.dd-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 4px; padding: 8px 10px 4px; border-top: 1px solid var(--border); }
+.dd-clear { padding: 0; border: 0; background: none; color: var(--brand); font: 600 13px/1 Montserrat, sans-serif; cursor: pointer; }
+.dd-clear:disabled { color: var(--muted); opacity: .5; cursor: default; }
+.dd-ok { padding: 8px 14px; border: 0; border-radius: 6px; background: #000; color: #fff; font: 600 13px/1 Montserrat, sans-serif; cursor: pointer; }
+.filt-n { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--brand); color: #fff; letter-spacing: 0; font-size: 11px; }
+.filt-n:empty { display: none; }
+.dd.open .filt-toggle { border-color: var(--brand); }
+/* Téléphone : la liste s'ouvre sous son bouton, en pleine largeur */
+@media (max-width: 640px) {
+  .fgroup.dd { flex-basis: 100%; }
+  .filterbar .dd .filters { position: static; width: 100%; max-height: none; margin-top: 6px; }
+}
 .search { flex: 1 1 100%; width: 100%; padding: 12px 16px 12px 42px; border: 1.5px solid var(--border); border-radius: 999px;
   background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' fill='none' stroke='%235b6b7c' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='8' cy='8' r='6'/%3E%3Cpath d='m17 17-4.5-4.5'/%3E%3C/svg%3E") no-repeat 16px center;
   color: var(--text); font: 16px/1.2 "DM Sans", system-ui, sans-serif; outline: none; }
@@ -485,7 +510,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 </main>
 </div>
 <div id="serv-view" class="view" hidden>
-<div class="bar" role="search" aria-label="Rechercher et filtrer les leaders"><div class="wrap filterbar"><input type="search" id="sq" class="search" placeholder="Rechercher une personne, un staff…" aria-label="Rechercher un leader" autocomplete="off"><div class="fgroup" data-multi="1"><button type="button" class="filt-toggle" aria-expanded="false" aria-controls="sfilters"><span class="filt-lbl">Filtrer par pôle</span><span class="filt-cur"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button><div class="filters" id="sfilters"></div></div><div class="fgroup" id="sstaff-group" data-multi="1" hidden><button type="button" class="filt-toggle" aria-expanded="false" aria-controls="sstaff"><span class="filt-lbl">Filtrer par staff</span><span class="filt-cur"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button><div class="filters" id="sstaff"></div></div></div></div>
+<div class="bar" role="search" aria-label="Rechercher et filtrer les leaders"><div class="wrap filterbar"><input type="search" id="sq" class="search" placeholder="Rechercher une personne, un staff…" aria-label="Rechercher un leader" autocomplete="off"><div class="fgroup dd" data-multi="1"><button type="button" class="filt-toggle" aria-expanded="false" aria-controls="sfilters"><span class="filt-lbl">Filtrer par pôle</span><span class="filt-cur"></span><span class="filt-n"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button><div class="filters" id="sfilters" role="group" aria-label="Pôles"></div></div><div class="fgroup dd" id="sstaff-group" data-multi="1"><button type="button" class="filt-toggle" aria-expanded="false" aria-controls="sstaff"><span class="filt-lbl">Filtrer par staff</span><span class="filt-cur"></span><span class="filt-n"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button><div class="filters" id="sstaff" role="group" aria-label="Staffs"></div></div></div></div>
 <main class="wrap">
   <div class="countbar"><p class="count" id="scount" role="status" aria-live="polite"></p><button type="button" class="copy-all" id="scopy" hidden></button></div>
   <div class="grid serv-grid" id="serv-grid"></div>
