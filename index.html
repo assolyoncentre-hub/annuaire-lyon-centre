@@ -132,6 +132,8 @@ main.wrap { padding-top: 24px; padding-bottom: 56px; }
 .card .desc { margin: 0; font-size: 15px; line-height: 1.5; color: var(--text); }
 .card .pourqui { margin: 0; font-size: 15px; line-height: 1.5; color: var(--text); }
 .card .pourqui strong { color: var(--brand); font-weight: 400; }
+/* Très léger séparateur entre la description et « Pour qui ? » */
+.card .desc + .pourqui { padding-top: 10px; border-top: 1px solid var(--border); }
 /* Section « Contact » dépliable : la liste s'ouvre par-dessus la grille pour ne pas changer la hauteur des cartes */
 /* La zone cliquable couvre toute la largeur et tout le bas de la carte */
 .contact { margin: auto -20px -20px; position: relative; }
