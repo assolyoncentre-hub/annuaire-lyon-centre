@@ -153,6 +153,8 @@ test("annuaire des leaders : filtres par pôle et par staff en listes à cocher 
   await sacristie.locator("input").click();
   await expect(toggle.locator(".filt-n")).toHaveText("2");
   await expect(toggle.locator(".filt-cur")).toHaveText("");
+  // Même hauteur pour les deux boutons, avec ou sans pastille
+  expect((await toggle.boundingBox()).height).toBeCloseTo((await poleToggle.boundingBox()).height, 0);
   await expect(page.locator(".serv-card")).toHaveCount(n + Number(await sacristie.locator(".n").innerText()));
   // OK referme la liste
   await page.click("#sstaff .dd-ok");

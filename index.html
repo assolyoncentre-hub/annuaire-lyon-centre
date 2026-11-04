@@ -75,6 +75,8 @@ h1 { margin: 14px 0 8px; font: 700 clamp(40px, 8vw, 72px)/.95 Phudu, Montserrat,
 .filt-n { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--brand); color: #fff; letter-spacing: 0; font-size: 11px; }
 .filt-n:empty { display: none; }
 .dd.open .filt-toggle { border-color: var(--brand); }
+/* Hauteur fixe, celle du bouton avec la pastille du nombre de choix : les deux filtres restent alignés */
+.dd .filt-toggle { line-height: 20px; }
 /* Téléphone : la liste s'ouvre sous son bouton, en pleine largeur */
 @media (max-width: 640px) {
   .fgroup.dd { flex-basis: 100%; }
