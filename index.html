@@ -569,7 +569,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .entr-titre::after { content: ""; flex: 1; border-top: 1px solid var(--border); }
 #entr-mes .entr-titre { margin-bottom: 20px; }
 /* Pastille rouge : des demandes attendent d'être modérées */
-.entr-pastille { display: inline-block; width: 8px; height: 8px; margin-left: 6px; border-radius: 50%; background: #d92d20; vertical-align: 2px; }
+.entr-pastille { display: inline-block; width: 8px; height: 8px; margin-left: 6px; border-radius: 50%; background: #d92d20; flex: none; }
 /* Demandes pourvues : grisées, sans bouton */
 .entr-msg.aidee { --bulle: #eef2f6; box-shadow: none; }
 .entr-msg.aidee .who { color: var(--text); }
@@ -662,7 +662,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .entr-done p { margin: 0 0 20px; }
 /* Entraide : modération (référents) */
 .entr-tabs[hidden] { display: none; }
-.entr-tabs .tab { text-decoration: none; display: inline-block; }
+.entr-tabs .tab { text-decoration: none; display: inline-flex; align-items: center; }
 .entr-tabs .tab[aria-current="page"] { background: var(--brand); border-color: var(--brand); color: #fff; }
 #entr-mod[hidden], #entr-pub[hidden], #entr-mes[hidden] { display: none; }
 /* Mes demandes : mêmes bulles que le fil, avec l'état de la demande */

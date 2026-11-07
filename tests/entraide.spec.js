@@ -326,3 +326,28 @@ test("Mes demandes : seulement mes demandes, avec les réponses reçues @mobile"
   await expect(damien.locator(".entr-plus")).toBeFocused();
   await expect(page.locator("#entr-mes")).not.toContainText("39 98");
 });
+
+test("pastille rouge sur Mes demandes tant qu'un message attend ma réponse @mobile", async ({ open, page }) => {
+  const MOI = [{ email: "admin@example.org", droit: "admin", prenom: "", nom: "", entraide_voir: true, entraide_moderer: false }];
+  await open({ user: ADMIN, hash: "#entraide", acces: MOI });
+  // Vue « Demandes d'aide » : la pastille est sur Mes demandes (onglet, ou liste déroulante sur téléphone)
+  await expect(page.locator("#entr-tab-mes .entr-pastille")).toHaveCount(1);
+  if (await page.locator("#entr-nav-sel").isVisible()) {
+    await expect(page.locator("#entr-nav-sel")).toHaveClass(/alerte/);
+    await expect(page.locator("#entr-nav-sel option").nth(1)).toHaveText("Mes demandes 🔴");
+  }
+  await page.goto(page.url().replace(/#.*/, "") + "#entraide/mes-demandes");
+  const conv = p => page.locator('.entr-reps[data-prenom="' + p + '"]');
+  await expect(conv("Damien")).toBeVisible();
+  // Répondre à Damien et à Thomas, décliner Claire : plus rien n'attend, la pastille s'éteint
+  for (const p of ["Damien", "Thomas"]) {
+    await conv(p).getByRole("button", { name: "Répondre à " + p }).click();
+    await page.fill("#entr-rep-txt", "Merci !");
+    await page.keyboard.press("Enter");
+    await expect(conv(p).locator(".entr-moi")).toHaveCount(1);
+  }
+  await expect(page.locator("#entr-tab-mes .entr-pastille")).toHaveCount(1);
+  await conv("Claire").getByRole("button", { name: "Décliner" }).click();
+  await expect(page.locator("#entr-tab-mes .entr-pastille")).toHaveCount(0);
+  await expect(page.locator("#entr-nav-sel")).not.toHaveClass(/alerte/);
+});
