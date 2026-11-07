@@ -1,19 +1,19 @@
 name: Déploiement GitHub Pages
 
-# À chaque modification sur main : les tests d'abord, puis la publication si tout est vert.
+# main : production (vraie base). dev : version de test publiée sous /dev/, sur le faux serveur des tests
+# (données fictives, gardées dans le navigateur). À chaque modification, les tests d'abord.
+# Pages ne publie que depuis main : un push sur dev relance donc ce workflow sur main, qui publie les deux.
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
     paths-ignore: [README.md]
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: pages
+  group: pages-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -40,19 +40,47 @@ jobs:
           path: test-results/
           retention-days: 7
 
-  deploy:
+  # Push sur dev : tests verts, puis publication (prod inchangée + dev) par le workflow de main
+  redeploy:
+    if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
     needs: test
     runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - run: gh workflow run pages.yml --ref main -R "$GITHUB_REPOSITORY"
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/configure-pages@v6
-      - run: |
-          mkdir _site && cp index.html confidentialite.html app.js api.js config.js favicon.svg favicon-32.png apple-touch-icon.png _site/
-          # Numéro de version dans les liens des scripts : le navigateur recharge les fichiers à chaque déploiement
-          sed -i "s/__VERSION__/${GITHUB_SHA::7}/g" _site/index.html _site/confidentialite.html
+      - run: scripts/site.sh . _site "${GITHUB_SHA::7}"
+      # Version de test (branche dev) sous /dev/ ; un échec ici ne bloque pas la prod
+      - id: dev
+        continue-on-error: true
+        run: git ls-remote --exit-code --heads origin dev
+      - if: steps.dev.outcome == 'success'
+        uses: actions/checkout@v7
+        with:
+          ref: dev
+          path: dev-src
+      - if: steps.dev.outcome == 'success'
+        continue-on-error: true
+        run: |
+          rm -rf _site/dev
+          dev-src/scripts/site.sh dev-src _site/dev "dev-$(git -C dev-src rev-parse --short HEAD)" demo
       - uses: actions/upload-pages-artifact@v5
       - id: deployment
         uses: actions/deploy-pages@v5
