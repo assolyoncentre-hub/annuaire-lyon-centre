@@ -26,6 +26,7 @@ let entrLoaded = false, entrVus = new Set();
 // Couleur du prénom (fixe pour un même prénom, comme les noms dans un groupe WhatsApp), lisible sur fond blanc
 const ENTR_COULEURS = ["#0060aa", "#0a7d6f", "#a0306b", "#b0451f", "#6b4fbb", "#8a5a00", "#1f6f3a"];
 const entrCouleur = nom => ENTR_COULEURS[[...String(nom)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7) % ENTR_COULEURS.length];
+const ENTR_CAL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>';
 const entrHeure = iso => new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
 function entrJour(iso) {
   const d = new Date(iso), j = x => new Date(x.getFullYear(), x.getMonth(), x.getDate());
@@ -58,7 +59,7 @@ function renderEntraide(list) {
     jour = j;
     return sep + '<article class="entr-msg' + (neuve ? " new" : "") + '" style="--c:' + entrCouleur(d.prenom) + '" data-id="' + esc(d.id) + '">' +
       '<div class="who">' + esc(d.prenom) + (d.quartier ? ' <span class="where">· ' + esc(d.quartier) + "</span>" : "") + "</div>" +
-      '<p class="need">' + esc(d.besoin) + "</p>" + (d.quand ? '<span class="when">🗓️ ' + esc(d.quand) + "</span>" : "") +
+      '<p class="need">' + esc(d.besoin) + "</p>" + (d.quand ? '<div class="when">' + ENTR_CAL + "<span>" + esc(d.quand) + "</span></div>" : "") +
       // « Je peux aider ! » : proposer son aide (fonction à venir)
       '<button type="button" class="entr-aider" data-aider>Je peux aider !</button>' +
       '<time class="time" datetime="' + esc(d.publie_le) + '">' + entrHeure(d.publie_le) + "</time></article>";
