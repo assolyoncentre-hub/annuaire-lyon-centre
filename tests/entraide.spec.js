@@ -57,9 +57,11 @@ test("demandes en conversation : les plus récentes en haut, nouvelles demandes 
 
   // Chaque demande en cours a son bouton « Je peux aider ! » (fonction à venir)
   await expect(page.locator("#entr-list .entr-aider")).toHaveCount(5);
-  // « Je peux aider ! » ouvre la zone de réponse en bas de l'écran
+  // « Je peux aider ! » ouvre la zone de réponse juste sous la demande
   await bulles.first().locator(".entr-aider").click();
   await expect(page.locator("#entr-rep")).toBeVisible();
+  await expect(page.locator(".entr-msg.repond + #entr-rep")).toHaveCount(1);
+  await expect(page.locator(".entr-msg.repond .who")).toContainText("Jeanne");
   await expect(page.locator("#entr-rep-t")).toHaveText("Répondre à Jeanne");
   await expect(page.locator("#entr-rep")).toContainText("Votre réponse ne sera vue que par la personne qui demande de l'aide.");
   await expect(page.locator("#entr-rep-txt")).toBeFocused();

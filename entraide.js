@@ -52,6 +52,8 @@ function renderEntraide(list) {
   const t = $("entr-list"), enHaut = !entrLoaded || entrEnHaut();
   $("entr-count").textContent = list.length ? list.length + (list.length > 1 ? " demandes en cours" : " demande en cours") : "Aucune demande en cours";
   let jour = null, nouvelles = 0;
+  const rep = $("entr-rep"), repFocus = rep.contains(document.activeElement);
+  if (!rep.hidden) $("entr-pub").append(rep); // la réponse en cours de rédaction survit au rafraîchissement
   t.innerHTML = list.length ? [...list].sort((a, b) => b.publie_le.localeCompare(a.publie_le)).map(d => {
     const j = entrJour(d.publie_le), sep = j !== jour ? '<div class="entr-day"><span>' + esc(j) + "</span></div>" : "";
     const neuve = entrLoaded && !entrVus.has(d.id);
@@ -65,34 +67,42 @@ function renderEntraide(list) {
       '<time class="time" datetime="' + esc(d.publie_le) + '">' + entrHeure(d.publie_le) + "</time></div></article>";
   }).join("") : '<p class="empty">Aucune demande d\'aide en cours pour le moment.</p>';
   entrVus = new Set(list.map(d => d.id));
+  if (!rep.hidden) {
+    const m = t.querySelector('.entr-msg[data-id="' + CSS.escape(entrRepId) + '"]');
+    if (m) { entrPlacerReponse(m); if (repFocus) $("entr-rep-txt").focus({ preventScroll: true }); }
+    else { rep.hidden = true; entrRepId = null; } // demande retirée entre-temps
+  }
   // Nouvelle demande en haut du fil : si on lisait plus bas, un bouton la signale
   if (enHaut) $("entr-jump").hidden = true;
   else if (nouvelles) $("entr-jump").hidden = false;
 }
-// « Je peux aider ! » : zone de réponse en bas de l'écran (maquette : l'envoi n'est pas encore branché)
-let entrRepBtn = null;
-function entrRepondre(btn) {
-  const m = btn.closest(".entr-msg");
+// « Je peux aider ! » : zone de réponse glissée juste sous la demande (maquette : l'envoi n'est pas encore branché)
+let entrRepId = null;
+function entrPlacerReponse(m) {
   document.querySelector(".entr-msg.repond")?.classList.remove("repond");
   m.classList.add("repond");
-  entrRepBtn = btn;
+  entrRepId = m.dataset.id;
   const f = $("entr-rep");
-  f.style.setProperty("--c", m.style.getPropertyValue("--c"));
+  m.after(f);
   $("entr-rep-t").textContent = "Répondre à " + m.querySelector(".who").firstChild.textContent.trim();
-  $("entr-rep-need").textContent = m.querySelector(".need").textContent;
   f.hidden = false;
-  document.body.classList.add("entr-repond");
-  // La demande reste visible au-dessus de la zone de réponse
-  const bas = m.getBoundingClientRect().bottom, haut = f.getBoundingClientRect().top;
-  if (bas > haut - 12) scrollBy({ top: bas - haut + 12, behavior: "smooth" });
-  $("entr-rep-txt").focus();
+}
+function entrRepondre(btn) {
+  const f = $("entr-rep"), m = btn.closest(".entr-msg");
+  if (entrRepId !== m.dataset.id) { $("entr-rep-txt").value = ""; $("entr-rep-txt").style.height = ""; $("entr-rep-send").disabled = true; }
+  entrPlacerReponse(m);
+  f.scrollIntoView({ block: "nearest", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  $("entr-rep-txt").focus({ preventScroll: true });
 }
 function entrFermerReponse() {
-  if ($("entr-rep").hidden) return;
-  $("entr-rep").hidden = true;
-  document.body.classList.remove("entr-repond");
-  document.querySelector(".entr-msg.repond")?.classList.remove("repond");
-  entrRepBtn?.focus();
+  const f = $("entr-rep");
+  if (f.hidden) return;
+  const m = document.querySelector(".entr-msg.repond");
+  m?.classList.remove("repond");
+  f.hidden = true;
+  $("entr-pub").append(f); // hors du fil, pour ne pas être effacée au prochain affichage
+  entrRepId = null;
+  m?.querySelector(".entr-aider").focus();
 }
 $("entr-list").addEventListener("click", e => { const b = e.target.closest("[data-aider]"); if (b) entrRepondre(b); });
 $("entr-rep-x").addEventListener("click", entrFermerReponse);
