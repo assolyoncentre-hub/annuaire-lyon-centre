@@ -4,8 +4,9 @@
 const KEY = "annuaire-dev:donnees";
 let saved = null;
 try { saved = JSON.parse(localStorage.getItem(KEY)); } catch { /* stockage indisponible */ }
+// Données gardées d'une version précédente : les nouvelles rubriques (ex. référents de l'entraide) sont complétées
 fake.exports({
-  data: saved || data.exports,
+  data: saved ? { ...data.exports, ...saved } : data.exports,
   user: null,
   acces: saved?.acces || [{ email: "admin@example.org", droit: "admin", civilite: "", prenom: "Admin", nom: "Démo", telephone: "" }],
 });
