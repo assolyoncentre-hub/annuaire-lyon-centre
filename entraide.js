@@ -38,6 +38,15 @@ function entrJour(iso) {
 // La page défile (plus de cadre) : « en bas » = bas de la page visible
 const entrEnBas = () => innerHeight + scrollY >= document.documentElement.scrollHeight - 80;
 const entrVersLeBas = () => scrollTo({ top: document.documentElement.scrollHeight });
+// Demandes pourvues (section « Ils ont déjà été aidés ») : dans l'ordre où elles ont été pourvues, sans bouton
+function renderAidees(list) {
+  $("entr-aides-sec").hidden = !list.length;
+  $("entr-aides").innerHTML = [...list].sort((a, b) => a.close_le.localeCompare(b.close_le)).map(d =>
+    '<article class="entr-msg aidee" style="--c:' + entrCouleur(d.prenom) + '" data-id="' + esc(d.id) + '">' +
+    '<div class="who">' + esc(d.prenom) + (d.quartier ? ' <span class="where">· ' + esc(d.quartier) + "</span>" : "") + '<span class="aide-ok">Aidé ✓</span></div>' +
+    '<p class="need">' + esc(d.besoin) + "</p>" +
+    '<time class="time" datetime="' + esc(d.close_le) + '">Aidé ' + esc(entrJour(d.close_le).toLowerCase()) + "</time></article>").join("");
+}
 function renderEntraide(list) {
   const t = $("entr-list"), enBas = entrLoaded && entrEnBas();
   $("entr-count").textContent = list.length ? list.length + (list.length > 1 ? " demandes en cours" : " demande en cours") : "Aucune demande en cours";
@@ -50,6 +59,8 @@ function renderEntraide(list) {
     return sep + '<article class="entr-msg' + (neuve ? " new" : "") + '" style="--c:' + entrCouleur(d.prenom) + '" data-id="' + esc(d.id) + '">' +
       '<div class="who">' + esc(d.prenom) + (d.quartier ? ' <span class="where">· ' + esc(d.quartier) + "</span>" : "") + "</div>" +
       '<p class="need">' + esc(d.besoin) + "</p>" + (d.quand ? '<span class="when">🗓️ ' + esc(d.quand) + "</span>" : "") +
+      // « Je peux aider ! » : proposer son aide (fonction à venir)
+      '<button type="button" class="entr-aider" data-aider>Je peux aider !</button>' +
       '<time class="time" datetime="' + esc(d.publie_le) + '">' + entrHeure(d.publie_le) + "</time></article>";
   }).join("") : '<p class="empty">Aucune demande d\'aide en cours pour le moment.</p>';
   entrVus = new Set(list.map(d => d.id));
@@ -57,13 +68,19 @@ function renderEntraide(list) {
   if (enBas) { entrVersLeBas(); $("entr-jump").hidden = true; }
   else if (nouvelles) $("entr-jump").hidden = false;
 }
+$("entr-list").addEventListener("click", e => {
+  if (e.target.closest("[data-aider]")) toast("Bientôt disponible : vous pourrez proposer votre aide directement d'ici.");
+});
 $("entr-jump").addEventListener("click", () => { entrVersLeBas(); $("entr-jump").hidden = true; });
 addEventListener("scroll", () => { if (!$("entr-jump").hidden && entrEnBas()) $("entr-jump").hidden = true; }, { passive: true });
 let entrSeq = 0;
 async function loadEntraide() {
   const seq = ++entrSeq;
   if (!entrLoaded) $("entr-count").textContent = "Chargement…";
-  try { const list = await api.entraide(); if (seq === entrSeq) { renderEntraide(list); entrLoaded = true; } }
+  try {
+    const [list, aidees] = await Promise.all([api.entraide(), api.entraidePourvues()]);
+    if (seq === entrSeq) { renderEntraide(list); renderAidees(aidees); entrLoaded = true; }
+  }
   catch { if (!entrLoaded) { $("entr-count").textContent = ""; $("entr-list").innerHTML = '<p class="empty">Impossible de charger les demandes pour le moment.</p>'; } }
 }
 

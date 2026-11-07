@@ -48,6 +48,18 @@ test("demandes en conversation : les plus récentes en bas, nouvelles demandes a
   await expect(page.locator("#entr-pub .entr-intro")).toHaveCount(0);
   await expect(page.locator("#entr-ask")).toBeVisible();
 
+  // Deux parties : en cours, puis déjà aidés (demandes pourvues, sans bouton ni téléphone)
+  await expect(page.locator("#entr-pub h2.entr-titre")).toHaveText(["Ils ont besoin d'aide", "Ils ont déjà été aidés"]);
+  await expect(page.locator("#entr-aides .entr-msg")).toHaveCount(1);
+  await expect(page.locator("#entr-aides")).toContainText("Gérard");
+  await expect(page.locator("#entr-aides .entr-aider")).toHaveCount(0);
+  await expect(page.locator("#entr-list")).not.toContainText("Gérard");
+
+  // Chaque demande en cours a son bouton « Je peux aider ! » (fonction à venir)
+  await expect(page.locator("#entr-list .entr-aider")).toHaveCount(5);
+  await bulles.first().locator(".entr-aider").click();
+  await expect(page.locator("#toast")).toContainText("Bientôt disponible");
+
   // Un modérateur publie une demande ailleurs : elle s'ajoute en bas, sans recharger la page
   await page.evaluate(() => {
     window.__S.entraide.push({ id: "live1", prenom: "Pierre", telephone: "+33639980099", besoin: "Porter des cartons samedi", quand: "Samedi", quartier: "Vaise", statut: "publiee", publie: 0 });

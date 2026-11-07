@@ -52,6 +52,12 @@ module.exports = function installFakeApi({ data, user, acces }) {
       return S.entraide.filter(d => d.statut === "publiee").map(d => ({ id: d.id, prenom: d.prenom, quartier: d.quartier, besoin: d.besoin, quand: d.quand, publie_le: ago(d.publie ?? d.jours) }))
         .sort((a, b) => b.publie_le.localeCompare(a.publie_le));
     },
+    async entraidePourvues() {
+      guardVoir(); log("entraidePourvues");
+      return S.entraide.filter(d => d.statut === "pourvue").map(entrRow).filter(d => Date.now() - new Date(d.close_le) < 30 * 86400000)
+        .map(d => ({ id: d.id, prenom: d.prenom, quartier: d.quartier, besoin: d.besoin, quand: d.quand, publie_le: d.publiee_le, close_le: d.close_le }))
+        .sort((a, b) => b.close_le.localeCompare(a.close_le));
+    },
     async entraideDemander(d) {
       guardVoir(); log("entraideDemander", d);
       if (d.p_site) return null;

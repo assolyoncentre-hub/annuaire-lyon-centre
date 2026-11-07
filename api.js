@@ -47,6 +47,8 @@ window.makeApi = function () {
     // (réservé aux comptes qui ont le droit « voir l'entraide » : appels faits avec la session)
     entraide: () => sbRpc("entraide_publiees"),
     entraideDemander: d => sbRpc("entraide_demander", d),
+    // Demandes pourvues ces 30 derniers jours (section « déjà aidés »), sans téléphone
+    entraidePourvues: () => sbRpc("entraide_pourvues"),
     // Droit Entraide de la personne connectée ("moderer", "voir" ou null), réglé sur sa fiche contact
     droitEntraide: () => sbRpc("mon_droit_entraide"),
     // Modération, réservée au droit « modérer » (vérifié par la base)
