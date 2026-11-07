@@ -43,6 +43,9 @@ window.makeApi = function () {
       return { poles, services };
     },
     contacts: id => rpc("annuaire_contacts", { p_service: id }),
+    // Entraide : demandes publiées (prénom, quartier, besoin, quand ; jamais le téléphone), et dépôt d'une demande
+    entraide: () => rpc("entraide_publiees"),
+    entraideDemander: d => rpc("entraide_demander", d),
     responsables: id => rpc("annuaire_responsables", { p_pole: id }),
     // Staffs et pôles dont un leader porte ce nom (la base ne renvoie jamais les noms eux-mêmes)
     searchPeople: q => rpc("annuaire_recherche", { q }),

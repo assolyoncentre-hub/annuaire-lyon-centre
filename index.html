@@ -536,6 +536,25 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .copy-ico.done { border-color: #1d6b3a; color: #1d6b3a; background: #e8f4ec; }
 .copy-all.done { border-color: #1d6b3a; background: #1d6b3a; }
 .person .fields input[type=tel] { grid-column: 1 / -1; }
+/* Entraide : liste succincte des demandes publiées, et formulaire qui se dévoile champ après champ */
+.entr-intro .btn { flex: none; }
+.entr-row { grid-template-columns: 1fr auto !important; align-items: start; }
+.entr-row .title { font-weight: 700; }
+.entr-row .title .where { color: var(--muted); font-weight: 500; }
+.entr-row .need { margin: 2px 0 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.entr-row .when { margin-top: 6px; color: var(--brand); font: 600 13px/1.3 Montserrat, sans-serif; }
+.entr-row .ago { color: var(--muted); font-size: 13px; white-space: nowrap; }
+@media (max-width: 520px) { .entr-row { grid-template-columns: 1fr !important; } .entr-row .ago { order: -1; } }
+.entr-last { display: grid; gap: 14px; }
+[data-step]:not([hidden]) { animation: entr-in .3s ease-out; }
+@keyframes entr-in { from { opacity: 0; transform: translateY(-6px); } }
+@media (prefers-reduced-motion: reduce) { [data-step]:not([hidden]) { animation: none; } }
+.entr-error { margin: 0; padding: 10px 12px; border-radius: 8px; background: #fdecec; color: #a12622; }
+.entr-error[hidden] { display: none; }
+.entr-done { padding: 22px 24px 24px; }
+.entr-done[hidden] { display: none; }
+.entr-done h3 { margin: 0 0 8px; font: 700 26px/1.1 Phudu, Montserrat, sans-serif; text-transform: uppercase; color: var(--brand); }
+.entr-done p { margin: 0 0 20px; }
 </style>
 </head>
 <body>
@@ -546,7 +565,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
         <div class="acct-menu" id="acct-menu" hidden><button type="button" id="logout">Se déconnecter</button></div></div></div>
     <h1 id="h1">Annuaire des propositions</h1>
     <nav class="switch" id="switch" aria-label="Annuaires">
-      <a href="#" id="sw-prop">Propositions</a><a href="#leaders" id="sw-serv">Leaders</a><a href="#admin" id="sw-admin" aria-label="Administration" hidden><svg class="gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span class="long">Administration</span><span class="short" aria-hidden="true">Admin</span></a>
+      <a href="#" id="sw-prop">Propositions</a><a href="#leaders" id="sw-serv">Leaders</a><a href="#entraide" id="sw-entr">Entraide</a><a href="#admin" id="sw-admin" aria-label="Administration" hidden><svg class="gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span class="long">Administration</span><span class="short" aria-hidden="true">Admin</span></a>
     </nav>
   </div>
 </header>
@@ -563,6 +582,14 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 <main class="wrap">
   <div class="countbar"><p class="count" id="scount" role="status" aria-live="polite"></p><button type="button" class="copy-all" id="scopy" hidden></button></div>
   <div class="grid serv-grid" id="serv-grid"></div>
+</main>
+</div>
+<div id="entr-view" class="view" hidden>
+<main class="wrap">
+  <div class="resp entr-intro"><p><strong>Besoin d'un coup de main ?</strong>Un trajet, un petit bricolage, des courses… Déposez votre demande : un référent la relit avant de la publier.</p>
+    <button type="button" class="btn btn-primary" id="entr-ask">Demander de l'aide</button></div>
+  <p class="count" id="entr-count" role="status" aria-live="polite"></p>
+  <div class="list entr-list" id="entr-list"></div>
 </main>
 </div>
 <div id="admin-view" class="view" hidden>
@@ -648,9 +675,42 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
     <form id="ed-form" novalidate></form>
   </div>
 </div>
+<div class="modal-bg" id="entr-modal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="e-title">
+    <div class="modal-head">
+      <div class="kicker">Entraide</div>
+      <h2 id="e-title">Demander de l'aide</h2>
+      <p>Un référent relira votre demande avant de la publier.</p>
+    </div>
+    <form id="e-form" novalidate>
+      <div class="field" data-step="0"><label for="e-besoin">De quoi avez-vous besoin ?</label>
+        <textarea id="e-besoin" name="besoin" maxlength="500" placeholder="Par exemple : un trajet pour un rendez-vous, changer une ampoule…"></textarea>
+        <div class="hint">Restez discret : inutile de préciser un motif médical.</div></div>
+      <div class="field" data-step="1" hidden><label for="e-quand">Quand ? <span class="opt">(facultatif)</span></label>
+        <input id="e-quand" name="quand" maxlength="100" placeholder="Jeudi 14 h, dès que possible…"></div>
+      <div class="field" data-step="2" hidden><label for="e-quartier">Dans quel quartier ? <span class="opt">(facultatif)</span></label>
+        <input id="e-quartier" name="quartier" maxlength="100" placeholder="Croix-Rousse, Presqu'île…"></div>
+      <div class="entr-last" data-step="3" hidden>
+        <div class="field"><label for="e-prenom">Votre prénom</label><input id="e-prenom" name="prenom" maxlength="60" autocomplete="given-name"></div>
+        <div class="field"><label for="e-tel">Votre téléphone WhatsApp</label><input id="e-tel" name="tel" type="tel" inputmode="tel" autocomplete="tel" placeholder="06 12 34 56 78">
+          <div class="hint">Il n'est pas publié : seuls les référents le voient.</div></div>
+        <div class="field"><label class="check"><input type="checkbox" name="accord" id="e-accord">J'accepte que ma demande soit publiée, avec mon prénom (sans mon numéro).</label></div>
+      </div>
+      <p class="entr-error" id="e-error" role="alert" hidden></p>
+      <div class="hp" aria-hidden="true"><label>Site <input name="site" tabindex="-1" autocomplete="off"></label></div>
+      <div class="actions"><button type="button" class="btn btn-ghost" id="e-cancel">Annuler</button><button type="submit" class="btn btn-primary" id="e-next">Continuer</button></div>
+    </form>
+    <div class="entr-done" id="e-done" hidden>
+      <h3 id="e-done-title">Merci !</h3>
+      <p>Votre demande est bien arrivée. Un référent va la relire, puis la publier ici et dans le groupe WhatsApp « Besoin d'aide ». La personne qui pourra vous aider vous contactera directement.</p>
+      <div class="actions"><button type="button" class="btn btn-primary" id="e-close">Fermer</button></div>
+    </div>
+  </div>
+</div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script src="config.js?v=__VERSION__"></script>
 <script src="api.js?v=__VERSION__"></script>
 <script src="app.js?v=__VERSION__"></script>
+<script src="entraide.js?v=__VERSION__"></script>
 </body>
 </html>

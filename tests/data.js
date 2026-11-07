@@ -43,4 +43,12 @@ module.exports = {
     { pole_id: "jeunes", civilite: null, prenom: "Alexia", nom: "do Carmo", email: "alexia@example.org", position: 0 },
   ],
   messages: [],
+  // Entraide : demandes publiées (fictives), dates relatives à l'ouverture de la page
+  entraide: [
+    { id: "e1", prenom: "Jeanne", quartier: "Croix-Rousse", besoin: "Me conduire chez le médecin, je ne peux pas me déplacer seule.", quand: "Jeudi 14 h", jours: 0 },
+    { id: "e2", prenom: "Paul", quartier: "", besoin: "Changer une ampoule au plafond de la cuisine, je n'ai pas d'escabeau.", quand: "Cette semaine", jours: 1 },
+    { id: "e3", prenom: "Marie", quartier: "Presqu'île", besoin: "Porter des courses lourdes depuis le marché.", quand: "Samedi matin", jours: 2 },
+    { id: "e4", prenom: "Bernard", quartier: "Saint-Jean", besoin: "Monter un meuble livré en kit : une armoire deux portes, notice comprise mais je n'y arrive pas seul.", quand: "Le week-end prochain", jours: 3 },
+    { id: "e5", prenom: "Monique", quartier: "Terreaux", besoin: "Apprendre à faire un appel vidéo avec mes petits-enfants.", quand: "", jours: 5 },
+  ],
 };

@@ -140,7 +140,7 @@ function toast(msg) {
 // La fenêtre s'adresse soit aux contacts d'un staff, soit aux responsables d'un pôle
 let lastFocus = null, modalTarget = null;
 // Pendant qu'une fenêtre est ouverte, le reste de la page est inactif : Tab reste dans la fenêtre
-const setPageInert = on => [document.querySelector(".hero"), $("dir-view"), $("admin-view"), document.querySelector(".site-footer")]
+const setPageInert = on => [document.querySelector(".hero"), $("dir-view"), $("entr-view"), $("admin-view"), document.querySelector(".site-footer")]
   .forEach(el => { if (el) el.inert = on; });
 function openModal(t) {
   modalTarget = t;
@@ -271,15 +271,16 @@ const TAB_OF = { staffs: "services", poles: "poles", contacts: "contacts", messa
 function route() {
   // Ancienne adresse de la page (« serviteurs ») : redirigée
   if (location.hash === "#serviteurs") history.replaceState(null, "", "#leaders");
-  const h = location.hash, serv = h === "#leaders", showServ = serv && canLeaders;
+  const h = location.hash, serv = h === "#leaders", showServ = serv && canLeaders, entr = h === "#entraide";
   // Administration : « #admin » (staffs), « #admin/poles », « #admin/contacts », « #admin/messages »
   const adminHash = h === "#admin" || h.startsWith("#admin/");
   if (adminHash) { const t = TAB_OF[h.slice(7)] || "services"; if (t !== adminTab) showTab(t); }
   const admin = adminHash || (serv && !canLeaders);
-  $("dir-view").hidden = admin || serv;
+  $("dir-view").hidden = admin || serv || entr;
+  $("entr-view").hidden = !entr;
   $("serv-view").hidden = !showServ;
   $("admin-view").hidden = !admin;
-  $("h1").textContent = serv ? "Annuaire des leaders" : admin ? (session ? "Administration" : "Connexion") : "Annuaire des propositions";
+  $("h1").textContent = entr ? "Entraide" : serv ? "Annuaire des leaders" : admin ? (session ? "Administration" : "Connexion") : "Annuaire des propositions";
   // En haut à droite : « Connexion », ou le prénom de la personne connectée (menu avec « Se déconnecter »)
   const label = session ? firstName() : "Connexion";
   $("admin-label").textContent = label;
@@ -289,8 +290,8 @@ function route() {
   // Onglets : Propositions et Leaders pour tous (Leaders sans être administrateur affiche la connexion),
   // Administration seulement pour un administrateur connecté
   $("sw-admin").hidden = !isAdmin;
-  for (const k of ["sw-prop", "sw-serv", "sw-admin"]) $(k).removeAttribute("aria-current");
-  const cur = serv ? "sw-serv" : adminHash ? (isAdmin ? "sw-admin" : null) : "sw-prop";
+  for (const k of ["sw-prop", "sw-serv", "sw-entr", "sw-admin"]) $(k).removeAttribute("aria-current");
+  const cur = entr ? "sw-entr" : serv ? "sw-serv" : adminHash ? (isAdmin ? "sw-admin" : null) : "sw-prop";
   if (cur) $(cur).setAttribute("aria-current", "page");
   $("login-title").textContent = serv ? "Accès réservé" : "Connexion";
   if (admin || serv) ensureAuth();
@@ -304,7 +305,7 @@ function route() {
   if (admin) renderAdmin();
   if (showServ) renderServ();
   // Retour en haut seulement en changeant de vue (pas quand la connexion se termine en arrière-plan)
-  const view = showServ ? "serv" : admin ? "admin" : "dir";
+  const view = entr ? "entr" : showServ ? "serv" : admin ? "admin" : "dir";
   if (view !== lastViewAdmin) window.scrollTo(0, 0);
   lastViewAdmin = view;
 }

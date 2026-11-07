@@ -32,6 +32,17 @@ module.exports = function installFakeApi({ data, user, acces }) {
   };
 
   window.__api = {
+    // Entraide : demandes publiées (jamais le téléphone) et dépôt d'une demande
+    async entraide() {
+      log("entraide");
+      return (S.entraide || []).map(({ jours, ...d }) => ({ ...d, publie_le: new Date(Date.now() - jours * 86400000).toISOString() }));
+    },
+    async entraideDemander(d) {
+      log("entraideDemander", d);
+      if (!d.p_accord) throw new Error("Votre accord est nécessaire pour publier la demande.");
+      (S.demandes ||= []).push(d);
+      return "d" + n++;
+    },
     async loadPublic() {
       log("loadPublic");
       return { poles: clone(S.poles), services: S.services.map(s => ({ ...s, nb_contacts: S.contacts.filter(c => c.service_id === s.id).length })) };
