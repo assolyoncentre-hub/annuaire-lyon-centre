@@ -25,6 +25,7 @@ module.exports = function installFakeApi({ data, user, acces }) {
   const guardRead = () => { if (!droit()) throw new Error("refusé (règles d'accès)"); };
   // Entraide : droit « voir » ou « modérer » sur la ligne « acces » (fiche contact) ; dates relatives à l'ouverture de la page
   S.entraide ||= [];
+  S.entraideReponses ||= [];
   const entrDe = e => { const a = S.acces.find(x => x.email === e); return a?.entraide_moderer ? "moderer" : a?.entraide_voir ? "voir" : null; };
   const entrMoi = () => session ? entrDe(session.user.email.toLowerCase()) : null;
   const guardVoir = () => { if (!entrMoi()) throw new Error("Accès réservé."); };
@@ -70,10 +71,19 @@ module.exports = function installFakeApi({ data, user, acces }) {
       if (S.entraide.filter(x => x.telephone === t && x.statut === "a_valider").length >= 3) throw new Error("Vous avez déjà plusieurs demandes en attente : un référent va les relire très vite.");
       const id = "e" + n++;
       signal();
-      S.entraide.push({ id, prenom: d.p_prenom.trim(), telephone: t, besoin: d.p_besoin.trim(), quand: (d.p_quand || "").trim(), quartier: (d.p_quartier || "").trim(), statut: "a_valider", jours: 0, cree: Date.now() });
+      S.entraide.push({ id, auteur: session.user.email.toLowerCase(), prenom: d.p_prenom.trim(), telephone: t, besoin: d.p_besoin.trim(), quand: (d.p_quand || "").trim(), quartier: (d.p_quartier || "").trim(), statut: "a_valider", jours: 0, cree: Date.now() });
       return id;
     },
     async droitEntraide() { return entrMoi(); },
+    // Mes demandes (maquette, version de test seulement) : les demandes du compte connecté et les réponses reçues
+    async entraideMesDemandes() {
+      guardVoir(); log("entraideMesDemandes");
+      const moi = session.user.email.toLowerCase();
+      return S.entraide.filter(d => d.auteur === moi).map(d => ({ ...entrRow(d), telephone: undefined,
+        reponses: S.entraideReponses.filter(r => r.demande === d.id).map(r => ({ id: r.id, prenom: r.prenom, texte: r.texte, le: new Date(Date.now() - r.heures * 3600000).toISOString() }))
+          .sort((a, b) => a.le.localeCompare(b.le)) }))
+        .sort((a, b) => b.created_at.localeCompare(a.created_at));
+    },
     async entraideModeration() { guardRef(); return S.entraide.map(entrRow).sort((a, b) => b.created_at.localeCompare(a.created_at)); },
     async entraideModifier(id, c) {
       guardRef(); log("entraideModifier", { id, ...c });

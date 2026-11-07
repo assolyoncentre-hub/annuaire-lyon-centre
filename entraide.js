@@ -84,7 +84,7 @@ const ENTR_CADENAS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
 function entrRepsHtml(id, prenom) {
   const l = entrReponses.get(id) || [];
   return '<div class="entr-reps" data-pour="' + esc(id) + '" data-prenom="' + esc(prenom) + '">' + (l.length ?
-    '<p class="entr-rep-note">' + ENTR_CADENAS + "Vos messages, visibles seulement par " + esc(prenom) + "</p>" +
+    '<p class="entr-rep-note">' + ENTR_CADENAS + "Vos messages ne sont visibles que par " + esc(prenom) + "</p>" +
     l.map(r => '<div class="entr-moi" data-rep="' + r.id + '"><p class="txt">' + esc(r.texte) + "</p>" +
       '<div class="entr-moi-pied"><span class="entr-moi-act"><button type="button" data-modifier>Modifier</button><button type="button" data-supprimer>Supprimer</button></span>' +
       '<time class="time" datetime="' + esc(r.le) + '">' + (r.modifie ? "Modifié · " : "") + entrHeure(r.le) + "</time></div></div>").join("") +
@@ -221,6 +221,7 @@ function entrRafraichir() {
   const h = location.hash;
   if (h === "#entraide" && canEntraide) loadEntraide();
   else if (h === "#entraide/moderation" && isReferent && entrModShown) loadModeration();
+  else if (h === "#entraide/mes-demandes" && canEntraide) renderMesDemandes();
 }
 async function entrEcouter(on) {
   if (!on) { entrArret?.then(stop => stop?.()); entrArret = null; $("entr-live").hidden = true; return; }
@@ -348,16 +349,35 @@ function onEntraideRoute() {
   else if (!entrModShown) { entrModShown = true; entrDemandes = null; renderModeration(); loadModeration(); }
 }
 $("entr-nav-sel").addEventListener("change", e => { location.hash = e.target.value; });
-// Mes demandes (maquette) : les demandes envoyées depuis l'ouverture de la page, avec leur état
+// Mes demandes (maquette) : mes demandes d'aide et les réponses reçues, rien d'autre.
+// Version de test : le faux serveur relie les demandes au compte (entraideMesDemandes) ; en prod, la base ne le fait pas
+// encore : seules les demandes envoyées depuis l'ouverture de la page apparaissent, sans réponse.
 const entrMesDemandes = [];
-function renderMesDemandes() {
-  $("entr-mes-list").innerHTML = entrMesDemandes.length ? [...entrMesDemandes].reverse().map(d =>
-    '<article class="entr-msg" style="--c:' + entrCouleur(d.prenom) + '">' +
-      '<div class="who">' + esc(d.prenom) + (d.quartier ? ' <span class="where">· ' + esc(d.quartier) + "</span>" : "") + "</div>" +
+const ENTR_MON_STATUT = { a_valider: ["En attente de validation", "wait"], publiee: ["Publiée", "lead"], pourvue: ["Aidé ✓", "ok"], refusee: ["Non publiée", "none"] };
+let entrMesSeq = 0;
+async function renderMesDemandes() {
+  const seq = ++entrMesSeq, el = $("entr-mes-list");
+  let list = entrMesDemandes.map(d => ({ ...d, statut: "a_valider", created_at: d.le, reponses: [] }));
+  if (api.entraideMesDemandes) {
+    if (!el.childElementCount) el.innerHTML = '<p class="empty">Chargement…</p>';
+    try { list = await api.entraideMesDemandes(); }
+    catch { if (seq === entrMesSeq) el.innerHTML = '<p class="empty">Impossible de charger vos demandes pour le moment.</p>'; return; }
+    if (seq !== entrMesSeq) return;
+  }
+  el.innerHTML = list.length ? [...list].sort((a, b) => b.created_at.localeCompare(a.created_at)).map(d => {
+    const [label, cls] = ENTR_MON_STATUT[d.statut] || ENTR_MON_STATUT.a_valider, rep = d.reponses || [];
+    return '<article class="entr-msg entr-mienne">' +
+      '<div class="who">Ma demande' + (d.quartier ? ' <span class="where">· ' + esc(d.quartier) + "</span>" : "") + "</div>" +
       '<p class="need">' + esc(d.besoin) + "</p>" + (d.quand ? '<div class="when">' + ENTR_CAL + "<span>" + esc(d.quand) + "</span></div>" : "") +
-      '<div class="entr-mes-etat"><span class="badge wait">En attente de validation</span><span>Aucune réponse pour l\'instant</span></div>' +
-      '<time class="time" datetime="' + esc(d.le) + '">' + entrHeure(d.le) + "</time></article>").join("")
-    : '<p class="entr-mes-vide">Vous n\'avez pas encore déposé de demande d\'aide. Utilisez « J\'ai besoin d\'aide » : vous retrouverez ici vos demandes, leur état et les réponses reçues.</p>';
+      '<div class="entr-pied"><span class="badge ' + cls + '">' + esc(label) + "</span>" +
+      '<time class="time" datetime="' + esc(d.created_at) + '">' + esc(entrJour(d.created_at)) + ", " + entrHeure(d.created_at) + "</time></div></article>" +
+      (rep.length ? '<div class="entr-reps entr-recues"><p class="entr-rep-note">' + ENTR_CADENAS +
+        (rep.length > 1 ? rep.length + " réponses, qui ne sont visibles que par vous" : "1 réponse, qui n'est visible que par vous") + "</p>" +
+        rep.map(r => '<div class="entr-recue" style="--c:' + entrCouleur(r.prenom) + '"><div class="who">' + esc(r.prenom) + "</div>" +
+          '<p class="txt">' + esc(r.texte) + '</p><time class="time" datetime="' + esc(r.le) + '">' + esc(entrJour(r.le)) + ", " + entrHeure(r.le) + "</time></div>").join("") + "</div>"
+        : d.statut === "publiee" ? '<p class="entr-sans-rep">Aucune réponse pour l\'instant.</p>' : "");
+  }).join("")
+    : '<p class="entr-mes-vide">Vous n\'avez pas encore déposé de demande d\'aide. Utilisez « J\'ai besoin d\'aide » : vous retrouverez ici vos demandes et les réponses reçues.</p>';
 }
 onEntraideRoute(); // premier affichage : route() a pu s'exécuter avant le chargement de ce fichier
 

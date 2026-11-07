@@ -88,7 +88,7 @@ test("demandes en conversation : les plus récentes en haut, nouvelles demandes 
   await page.locator("#entr-rep-send").click();
   const fil = page.locator("#entr-list .entr-reps").first(), moi = fil.locator(".entr-moi");
   await expect(moi).toHaveText([/Bonjour, je peux vous conduire jeudi\./]);
-  await expect(fil).toContainText("Vos messages, visibles seulement par Jeanne");
+  await expect(fil).toContainText("Vos messages ne sont visibles que par Jeanne");
   await expect(page.locator("#entr-rep")).toBeHidden();
   await expect(fil.locator(".entr-plus")).toBeFocused();
   await fil.locator(".entr-plus").click();
@@ -282,4 +282,21 @@ test("téléphone : quatre onglets (avec Entraide et Administration) visibles sa
   const rights = await page.locator("#switch a:not([hidden])").evaluateAll(as => as.map(a => a.getBoundingClientRect().right));
   expect(rights).toHaveLength(4);
   for (const r of rights) expect(r).toBeLessThanOrEqual(width);
+});
+
+test("Mes demandes : seulement mes demandes, avec les réponses reçues @mobile", async ({ open, page }) => {
+  const MOI = [{ email: "admin@example.org", droit: "admin", prenom: "", nom: "", entraide_voir: true, entraide_moderer: false }];
+  await open({ user: ADMIN, hash: "#entraide/mes-demandes", acces: MOI });
+  const mes = page.locator("#entr-mes-list .entr-mienne");
+  await expect(mes).toHaveCount(3);
+  await expect(page.locator("#entr-mes")).not.toContainText("Jeanne"); // demandes des autres : absentes
+  await expect(mes.filter({ hasText: "Réparer un robinet" })).toContainText("En attente de validation");
+  await expect(mes.filter({ hasText: "cartons de livres" })).toContainText("Aidé ✓");
+  const paul = mes.filter({ hasText: "escabeau" });
+  await expect(paul).toContainText("Publiée");
+  // Réponses reçues, juste sous la demande, dans l'ordre d'arrivée
+  const recues = page.locator(".entr-mienne:has-text('escabeau') + .entr-recues");
+  await expect(recues).toContainText("3 réponses, qui ne sont visibles que par vous");
+  await expect(recues.locator(".entr-recue .who")).toHaveText(["Damien", "Damien", "Claire"]);
+  await expect(page.locator("#entr-mes")).not.toContainText("39 98");
 });

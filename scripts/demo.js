@@ -2,8 +2,8 @@
 // et tests/data.js (data). Les modifications sont gardées dans ce navigateur (localStorage).
 // Connexion : administrateur « admin@example.org » (droits Voir et Modérer l'entraide), ou un leader des données ; code 123456.
 // Clé versionnée : changer de version efface les données de démo enregistrées par une version précédente.
-const KEY = "annuaire-dev:donnees-v2";
-try { localStorage.removeItem("annuaire-dev:donnees"); } catch { /* stockage indisponible */ }
+const KEY = "annuaire-dev:donnees-v3";
+try { localStorage.removeItem("annuaire-dev:donnees"); localStorage.removeItem("annuaire-dev:donnees-v2"); } catch { /* stockage indisponible */ }
 let saved = null;
 try { saved = JSON.parse(localStorage.getItem(KEY)); } catch { /* stockage indisponible */ }
 // Données gardées d'une version précédente : les nouvelles rubriques (ex. référents de l'entraide) sont complétées
