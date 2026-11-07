@@ -538,9 +538,22 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .person .fields input[type=tel] { grid-column: 1 / -1; }
 /* Entraide : liste succincte des demandes publiées, et formulaire qui se dévoile champ après champ */
 /* Entraide : demandes publiées en conversation (bulles comme dans un groupe WhatsApp, aux couleurs du site) */
-.entr-top { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin: 0 0 8px; }
+/* Barre du haut : « Demander de l'aide » à gauche, sélecteur Demandes publiées / Modération (modérateurs) à droite */
+.entr-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin: 0 0 20px; }
+.entr-bar .entr-tabs { margin: 0 0 0 auto; }
+/* Titre « Ils/elles ont besoin d'aide » avec « En direct » ferré à droite sur la même ligne */
+.entr-titre-l { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.entr-court { display: none; }
+/* Téléphone : bouton et sélecteur restent sur une seule ligne (libellé court « Publiées ») */
+@media (max-width: 520px) {
+  .entr-bar { flex-wrap: nowrap; gap: 8px; }
+  .entr-bar .btn { flex: none; padding-left: 14px; padding-right: 14px; }
+  .entr-bar .entr-tabs { width: auto; gap: 4px; }
+  .entr-bar .entr-tabs .tab { flex: none; padding: 9px 10px; }
+  .entr-long { display: none; } .entr-court { display: inline; }
+}
 /* Nombre de demandes : pas affiché, seulement lu par les lecteurs d'écran */
-.entr-top .count { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.entr-count { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .entr-live { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; font: 600 12px/1 Montserrat, sans-serif; color: #1d6b43; white-space: nowrap; }
 .entr-live[hidden] { display: none; }
 .entr-live i { width: 8px; height: 8px; border-radius: 50%; background: #2fae63; box-shadow: 0 0 0 3px rgba(47, 174, 99, .2); }
@@ -612,7 +625,6 @@ body.entr-repond main { padding-bottom: 220px; }
 .entr-done h3 { margin: 0 0 8px; font: 700 26px/1.1 Phudu, Montserrat, sans-serif; text-transform: uppercase; color: var(--brand); }
 .entr-done p { margin: 0 0 20px; }
 /* Entraide : modération (référents) */
-.entr-tabs { margin: 0 0 20px; }
 .entr-tabs[hidden] { display: none; }
 .entr-tabs .tab { text-decoration: none; display: inline-block; }
 .entr-tabs .tab[aria-current="page"] { background: var(--brand); border-color: var(--brand); color: #fff; }
@@ -669,18 +681,18 @@ body.entr-repond main { padding-bottom: 220px; }
 <div id="entr-view" class="view" hidden>
 <main class="wrap">
   <!-- Référents connectés : bascule entre la liste publique et la modération -->
-  <nav class="tabs entr-tabs" id="entr-tabs" aria-label="Entraide" hidden>
-    <a class="tab" href="#entraide" id="entr-tab-pub">Demandes publiées</a><a class="tab" href="#entraide/moderation" id="entr-tab-mod">Modération</a>
-  </nav>
+  <div class="entr-bar" id="entr-bar"><button type="button" class="btn btn-primary" id="entr-ask">Demander de l'aide</button>
+    <nav class="tabs entr-tabs" id="entr-tabs" aria-label="Entraide" hidden>
+      <a class="tab" href="#entraide" id="entr-tab-pub"><span class="entr-long">Demandes publiées</span><span class="entr-court">Publiées</span></a><a class="tab" href="#entraide/moderation" id="entr-tab-mod">Modération</a>
+    </nav></div>
   <div id="entr-mod" hidden>
     <div class="admin-tools"><div class="afilters entr-filters" id="entr-filters"></div></div>
     <div class="list" id="entr-mod-list"></div>
   </div>
   <div id="entr-pub">
   <!-- Demandes publiées, présentées comme une conversation (les plus récentes en haut), mises à jour en direct -->
-  <div class="entr-top"><button type="button" class="btn btn-primary" id="entr-ask">Demander de l'aide</button>
-    <p class="count" id="entr-count" role="status" aria-live="polite"></p><span class="entr-live" id="entr-live" hidden><i></i>En direct</span></div>
-  <h2 class="entr-titre">Ils/elles ont besoin d'aide</h2>
+  <p class="count entr-count" id="entr-count" role="status" aria-live="polite"></p>
+  <div class="entr-titre-l"><h2 class="entr-titre">Ils/elles ont besoin d'aide</h2><span class="entr-live" id="entr-live" hidden><i></i>En direct</span></div>
   <div class="entr-thread" id="entr-list"></div>
   <section id="entr-aides-sec" aria-labelledby="entr-aides-t" hidden><h2 class="entr-titre" id="entr-aides-t">Ils/elles ont déjà été aidés</h2>
     <div class="entr-thread" id="entr-aides"></div></section>
