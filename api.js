@@ -46,6 +46,15 @@ window.makeApi = function () {
     // Entraide : demandes publiées (prénom, quartier, besoin, quand ; jamais le téléphone), et dépôt d'une demande
     entraide: () => rpc("entraide_publiees"),
     entraideDemander: d => rpc("entraide_demander", d),
+    // Entraide, réservé aux référents (droit vérifié par la base) : modération des demandes et liste des référents
+    estReferent: () => sbRpc("est_referent"),
+    entraideModeration: () => sbRpc("entraide_moderation"),
+    // champs : { p_statut, p_prenom, p_besoin, p_quand, p_quartier } (absent = inchangé)
+    entraideModifier: (id, champs) => sbRpc("entraide_modifier", { p_id: id, ...champs }),
+    entraideSupprimer: id => sbRpc("entraide_supprimer", { p_id: id }),
+    referents: () => sbRpc("entraide_referents_liste"),
+    ajouterReferent: (email, prenom, nom) => sbRpc("entraide_ajouter_referent", { p_email: email, p_prenom: prenom, p_nom: nom }),
+    retirerReferent: email => sbRpc("entraide_retirer_referent", { p_email: email }),
     responsables: id => rpc("annuaire_responsables", { p_pole: id }),
     // Staffs et pôles dont un leader porte ce nom (la base ne renvoie jamais les noms eux-mêmes)
     searchPeople: q => rpc("annuaire_recherche", { q }),

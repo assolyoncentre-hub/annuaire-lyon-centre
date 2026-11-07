@@ -226,21 +226,25 @@ $("m-form").addEventListener("submit", async e => {
 // et les fiches hors annuaire, réglés sur la fiche contact
 // (consultation de l'annuaire des leaders). Les administrateurs (table « acces ») ont en plus l'administration.
 // Un autre compte est déconnecté aussitôt ; la base refuse de toute façon toute lecture au-delà de ces droits.
-let isAdmin = false, canLeaders = false, session = null, adminTab = "services", adminTerms = [], messages = [], acces = [], contactFilter = "tous";
+let isAdmin = false, canLeaders = false, isReferent = false, session = null, adminTab = "services", adminTerms = [], messages = [], acces = [], contactFilter = "tous";
 let authStarted = null, authLoaded = false, lastViewAdmin = null;
 
 async function onSession(s) {
   session = s;
   const droit = s ? await api.droit().catch(() => undefined) : null; // undefined : droits illisibles (réseau)
-  if (s && droit === null) {
-    // Compte absent des contacts : pas de connexion
+  // Référent de l'entraide : droit distinct de ceux de l'annuaire (on peut être l'un sans l'autre)
+  const referent = s ? await api.estReferent().catch(() => false) : false;
+  if (s && droit === null && !referent) {
+    // Compte absent des contacts et des référents : pas de connexion
     await api.signOut().catch(() => {});
     $("login-error").textContent = "Le compte " + (s.user?.email || "") + " n'a pas accès à l'annuaire.";
     $("login-error").hidden = false;
     s = null;
   }
   session = s;
-  isAdmin = droit === "admin"; canLeaders = !!droit;
+  isAdmin = droit === "admin"; canLeaders = !!droit; isReferent = !!s && referent;
+  // Référent sans accès à l'annuaire, connecté depuis « Connexion » : direction la modération de l'entraide
+  if (isReferent && !canLeaders && /^#(admin|leaders)/.test(location.hash)) history.replaceState(null, "", "#entraide/moderation");
   if (canLeaders) await Promise.all([loadAdmin(), isAdmin && api.messages().then(m => { messages = m; }, () => {}), isAdmin && loadAcces()]);
   route();
 }
@@ -271,16 +275,18 @@ const TAB_OF = { staffs: "services", poles: "poles", contacts: "contacts", messa
 function route() {
   // Ancienne adresse de la page (« serviteurs ») : redirigée
   if (location.hash === "#serviteurs") history.replaceState(null, "", "#leaders");
-  const h = location.hash, serv = h === "#leaders", showServ = serv && canLeaders, entr = h === "#entraide";
+  const h = location.hash, serv = h === "#leaders", showServ = serv && canLeaders;
+  // Entraide : liste publique (#entraide) ; modération (#entraide/moderation) réservée aux référents, sinon connexion
+  const entrMod = h === "#entraide/moderation", entr = h === "#entraide" || (entrMod && isReferent);
   // Administration : « #admin » (staffs), « #admin/poles », « #admin/contacts », « #admin/messages »
   const adminHash = h === "#admin" || h.startsWith("#admin/");
   if (adminHash) { const t = TAB_OF[h.slice(7)] || "services"; if (t !== adminTab) showTab(t); }
-  const admin = adminHash || (serv && !canLeaders);
+  const admin = adminHash || (serv && !canLeaders) || (entrMod && !isReferent);
   $("dir-view").hidden = admin || serv || entr;
   $("entr-view").hidden = !entr;
   $("serv-view").hidden = !showServ;
   $("admin-view").hidden = !admin;
-  $("h1").textContent = entr ? "Entraide" : serv ? "Annuaire des leaders" : admin ? (session ? "Administration" : "Connexion") : "Annuaire des propositions";
+  $("h1").textContent = entr || entrMod ? "Entraide" : serv ? "Annuaire des leaders" : admin ? (session ? "Administration" : "Connexion") : "Annuaire des propositions";
   // En haut à droite : « Connexion », ou le prénom de la personne connectée (menu avec « Se déconnecter »)
   const label = session ? firstName() : "Connexion";
   $("admin-label").textContent = label;
@@ -291,13 +297,13 @@ function route() {
   // Administration seulement pour un administrateur connecté
   $("sw-admin").hidden = !isAdmin;
   for (const k of ["sw-prop", "sw-serv", "sw-entr", "sw-admin"]) $(k).removeAttribute("aria-current");
-  const cur = entr ? "sw-entr" : serv ? "sw-serv" : adminHash ? (isAdmin ? "sw-admin" : null) : "sw-prop";
+  const cur = entr || entrMod ? "sw-entr" : serv ? "sw-serv" : adminHash ? (isAdmin ? "sw-admin" : null) : "sw-prop";
   if (cur) $(cur).setAttribute("aria-current", "page");
-  $("login-title").textContent = serv ? "Accès réservé" : "Connexion";
+  $("login-title").textContent = serv || entrMod ? "Accès réservé" : "Connexion";
   if (admin || serv) ensureAuth();
   $("admin-login").hidden = !admin || !!session || !authLoaded;
-  $("admin-denied").hidden = !admin || !session || (serv ? canLeaders : isAdmin);
-  $("denied-what").textContent = serv ? "n'a pas accès à l'annuaire des leaders." : "n'est pas administrateur de l'annuaire.";
+  $("admin-denied").hidden = !admin || !session || (serv ? canLeaders : entrMod ? isReferent : isAdmin);
+  $("denied-what").textContent = serv ? "n'a pas accès à l'annuaire des leaders." : entrMod ? "n'est pas référent de l'entraide." : "n'est pas administrateur de l'annuaire.";
   if (session) $("login-error").hidden = $("login-ok").hidden = true;
   $("admin-body").hidden = !adminHash || !isAdmin;
   const email = session?.user?.email || "";
@@ -305,7 +311,8 @@ function route() {
   if (admin) renderAdmin();
   if (showServ) renderServ();
   // Retour en haut seulement en changeant de vue (pas quand la connexion se termine en arrière-plan)
-  const view = entr ? "entr" : showServ ? "serv" : admin ? "admin" : "dir";
+  if (typeof onEntraideRoute === "function") onEntraideRoute(); // entraide.js : liste ou modération
+  const view = entrMod && isReferent ? "entr-mod" : entr ? "entr" : showServ ? "serv" : admin ? "admin" : "dir";
   if (view !== lastViewAdmin) window.scrollTo(0, 0);
   lastViewAdmin = view;
 }
@@ -333,7 +340,7 @@ $("admin-link").addEventListener("click", () => {
 });
 document.addEventListener("click", e => { if (!$("acct-menu").hidden && !e.target.closest(".acct")) closeAcct(); });
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("acct-menu").hidden) { closeAcct(); $("admin-link").focus(); } });
-$("logout").onclick = $("logout-2").onclick = async () => { closeAcct(); resetOtp(); await api.signOut(); isAdmin = canLeaders = false; session = null; acces = []; messages = []; contactsOf = {}; respOf = {}; contactRows = []; respRows = []; route(); render(); };
+$("logout").onclick = $("logout-2").onclick = async () => { closeAcct(); resetOtp(); await api.signOut(); isAdmin = canLeaders = isReferent = false; session = null; acces = []; messages = []; contactsOf = {}; respOf = {}; contactRows = []; respRows = []; route(); render(); };
 
 const poleNames = () => Object.keys(poles).sort(byPole);
 const isPoleTab = () => adminTab === "poles";

@@ -23,6 +23,14 @@ module.exports = function installFakeApi({ data, user, acces }) {
   const admin = () => droit() === "admin";
   const guard = () => { if (!admin()) throw new Error("refusé (règles d'accès)"); };
   const guardRead = () => { if (!droit()) throw new Error("refusé (règles d'accès)"); };
+  // Entraide : référents (liste distincte des droits de l'annuaire) ; dates relatives à l'ouverture de la page
+  S.entraide ||= []; S.referents ||= [];
+  const referent = () => !!session && S.referents.some(r => r.email === session.user.email.toLowerCase());
+  const guardRef = () => { if (!referent()) throw new Error("Accès réservé aux référents de l'entraide."); };
+  const ago = j => new Date(Date.now() - j * 86400000).toISOString();
+  const entrRow = d => ({ id: d.id, created_at: d.cree ? new Date(d.cree).toISOString() : ago(d.jours), prenom: d.prenom, telephone: d.telephone, besoin: d.besoin,
+    quand: d.quand, quartier: d.quartier, statut: d.statut, publiee_le: d.publieAt ? new Date(d.publieAt).toISOString() : d.statut !== "a_valider" && d.statut !== "refusee" ? ago(d.publie ?? d.jours) : null,
+    close_le: d.close ? new Date(d.close).toISOString() : d.statut === "pourvue" ? ago(d.jours - 1) : null });
   const norm = s => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
   // Annuaire public : seule la civilité « Père » apparaît, devant le prénom
   const publicName = r => ({ prenom: (r.civilite === "Père" ? "Père " : "") + r.prenom, nom: r.nom });
@@ -32,16 +40,53 @@ module.exports = function installFakeApi({ data, user, acces }) {
   };
 
   window.__api = {
-    // Entraide : demandes publiées (jamais le téléphone) et dépôt d'une demande
+    // Entraide : mêmes règles que les fonctions entraide_* de la base
     async entraide() {
       log("entraide");
-      return (S.entraide || []).map(({ jours, ...d }) => ({ ...d, publie_le: new Date(Date.now() - jours * 86400000).toISOString() }));
+      return S.entraide.filter(d => d.statut === "publiee").map(d => ({ id: d.id, prenom: d.prenom, quartier: d.quartier, besoin: d.besoin, quand: d.quand, publie_le: ago(d.publie ?? d.jours) }))
+        .sort((a, b) => b.publie_le.localeCompare(a.publie_le));
     },
     async entraideDemander(d) {
       log("entraideDemander", d);
+      if (d.p_site) return null;
       if (!d.p_accord) throw new Error("Votre accord est nécessaire pour publier la demande.");
-      (S.demandes ||= []).push(d);
-      return "d" + n++;
+      if (String(d.p_besoin || "").trim().length < 3) throw new Error("Décrivez en quelques mots ce dont vous avez besoin.");
+      if (!String(d.p_prenom || "").trim()) throw new Error("Indiquez votre prénom.");
+      let t = String(d.p_telephone || "").replace(/[\s.()\/-]/g, "");
+      if (t.startsWith("00")) t = "+" + t.slice(2); else if (/^0[1-9]\d{8}$/.test(t)) t = "+33" + t.slice(1);
+      if (!/^\+[1-9]\d{7,14}$/.test(t)) throw new Error("Numéro de téléphone invalide (exemple : 06 12 34 56 78).");
+      if (S.entraide.filter(x => x.telephone === t && x.statut === "a_valider").length >= 3) throw new Error("Vous avez déjà plusieurs demandes en attente : un référent va les relire très vite.");
+      const id = "e" + n++;
+      S.entraide.push({ id, prenom: d.p_prenom.trim(), telephone: t, besoin: d.p_besoin.trim(), quand: (d.p_quand || "").trim(), quartier: (d.p_quartier || "").trim(), statut: "a_valider", jours: 0, cree: Date.now() });
+      return id;
+    },
+    async estReferent() { return referent(); },
+    async entraideModeration() { guardRef(); return S.entraide.map(entrRow).sort((a, b) => b.created_at.localeCompare(a.created_at)); },
+    async entraideModifier(id, c) {
+      guardRef(); log("entraideModifier", { id, ...c });
+      const d = S.entraide.find(x => x.id === id);
+      if (!d) throw new Error("Demande introuvable.");
+      if (c.p_statut && c.p_statut !== d.statut) {
+        d.statut = c.p_statut;
+        if (c.p_statut === "publiee") { d.publie = 0; d.publieAt = Date.now(); }
+        d.close = ["pourvue", "refusee"].includes(c.p_statut) ? Date.now() : null;
+      }
+      for (const [k, f] of [["p_prenom", "prenom"], ["p_besoin", "besoin"], ["p_quand", "quand"], ["p_quartier", "quartier"]]) {
+        if (c[k] != null && (String(c[k]).trim() || (f !== "prenom" && f !== "besoin"))) d[f] = String(c[k]).trim();
+      }
+      return entrRow(d);
+    },
+    async entraideSupprimer(id) { guardRef(); log("entraideSupprimer", id); const i = S.entraide.findIndex(x => x.id === id); if (i < 0) throw new Error("Demande introuvable."); S.entraide.splice(i, 1); },
+    async referents() { guardRef(); return clone(S.referents).sort((a, b) => (a.prenom + a.nom).localeCompare(b.prenom + b.nom)); },
+    async ajouterReferent(email, prenom, nom) {
+      guardRef(); log("ajouterReferent", email);
+      const e = String(email).trim().toLowerCase();
+      S.referents = S.referents.filter(r => r.email !== e).concat({ email: e, prenom: prenom.trim(), nom: nom.trim() });
+    },
+    async retirerReferent(email) {
+      guardRef();
+      if (email === session.user.email.toLowerCase()) throw new Error("Vous ne pouvez pas vous retirer vous-même.");
+      S.referents = S.referents.filter(r => r.email !== email);
     },
     async loadPublic() {
       log("loadPublic");
@@ -69,7 +114,7 @@ module.exports = function installFakeApi({ data, user, acces }) {
     async session() { return session; },
     async onAuth(cb) { window.__authCb = cb; },
     // Connexion par code : le bon code est toujours 123456
-    async canSignIn(email) { log("canSignIn", email); return !!droitDe(email.toLowerCase()); },
+    async canSignIn(email) { const e = email.toLowerCase(); log("canSignIn", email); return !!droitDe(e) || S.referents.some(r => r.email === e); },
     async sendCode(email) { log("sendCode", email); },
     // Lien de l'e-mail : l'empreinte « lien-ok » connecte damien@example.org
     async verifyLink(hash) {
