@@ -662,8 +662,15 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .entr-done p { margin: 0 0 20px; }
 /* Entraide : modération (référents) */
 .entr-tabs[hidden] { display: none; }
-.entr-tabs .tab { text-decoration: none; display: inline-flex; align-items: center; }
-.entr-tabs .tab[aria-current="page"] { background: var(--brand); border-color: var(--brand); color: #fff; }
+/* Boutons accolés, comme un interrupteur à plusieurs positions : seule la page affichée est en bleu */
+.entr-tabs { gap: 0; }
+.entr-tabs .tab { position: relative; display: inline-flex; align-items: center; margin-left: -1.5px; border-radius: 0; text-decoration: none; }
+.entr-tabs .tab:first-child { margin-left: 0; border-radius: 8px 0 0 8px; }
+.entr-tabs .tab:last-child, .entr-tabs .tab:has(+ .tab[hidden]) { border-radius: 0 8px 8px 0; }
+@media (hover: hover) { .entr-tabs .tab:not([aria-current="page"]):hover { background: #eef3f9; } }
+.entr-tabs .tab:focus-visible { z-index: 2; }
+.entr-tabs .tab[aria-current="page"] { z-index: 1; background: var(--brand); border-color: var(--brand); color: #fff; }
+.entr-tabs .tab[aria-current="page"] .entr-pastille { box-shadow: 0 0 0 1.5px #fff; }
 #entr-mod[hidden], #entr-pub[hidden], #entr-mes[hidden] { display: none; }
 /* Mes demandes : mêmes bulles que le fil, avec l'état de la demande */
 /* Réponses reçues : bulles blanches au nom de la personne qui répond, dans le fil sous ma demande */
