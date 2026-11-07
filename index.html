@@ -566,6 +566,32 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
   background: var(--tint); color: var(--brand); font: 700 13px/1 Montserrat, sans-serif; cursor: pointer; }
 @media (hover: hover) { .entr-aider:hover { background: rgba(0, 96, 170, .14); } }
 .entr-aider:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+/* Zone de réponse (« Je peux aider ! ») fixée en bas de l'écran */
+.entr-rep { position: fixed; z-index: 40; left: 0; right: 0; bottom: 0; padding: 10px 0 calc(12px + env(safe-area-inset-bottom)); background: #e6edf4;
+  border-top: 1px solid var(--border); box-shadow: 0 -10px 24px -14px rgba(0, 40, 80, .35); animation: entr-monte .2s ease-out; }
+.entr-rep[hidden] { display: none; }
+@keyframes entr-monte { from { transform: translateY(100%); } }
+@media (prefers-reduced-motion: reduce) { .entr-rep { animation: none; } }
+.entr-rep .wrap { max-width: 752px; margin: 0; }
+@media (min-width: 1152px) { .entr-rep .wrap { margin-left: calc((100vw - 1120px) / 2); } }
+.entr-rep-quote { display: flex; align-items: flex-start; gap: 10px; padding: 8px 8px 8px 12px; border-left: 4px solid var(--c, var(--brand)); border-radius: 8px; background: rgba(255, 255, 255, .75); }
+.entr-rep-quote > div { flex: 1; min-width: 0; }
+.entr-rep-quote .who { font: 700 13px/1.3 Montserrat, sans-serif; color: var(--c, var(--brand)); }
+.entr-rep-quote .need { margin: 2px 0 0; color: var(--muted); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.entr-rep-x { flex: none; width: 32px; height: 32px; border: 0; border-radius: 50%; background: none; color: var(--muted); font-size: 22px; line-height: 1; cursor: pointer; }
+@media (hover: hover) { .entr-rep-x:hover { background: rgba(0, 40, 80, .08); } }
+.entr-rep-note { display: flex; align-items: center; gap: 6px; margin: 8px 0; color: #1d4f7a; font-size: 13px; }
+.entr-rep-note svg { flex: none; width: 14px; height: 14px; }
+.entr-rep-row { display: flex; align-items: flex-end; gap: 8px; }
+.entr-rep-row textarea { flex: 1; min-height: 46px; max-height: 140px; padding: 12px 16px; border: 0; border-radius: 23px; background: #fff; resize: none; overflow-y: auto;
+  color: var(--text); font: 16px/1.4 "DM Sans", system-ui, sans-serif; box-shadow: 0 1px 1px rgba(0, 40, 80, .08); }
+.entr-rep-row textarea:focus { outline: 2px solid var(--brand); outline-offset: 0; }
+.entr-rep-send { flex: none; display: grid; place-items: center; width: 46px; height: 46px; border: 0; border-radius: 50%; background: var(--brand); color: #fff; cursor: pointer; }
+.entr-rep-send svg { width: 20px; height: 20px; }
+.entr-rep-send:disabled { background: #9db6cc; cursor: default; }
+/* Demande à laquelle on répond : mise en évidence ; place laissée en bas pour la zone de réponse */
+.entr-msg.repond { box-shadow: 0 0 0 2px var(--c, var(--brand)); }
+body.entr-repond main { padding-bottom: 220px; }
 .entr-msg .time { display: block; margin-top: 2px; text-align: right; color: var(--muted); font-size: 11px; }
 .entr-msg.new { animation: entr-pop .28s ease-out; }
 @keyframes entr-pop { from { opacity: 0; transform: translateY(10px) scale(.97); } }
@@ -658,6 +684,16 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
   <section id="entr-aides-sec" aria-labelledby="entr-aides-t" hidden><h2 class="entr-titre" id="entr-aides-t">Ils/elles ont déjà été aidés</h2>
     <div class="entr-thread" id="entr-aides"></div></section>
   <button type="button" class="entr-jump" id="entr-jump" hidden>↑ Nouvelle demande</button>
+  <!-- « Je peux aider ! » : zone de réponse en bas de l'écran, comme la saisie d'un message WhatsApp -->
+  <form class="entr-rep" id="entr-rep" hidden aria-labelledby="entr-rep-t">
+    <div class="wrap">
+      <div class="entr-rep-quote"><div><span class="who" id="entr-rep-t"></span><p class="need" id="entr-rep-need"></p></div>
+        <button type="button" class="entr-rep-x" id="entr-rep-x" aria-label="Fermer sans envoyer">×</button></div>
+      <p class="entr-rep-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Votre réponse ne sera vue que par la personne qui demande de l'aide.</p>
+      <div class="entr-rep-row"><textarea id="entr-rep-txt" rows="1" maxlength="1000" placeholder="Votre message…" aria-label="Votre réponse"></textarea>
+        <button type="submit" class="entr-rep-send" id="entr-rep-send" aria-label="Envoyer" disabled><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3.4 20.4 21 12 3.4 3.6v6.4l12.6 2-12.6 2z"/></svg></button></div>
+    </div>
+  </form>
   </div>
 </main>
 </div>

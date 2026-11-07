@@ -57,8 +57,18 @@ test("demandes en conversation : les plus récentes en haut, nouvelles demandes 
 
   // Chaque demande en cours a son bouton « Je peux aider ! » (fonction à venir)
   await expect(page.locator("#entr-list .entr-aider")).toHaveCount(5);
+  // « Je peux aider ! » ouvre la zone de réponse en bas de l'écran
   await bulles.first().locator(".entr-aider").click();
-  await expect(page.locator("#toast")).toContainText("Bientôt disponible");
+  await expect(page.locator("#entr-rep")).toBeVisible();
+  await expect(page.locator("#entr-rep-t")).toHaveText("Répondre à Jeanne");
+  await expect(page.locator("#entr-rep")).toContainText("Votre réponse ne sera vue que par la personne qui demande de l'aide.");
+  await expect(page.locator("#entr-rep-txt")).toBeFocused();
+  await expect(page.locator("#entr-rep-send")).toBeDisabled();
+  await page.fill("#entr-rep-txt", "Bonjour, je peux vous conduire jeudi.");
+  await expect(page.locator("#entr-rep-send")).toBeEnabled();
+  await page.keyboard.press("Escape");
+  await expect(page.locator("#entr-rep")).toBeHidden();
+  await expect(bulles.first().locator(".entr-aider")).toBeFocused();
 
   // Un modérateur publie une demande ailleurs : elle s'ajoute en haut, sans recharger la page
   await page.evaluate(() => {

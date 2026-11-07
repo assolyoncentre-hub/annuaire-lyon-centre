@@ -68,8 +68,42 @@ function renderEntraide(list) {
   if (enHaut) $("entr-jump").hidden = true;
   else if (nouvelles) $("entr-jump").hidden = false;
 }
-$("entr-list").addEventListener("click", e => {
-  if (e.target.closest("[data-aider]")) toast("Bientôt disponible : vous pourrez proposer votre aide directement d'ici.");
+// « Je peux aider ! » : zone de réponse en bas de l'écran (maquette : l'envoi n'est pas encore branché)
+let entrRepBtn = null;
+function entrRepondre(btn) {
+  const m = btn.closest(".entr-msg");
+  document.querySelector(".entr-msg.repond")?.classList.remove("repond");
+  m.classList.add("repond");
+  entrRepBtn = btn;
+  const f = $("entr-rep");
+  f.style.setProperty("--c", m.style.getPropertyValue("--c"));
+  $("entr-rep-t").textContent = "Répondre à " + m.querySelector(".who").firstChild.textContent.trim();
+  $("entr-rep-need").textContent = m.querySelector(".need").textContent;
+  f.hidden = false;
+  document.body.classList.add("entr-repond");
+  // La demande reste visible au-dessus de la zone de réponse
+  const bas = m.getBoundingClientRect().bottom, haut = f.getBoundingClientRect().top;
+  if (bas > haut - 12) scrollBy({ top: bas - haut + 12, behavior: "smooth" });
+  $("entr-rep-txt").focus();
+}
+function entrFermerReponse() {
+  if ($("entr-rep").hidden) return;
+  $("entr-rep").hidden = true;
+  document.body.classList.remove("entr-repond");
+  document.querySelector(".entr-msg.repond")?.classList.remove("repond");
+  entrRepBtn?.focus();
+}
+$("entr-list").addEventListener("click", e => { const b = e.target.closest("[data-aider]"); if (b) entrRepondre(b); });
+$("entr-rep-x").addEventListener("click", entrFermerReponse);
+$("entr-rep").addEventListener("keydown", e => { if (e.key === "Escape") { e.stopPropagation(); entrFermerReponse(); } });
+$("entr-rep-txt").addEventListener("input", e => {
+  const t = e.target;
+  $("entr-rep-send").disabled = !t.value.trim();
+  t.style.height = "auto"; t.style.height = t.scrollHeight + "px";
+});
+$("entr-rep").addEventListener("submit", e => {
+  e.preventDefault();
+  toast("Maquette : l'envoi de la réponse n'est pas encore branché.");
 });
 $("entr-jump").addEventListener("click", () => { entrVersLeHaut(); $("entr-jump").hidden = true; });
 addEventListener("scroll", () => { if (!$("entr-jump").hidden && entrEnHaut()) $("entr-jump").hidden = true; }, { passive: true });
@@ -196,6 +230,7 @@ let entrModShown = false;
 function onEntraideRoute() {
   const h = location.hash, mod = h === "#entraide/moderation" && isReferent;
   entrEcouter(canEntraide);
+  if (h !== "#entraide") entrFermerReponse();
   if (!(h === "#entraide" && canEntraide) && !mod) { entrModShown = false; return; }
   $("entr-tabs").hidden = !isReferent;
   $("entr-pub").hidden = mod;
