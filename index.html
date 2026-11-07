@@ -14,7 +14,7 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Montserrat:wght@500;600;700&family=Phudu:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
-  --brand: #0060aa; --brand-ink: #ffffff; --accent: #ff7e29;
+  --brand: #0060aa; --moi: #dcebf7; /* fond de tout ce que j'ai écrit moi (demandes, messages) */ --brand-ink: #ffffff; --accent: #ff7e29;
   --bg: #f4f7fb; --surface: #ffffff; --text: #0b1b2b; --muted: #5b6b7c; --border: #dde5ee;
   --glass: rgba(244, 247, 251, .75); --tint: rgba(0, 96, 170, .08);
   --btn: #000000; --btn-ink: #ffffff;
@@ -589,7 +589,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .entr-reps::before { content: ""; position: absolute; left: -18px; top: -6px; width: 14px; height: 26px; border: solid #9db6cc; border-width: 0 0 2px 2px; border-bottom-left-radius: 10px; }
 .entr-reps > .entr-rep-note { margin: 0 0 6px; padding-top: 4px; color: var(--muted); font-size: 12.5px; }
 /* Messages envoyés : bulles bleu clair, dans l'ordre d'envoi */
-.entr-moi { margin: 0 0 6px; padding: 7px 10px 5px; border-radius: 10px 2px 10px 10px; background: #dcebf7; box-shadow: 0 1px 1px rgba(0, 40, 80, .1); }
+.entr-moi { margin: 0 0 6px; padding: 7px 10px 5px; border-radius: 10px 2px 10px 10px; background: var(--moi); box-shadow: 0 1px 1px rgba(0, 40, 80, .1); }
 .entr-moi.edite { display: none; }
 .entr-moi .txt { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 .entr-moi-pied { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 4px; }
@@ -599,7 +599,14 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .entr-moi .time { color: #4d6378; font-size: 11px; white-space: nowrap; }
 .entr-plus { display: block; width: 100%; padding: 9px 12px; border: 1px dashed #8eaecb; border-radius: 10px; background: none; color: var(--brand); font: 600 13px/1 Montserrat, sans-serif; text-align: left; cursor: pointer; }
 @media (hover: hover) { .entr-plus:hover { background: rgba(0, 94, 168, .06); } }
-.entr-reps.ecrit .entr-plus { display: none; }
+.entr-reps.ecrit .entr-plus, .entr-reps.ecrit .entr-conv-act { display: none; }
+/* Mes demandes : « Répondre à X » et « Décliner » (fin de la conversation) sur la même ligne */
+.entr-conv-act { display: flex; gap: 8px; }
+.entr-conv-act .entr-plus { flex: 1; width: auto; }
+.entr-decliner { flex: none; padding: 9px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--muted); font: 600 13px/1 Montserrat, sans-serif; cursor: pointer; }
+@media (hover: hover) { .entr-decliner:hover { color: #a3261b; border-color: #e3b4ae; } }
+.entr-fin { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+.entr-reprendre { padding: 2px 4px; border: 0; background: none; color: var(--brand); font: 600 13px/1 Montserrat, sans-serif; text-decoration: underline; cursor: pointer; }
 /* Le rappel « visibles seulement par… » est déjà en tête du fil : la zone de rédaction ne le répète pas,
    et sa croix devient une pastille dans le coin */
 .entr-reps:has(.entr-moi) .entr-rep { position: relative; padding-top: 10px; }
@@ -607,7 +614,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .entr-reps:has(.entr-moi) .entr-rep-tete { margin: 0; }
 .entr-reps:has(.entr-moi) .entr-rep-x { position: absolute; top: -10px; right: -4px; width: 28px; height: 28px; margin: 0; background: #fff; font-size: 18px; box-shadow: 0 1px 3px rgba(0, 40, 80, .25); }
 /* Zone de rédaction : dans le fil des réponses */
-.entr-rep { margin: 0 0 6px; padding: 8px 10px 10px; border-radius: 10px 2px 10px 10px; background: #dcebf7; box-shadow: 0 1px 1px rgba(0, 40, 80, .1); animation: entr-deplie .18s ease-out; }
+.entr-rep { margin: 0 0 6px; padding: 8px 10px 10px; border-radius: 10px 2px 10px 10px; background: var(--moi); box-shadow: 0 1px 1px rgba(0, 40, 80, .1); animation: entr-deplie .18s ease-out; }
 .entr-rep[hidden] { display: none; }
 @keyframes entr-deplie { from { opacity: 0; transform: translateY(-6px); } }
 @media (prefers-reduced-motion: reduce) { .entr-rep { animation: none; } }
@@ -624,7 +631,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .entr-rep-send svg { width: 20px; height: 20px; }
 .entr-rep-send:disabled { background: #9db6cc; cursor: default; }
 /* Demande à laquelle on répond : son bouton prend la couleur de la zone de réponse */
-.entr-msg.repond .entr-aider { background: #dcebf7; color: var(--brand); }
+.entr-msg.repond .entr-aider { background: var(--moi); color: var(--brand); }
 @media (max-width: 520px) { .entr-reps { width: auto; margin-left: 22px; } .entr-reps::before { left: -14px; width: 10px; } }
 .entr-msg .time { display: block; margin-top: 2px; text-align: right; color: var(--muted); font-size: 11px; }
 /* « Je peux aider ! » et l'heure sur une même ligne, un peu détachée du texte */
@@ -667,6 +674,8 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .entr-convs .entr-reps + .entr-reps { padding-top: 12px; border-top: 1px dashed var(--border); }
 @media (max-width: 520px) { .entr-convs { width: auto; margin-left: 22px; } }
 .entr-sans-rep { margin: -6px 0 18px 28px; color: var(--muted); font-size: 13px; }
+/* Ma demande : même fond bleu que mes messages (tout ce que j'ai écrit) */
+.entr-mienne { --bulle: var(--moi); }
 .entr-mienne .who { color: var(--brand); }
 .entr-mes-vide { max-width: 560px; color: var(--muted); }
 #entr-mod .admin-tools { margin-top: 0; }

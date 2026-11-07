@@ -82,9 +82,10 @@ const entrReponses = new Map(); // id de la demande → [{ id, texte, le, modifi
 let entrRepId = null, entrRepEdit = null, entrRepNum = 0, entrBrouillon = null; // brouillon : demande dont le texte est gardé après fermeture
 const ENTR_CADENAS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
 const entrRecues = new Map(); // Mes demandes : id de la conversation → messages reçus de cette personne
+const entrDeclines = new Set(); // Mes demandes : conversations auxquelles j'ai mis fin (« Décliner »)
 // Fil d'une demande (mes messages) ou, dans Mes demandes, conversation avec une personne (ses messages et les miens, par date)
 function entrRepsHtml(id, prenom) {
-  const l = entrReponses.get(id) || [], recues = entrRecues.get(id) || [];
+  const l = entrReponses.get(id) || [], recues = entrRecues.get(id) || [], fini = entrDeclines.has(id);
   const tous = [...recues.map(r => ({ ...r, recue: true })), ...l].sort((a, b) => a.le.localeCompare(b.le));
   return '<div class="entr-reps" data-pour="' + esc(id) + '" data-prenom="' + esc(prenom) + '">' + (tous.length ?
     (recues.length ? "" : '<p class="entr-rep-note">' + ENTR_CADENAS + "Vos messages ne sont visibles que par " + esc(prenom) + "</p>") +
@@ -92,9 +93,13 @@ function entrRepsHtml(id, prenom) {
       ? '<div class="entr-recue" style="--c:' + entrCouleur(r.prenom) + '"><div class="who">' + esc(r.prenom) + "</div>" +
         '<p class="txt">' + esc(r.texte) + '</p><time class="time" datetime="' + esc(r.le) + '">' + esc(entrJour(r.le)) + ", " + entrHeure(r.le) + "</time></div>"
       : '<div class="entr-moi" data-rep="' + r.id + '"><p class="txt">' + esc(r.texte) + "</p>" +
-        '<div class="entr-moi-pied"><span class="entr-moi-act"><button type="button" data-modifier>Modifier</button><button type="button" data-supprimer>Supprimer</button></span>' +
+        '<div class="entr-moi-pied"><span class="entr-moi-act">' + (fini ? "" : '<button type="button" data-modifier>Modifier</button><button type="button" data-supprimer>Supprimer</button>') + "</span>" +
         '<time class="time" datetime="' + esc(r.le) + '">' + (r.modifie ? "Modifié · " : "") + (recues.length ? esc(entrJour(r.le)) + ", " : "") + entrHeure(r.le) + "</time></div></div>").join("") +
-    '<button type="button" class="entr-plus" data-plus>' + (recues.length ? "Répondre à " + esc(prenom) : "+ Ajouter un message") + "</button>" : "") + "</div>";
+    (fini ? '<p class="entr-fin">Vous avez décliné l\'aide de ' + esc(prenom) + " : la conversation est terminée. " +
+        '<button type="button" class="entr-reprendre" data-reprendre>Reprendre</button></p>'
+      : recues.length ? '<div class="entr-conv-act"><button type="button" class="entr-plus" data-plus>Répondre à ' + esc(prenom) + "</button>" +
+        '<button type="button" class="entr-decliner" data-decliner>Décliner</button></div>'
+      : '<button type="button" class="entr-plus" data-plus>+ Ajouter un message</button>') : "") + "</div>";
 }
 const entrGroupe = id => $("entr-view").querySelector('.entr-reps[data-pour="' + CSS.escape(id) + '"]');
 const entrBoutonAider = g => g?.previousElementSibling?.matches(".entr-msg") ? g.previousElementSibling.querySelector(".entr-aider") : null;
@@ -160,6 +165,13 @@ function entrClicFil(e) {
   else if (b.matches("[data-plus]")) entrOuvrirReponse(g.dataset.pour);
   else if (b.matches("[data-modifier]")) entrOuvrirReponse(g.dataset.pour, Number(b.closest(".entr-moi").dataset.rep));
   else if (b.matches("[data-supprimer]")) entrSupprimerReponse(g, b.closest(".entr-moi"));
+  // Décliner : met fin à la conversation (plus de réponse possible), « Reprendre » la rouvre
+  else if (b.matches("[data-decliner]")) {
+    if (entrRepId === g.dataset.pour) entrFermerReponse(false);
+    entrDeclines.add(g.dataset.pour);
+    entrMajGroupe(g.dataset.pour, "[data-reprendre]");
+    toast("Vous avez décliné l'aide de " + g.dataset.prenom + " (maquette : rien n'est envoyé).");
+  } else if (b.matches("[data-reprendre]")) { entrDeclines.delete(g.dataset.pour); entrMajGroupe(g.dataset.pour, "[data-plus]"); }
 }
 $("entr-list").addEventListener("click", entrClicFil);
 $("entr-mes-list").addEventListener("click", entrClicFil);

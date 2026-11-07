@@ -315,5 +315,13 @@ test("Mes demandes : seulement mes demandes, avec les réponses reçues @mobile"
   await damien.locator(".entr-moi").getByRole("button", { name: "Supprimer" }).click();
   await expect(damien.locator(".entr-moi")).toHaveCount(0);
   await expect(damien.locator(".entr-recue")).toHaveCount(2);
+  // Décliner (même ligne que « Répondre à … ») : fin de la conversation, « Reprendre » la rouvre
+  await damien.getByRole("button", { name: "Décliner" }).click();
+  await expect(damien.locator(".entr-fin")).toContainText("Vous avez décliné l'aide de Damien");
+  await expect(damien.locator(".entr-plus")).toHaveCount(0);
+  await expect(damien.getByRole("button", { name: "Reprendre" })).toBeFocused();
+  await expect(recues.locator('.entr-reps[data-prenom="Claire"] .entr-plus')).toBeVisible();
+  await damien.getByRole("button", { name: "Reprendre" }).click();
+  await expect(damien.locator(".entr-plus")).toBeFocused();
   await expect(page.locator("#entr-mes")).not.toContainText("39 98");
 });
