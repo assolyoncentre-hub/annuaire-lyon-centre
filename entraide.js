@@ -1,6 +1,6 @@
 // ---------- Entraide ----------
 // Onglet « Entraide », réservé aux comptes qui en ont le droit (fiche contact : « Voir » / « Modérer » l'entraide) :
-//   #entraide            demandes publiées et formulaire « Demander de l'aide » (progressif)       droit « voir »
+//   #entraide            demandes publiées et formulaire « J'ai besoin d'aide » (progressif)       droit « voir »
 //   #entraide/mes-demandes  mes demandes (maquette)                                                  droit « voir »
 //   #entraide/moderation modération des demandes                                                    droit « modérer »
 // Utilise les outils d'app.js ($, esc, api, toast, setPageInert, openEditor, canEntraide, isReferent, telHref).
@@ -340,7 +340,7 @@ function onEntraideRoute() {
   }
   // Téléphone : même navigation en liste déroulante
   const sel = $("entr-nav-sel");
-  sel.innerHTML = [["#entraide", "Ils/elles ont besoin d'aide"], ["#entraide/mes-demandes", "Mes demandes"], ...(isReferent ? [["#entraide/moderation", $("entr-tab-mod").textContent]] : [])]
+  sel.innerHTML = [["#entraide", "Demandes d'aide"], ["#entraide/mes-demandes", "Mes demandes"], ...(isReferent ? [["#entraide/moderation", $("entr-tab-mod").textContent]] : [])]
     .map(([v, l]) => '<option value="' + v + '">' + esc(l) + "</option>").join("");
   sel.value = mod ? "#entraide/moderation" : mes ? "#entraide/mes-demandes" : "#entraide";
   if (mes) renderMesDemandes();
@@ -357,7 +357,7 @@ function renderMesDemandes() {
       '<p class="need">' + esc(d.besoin) + "</p>" + (d.quand ? '<div class="when">' + ENTR_CAL + "<span>" + esc(d.quand) + "</span></div>" : "") +
       '<div class="entr-mes-etat"><span class="badge wait">En attente de validation</span><span>Aucune réponse pour l\'instant</span></div>' +
       '<time class="time" datetime="' + esc(d.le) + '">' + entrHeure(d.le) + "</time></article>").join("")
-    : '<p class="entr-mes-vide">Vous n\'avez pas encore déposé de demande d\'aide. Utilisez « Demander de l\'aide » : vous retrouverez ici vos demandes, leur état et les réponses reçues.</p>';
+    : '<p class="entr-mes-vide">Vous n\'avez pas encore déposé de demande d\'aide. Utilisez « J\'ai besoin d\'aide » : vous retrouverez ici vos demandes, leur état et les réponses reçues.</p>';
 }
 onEntraideRoute(); // premier affichage : route() a pu s'exécuter avant le chargement de ce fichier
 

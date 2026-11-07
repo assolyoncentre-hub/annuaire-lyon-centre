@@ -35,7 +35,7 @@ test("droit Voir : demandes publiées seulement, sans téléphone ni modération
   // Mes demandes : pour tous (onglet, ou liste déroulante sur téléphone), vide tant qu'on n'a rien déposé
   const sel = page.locator("#entr-nav-sel");
   if (await sel.isVisible()) {
-    await expect(sel.locator("option")).toHaveText(["Ils/elles ont besoin d'aide", "Mes demandes"]); // pas de Modération
+    await expect(sel.locator("option")).toHaveText(["Demandes d'aide", "Mes demandes"]); // pas de Modération
     await sel.selectOption("#entraide/mes-demandes");
   } else await page.locator("#entr-tab-mes").click();
   await expect(page.locator("#entr-tab-mes")).toHaveAttribute("aria-current", "page");

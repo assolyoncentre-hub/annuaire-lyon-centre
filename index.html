@@ -538,7 +538,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .person .fields input[type=tel] { grid-column: 1 / -1; }
 /* Entraide : liste succincte des demandes publiées, et formulaire qui se dévoile champ après champ */
 /* Entraide : demandes publiées en conversation (bulles comme dans un groupe WhatsApp, aux couleurs du site) */
-/* Barre du haut : onglets (Modération pour les modérateurs), puis « Demander de l'aide » juste à la suite */
+/* Barre du haut : onglets (Modération pour les modérateurs), puis « J'ai besoin d'aide » juste à la suite */
 .entr-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin: 0 0 20px; }
 .entr-bar .entr-tabs { margin: 0; }
 .entr-tabs .tab[hidden] { display: none; }
@@ -707,11 +707,11 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 </div>
 <div id="entr-view" class="view" hidden>
 <main class="wrap">
-  <!-- Navigation de l'entraide (Modération pour les modérateurs), suivie du bouton « Demander de l'aide » -->
+  <!-- Navigation de l'entraide (Modération pour les modérateurs), suivie du bouton « J'ai besoin d'aide » -->
   <div class="entr-bar" id="entr-bar">
     <nav class="tabs entr-tabs" id="entr-tabs" aria-label="Entraide">
-      <a class="tab" href="#entraide" id="entr-tab-pub">Ils/elles ont besoin d'aide</a><a class="tab" href="#entraide/mes-demandes" id="entr-tab-mes">Mes demandes</a><a class="tab" href="#entraide/moderation" id="entr-tab-mod" hidden>Modération</a>
-    </nav><select class="entr-nav-sel" id="entr-nav-sel" aria-label="Entraide : choisir la page"></select><button type="button" class="btn btn-primary" id="entr-ask">Demander de l'aide</button></div>
+      <a class="tab" href="#entraide" id="entr-tab-pub">Demandes d'aide</a><a class="tab" href="#entraide/mes-demandes" id="entr-tab-mes">Mes demandes</a><a class="tab" href="#entraide/moderation" id="entr-tab-mod" hidden>Modération</a>
+    </nav><select class="entr-nav-sel" id="entr-nav-sel" aria-label="Entraide : choisir la page"></select><button type="button" class="btn btn-primary" id="entr-ask">J'ai besoin d'aide</button></div>
   <!-- Mes demandes (maquette : seulement celles envoyées depuis l'ouverture de la page) -->
   <div id="entr-mes" hidden>
     <h2 class="entr-titre">Mes demandes</h2>
