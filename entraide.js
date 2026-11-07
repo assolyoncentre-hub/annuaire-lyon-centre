@@ -61,8 +61,8 @@ function renderEntraide(list) {
       '<div class="who">' + esc(d.prenom) + (d.quartier ? ' <span class="where">· ' + esc(d.quartier) + "</span>" : "") + "</div>" +
       '<p class="need">' + esc(d.besoin) + "</p>" + (d.quand ? '<div class="when">' + ENTR_CAL + "<span>" + esc(d.quand) + "</span></div>" : "") +
       // « Je peux aider ! » : proposer son aide (fonction à venir)
-      '<button type="button" class="entr-aider" data-aider>Je peux aider !</button>' +
-      '<time class="time" datetime="' + esc(d.publie_le) + '">' + entrHeure(d.publie_le) + "</time></article>";
+      '<div class="entr-pied"><button type="button" class="entr-aider" data-aider>Je peux aider !</button>' +
+      '<time class="time" datetime="' + esc(d.publie_le) + '">' + entrHeure(d.publie_le) + "</time></div></article>";
   }).join("") : '<p class="empty">Aucune demande d\'aide en cours pour le moment.</p>';
   entrVus = new Set(list.map(d => d.id));
   // Nouvelle demande en haut du fil : si on lisait plus bas, un bouton la signale

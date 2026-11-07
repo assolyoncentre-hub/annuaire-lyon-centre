@@ -607,6 +607,10 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .entr-msg.repond { box-shadow: 0 0 0 2px var(--c, var(--brand)); }
 body.entr-repond main { padding-bottom: 220px; }
 .entr-msg .time { display: block; margin-top: 2px; text-align: right; color: var(--muted); font-size: 11px; }
+/* « Je peux aider ! » et l'heure sur une même ligne, un peu détachée du texte */
+.entr-pied { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 14px; }
+.entr-pied .entr-aider { margin-top: 0; }
+.entr-pied .time { margin-top: 0; }
 .entr-msg.new { animation: entr-pop .28s ease-out; }
 @keyframes entr-pop { from { opacity: 0; transform: translateY(10px) scale(.97); } }
 @media (prefers-reduced-motion: reduce) { .entr-msg.new { animation: none; } }

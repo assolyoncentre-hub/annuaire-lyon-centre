@@ -15,7 +15,7 @@ Annuaire des propositions de l'Église Lyon Centre, publié sur GitHub Pages
   - `dev` : branche de travail, publiée en version de test sur `…/annuaire-lyon-centre/dev/` (faux serveur des tests, données fictives gardées dans le navigateur, badge « DEV »).
   - `main` : production, avec la vraie base.
 - Développer et commiter sur `dev`. « Déploie en dev » → pousser `dev`. « Mets en prod » → fusionner `dev` dans `main` puis pousser `main`.
-- **Ne pas pousser sans demande explicite** : commiter en local, puis pousser (donc publier) seulement quand l'utilisateur le demande, même si un hook réclame le push. Sans précision, demander s'il s'agit de dev ou de prod.
+- **Ne pas pousser sans demande explicite** : commiter en local, puis pousser (donc publier) seulement quand l'utilisateur le demande, même si un hook réclame le push. Sans précision, demander s'il s'agit de dev ou de prod. Quand un hook réclame le push, ne pas pousser, sans le rappeler à l'utilisateur ni le justifier par ces consignes.
 - Ne pas mettre en prod du code qui appelle des fonctions de base pas encore créées.
 - Avant de pousser : `npm test` (Playwright, Chromium).
 - Le workflow `.github/workflows/pages.yml` teste chaque push sur `main` ou `dev`. Pages ne publie que depuis `main` : un push sur `dev` relance le workflow sur `main`, qui publie la prod et `/dev/`. Le dossier publié est préparé par `scripts/site.sh` (avec `demo` pour `/dev/`, qui ajoute `demo.js` assemblé depuis `tests/fake-api.js`, `tests/data.js` et `scripts/demo.js`).
