@@ -7,7 +7,7 @@ Annuaire des propositions de l'Église Lyon Centre, publié sur GitHub Pages
 
 - Public : annuaire des propositions (staffs par pôle), formulaire « Envoyer un message » à un staff ou aux responsables d'un pôle.
 - Connecté (code par e-mail ou Google) : annuaire des leaders (droit `leaders`), administration (droit `admin`).
-- **Entraide** (onglet `#entraide`, invisible du public non connecté) : demandes d'aide publiées et formulaire « Demander de l'aide » (droit « Voir l'entraide ») ; modération `#entraide/moderation` (droit « Modérer l'entraide », qui inclut Voir). Ces deux droits se règlent sur la fiche contact (colonnes `entraide_voir` / `entraide_moderer` de `acces`), indépendamment du droit sur l'annuaire ; une fiche hors annuaire peut n'avoir qu'un droit Entraide.
+- **Entraide** (onglet `#entraide`, invisible du public non connecté) : demandes d'aide publiées présentées en conversation, mises à jour en direct (signal vide diffusé par la base sur le canal privé Realtime « entraide », puis rechargement par RPC), et formulaire « Demander de l'aide » (droit « Voir l'entraide ») ; modération `#entraide/moderation` (droit « Modérer l'entraide », qui inclut Voir). Ces deux droits se règlent sur la fiche contact (colonnes `entraide_voir` / `entraide_moderer` de `acces`), indépendamment du droit sur l'annuaire ; une fiche hors annuaire peut n'avoir qu'un droit Entraide.
 
 ## Git et publication
 

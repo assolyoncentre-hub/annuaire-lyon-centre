@@ -5,10 +5,6 @@
 // Utilise les outils d'app.js ($, esc, api, toast, setPageInert, openEditor, canEntraide, isReferent, telHref).
 
 const ENTR_STATUT = { a_valider: ["À valider", "wait"], publiee: ["Publiée", "lead"], pourvue: ["Pourvue", "ok"], refusee: ["Refusée", "none"] };
-const entrSince = iso => {
-  const days = Math.floor((Date.now() - new Date(iso)) / 86400000);
-  return days < 1 ? "aujourd'hui" : days === 1 ? "hier" : "il y a " + days + " jours";
-};
 const entrDate = iso => new Date(iso).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 // +33612345678 → 06 12 34 56 78 (les numéros étrangers restent au format international)
 const entrTel = t => { const m = /^\+33(\d{9})$/.exec(t || ""); return m ? ("0" + m[1]).replace(/(\d{2})(?=\d)/g, "$1 ") : t || ""; };
@@ -25,23 +21,68 @@ const entrShareUrl = d => "https://wa.me/?text=" + encodeURIComponent(entrMessag
 const entrChatUrl = d => "https://wa.me/" + d.telephone.replace(/^\+/, "") + "?text=" + encodeURIComponent(
   "Bonjour " + d.prenom + ", je suis référent de l'entraide de l'Église Lyon Centre. Je reviens vers vous au sujet de votre demande : « " + d.besoin + " ».");
 
-// --- Demandes publiées ---
-let entrLoaded = false;
+// --- Demandes publiées : une conversation, les plus récentes en bas ---
+let entrLoaded = false, entrVus = new Set();
+// Couleur du prénom (fixe pour un même prénom, comme les noms dans un groupe WhatsApp), lisible sur fond blanc
+const ENTR_COULEURS = ["#0060aa", "#0a7d6f", "#a0306b", "#b0451f", "#6b4fbb", "#8a5a00", "#1f6f3a"];
+const entrCouleur = nom => ENTR_COULEURS[[...String(nom)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7) % ENTR_COULEURS.length];
+const entrHeure = iso => new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+function entrJour(iso) {
+  const d = new Date(iso), j = x => new Date(x.getFullYear(), x.getMonth(), x.getDate());
+  const n = Math.round((j(new Date()) - j(d)) / 86400000);
+  if (n === 0) return "Aujourd'hui";
+  if (n === 1) return "Hier";
+  const t = d.toLocaleDateString("fr-FR", n < 7 ? { weekday: "long" } : { weekday: "long", day: "numeric", month: "long" });
+  return t[0].toUpperCase() + t.slice(1);
+}
+const entrEnBas = t => t.scrollHeight - t.scrollTop - t.clientHeight < 40;
 function renderEntraide(list) {
-  $("entr-count").textContent = list.length ? list.length + (list.length > 1 ? " demandes en cours" : " demande en cours") : "";
-  $("entr-list").innerHTML = list.length
-    ? list.map(d => '<div class="row entr-row"><div>' +
-        '<div class="title">' + esc(d.prenom) + (d.quartier ? ' <span class="where">· ' + esc(d.quartier) + "</span>" : "") + "</div>" +
-        '<p class="need">' + esc(d.besoin) + "</p>" +
-        (d.quand ? '<div class="when">' + esc(d.quand) + "</div>" : "") +
-        '</div><span class="ago">' + entrSince(d.publie_le) + "</span></div>").join("")
-    : '<p class="empty">Aucune demande d\'aide en cours pour le moment.</p>';
+  const t = $("entr-list"), enBas = !entrLoaded || entrEnBas(t);
+  $("entr-count").textContent = list.length ? list.length + (list.length > 1 ? " demandes en cours" : " demande en cours") : "Aucune demande en cours";
+  let jour = null, nouvelles = 0;
+  t.innerHTML = list.length ? [...list].sort((a, b) => a.publie_le.localeCompare(b.publie_le)).map(d => {
+    const j = entrJour(d.publie_le), sep = j !== jour ? '<div class="entr-day"><span>' + esc(j) + "</span></div>" : "";
+    const neuve = entrLoaded && !entrVus.has(d.id);
+    if (neuve) nouvelles++;
+    jour = j;
+    return sep + '<article class="entr-msg' + (neuve ? " new" : "") + '" style="--c:' + entrCouleur(d.prenom) + '" data-id="' + esc(d.id) + '">' +
+      '<div class="who">' + esc(d.prenom) + (d.quartier ? ' <span class="where">· ' + esc(d.quartier) + "</span>" : "") + "</div>" +
+      '<p class="need">' + esc(d.besoin) + "</p>" + (d.quand ? '<span class="when">🗓️ ' + esc(d.quand) + "</span>" : "") +
+      '<time class="time" datetime="' + esc(d.publie_le) + '">' + entrHeure(d.publie_le) + "</time></article>";
+  }).join("") : '<p class="empty">Aucune demande d\'aide en cours pour le moment.</p>';
+  entrVus = new Set(list.map(d => d.id));
+  // Comme une conversation : on reste en bas du fil ; si on lisait plus haut, un bouton signale la nouveauté
+  if (enBas) { t.scrollTop = t.scrollHeight; $("entr-jump").hidden = true; }
+  else if (nouvelles) $("entr-jump").hidden = false;
 }
+$("entr-jump").addEventListener("click", () => { const t = $("entr-list"); t.scrollTop = t.scrollHeight; $("entr-jump").hidden = true; });
+$("entr-list").addEventListener("scroll", e => { if (entrEnBas(e.target)) $("entr-jump").hidden = true; });
+let entrSeq = 0;
 async function loadEntraide() {
+  const seq = ++entrSeq;
   if (!entrLoaded) $("entr-count").textContent = "Chargement…";
-  try { renderEntraide(await api.entraide()); entrLoaded = true; }
-  catch { $("entr-count").textContent = ""; $("entr-list").innerHTML = '<p class="empty">Impossible de charger les demandes pour le moment.</p>'; }
+  try { const list = await api.entraide(); if (seq === entrSeq) { renderEntraide(list); entrLoaded = true; } }
+  catch { if (!entrLoaded) { $("entr-count").textContent = ""; $("entr-list").innerHTML = '<p class="empty">Impossible de charger les demandes pour le moment.</p>'; } }
 }
+
+// --- En direct : un signal de la base à chaque changement, la vue affichée se recharge ---
+let entrArret = null;
+function entrRafraichir() {
+  const h = location.hash;
+  if (h === "#entraide" && canEntraide) loadEntraide();
+  else if (h === "#entraide/moderation" && isReferent && entrModShown) loadModeration();
+}
+async function entrEcouter(on) {
+  if (!on) { entrArret?.then(stop => stop?.()); entrArret = null; $("entr-live").hidden = true; return; }
+  if (entrArret || !api.entraideEnDirect) return;
+  entrArret = api.entraideEnDirect(entrRafraichir, ok => {
+    // Connexion rétablie : on recharge, au cas où un changement aurait eu lieu pendant la coupure
+    if (ok && $("entr-live").hidden && entrLoaded) entrRafraichir();
+    $("entr-live").hidden = !ok;
+  }).catch(() => null);
+}
+// Retour sur l'onglet (téléphone en veille…) : on recharge
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && entrArret) entrRafraichir(); });
 
 // --- Modération ---
 let entrDemandes = null, entrFiltre = "a_valider", entrBusy = false;
@@ -135,6 +176,7 @@ $("entr-mod-list").addEventListener("click", e => {
 let entrModShown = false;
 function onEntraideRoute() {
   const h = location.hash, mod = h === "#entraide/moderation" && isReferent;
+  entrEcouter(canEntraide);
   if (!(h === "#entraide" && canEntraide) && !mod) { entrModShown = false; return; }
   $("entr-tabs").hidden = !isReferent;
   $("entr-pub").hidden = mod;

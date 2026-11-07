@@ -29,6 +29,10 @@ module.exports = function installFakeApi({ data, user, acces }) {
   const entrMoi = () => session ? entrDe(session.user.email.toLowerCase()) : null;
   const guardVoir = () => { if (!entrMoi()) throw new Error("Accès réservé."); };
   const guardRef = () => { if (entrMoi() !== "moderer") throw new Error("Accès réservé aux modérateurs de l'entraide."); };
+  // Signal « en direct » (comme le déclencheur entraide_signaler de la base) ; window.__entraideSignal() le simule
+  const ecoutes = new Set();
+  const signal = () => setTimeout(() => { for (const l of ecoutes) l.onMaj(); });
+  window.__entraideSignal = signal;
   const ago = j => new Date(Date.now() - j * 86400000).toISOString();
   const entrRow = d => ({ id: d.id, created_at: d.cree ? new Date(d.cree).toISOString() : ago(d.jours), prenom: d.prenom, telephone: d.telephone, besoin: d.besoin,
     quand: d.quand, quartier: d.quartier, statut: d.statut, publiee_le: d.publieAt ? new Date(d.publieAt).toISOString() : d.statut !== "a_valider" && d.statut !== "refusee" ? ago(d.publie ?? d.jours) : null,
@@ -59,6 +63,7 @@ module.exports = function installFakeApi({ data, user, acces }) {
       if (!/^\+[1-9]\d{7,14}$/.test(t)) throw new Error("Numéro de téléphone invalide (exemple : 06 12 34 56 78).");
       if (S.entraide.filter(x => x.telephone === t && x.statut === "a_valider").length >= 3) throw new Error("Vous avez déjà plusieurs demandes en attente : un référent va les relire très vite.");
       const id = "e" + n++;
+      signal();
       S.entraide.push({ id, prenom: d.p_prenom.trim(), telephone: t, besoin: d.p_besoin.trim(), quand: (d.p_quand || "").trim(), quartier: (d.p_quartier || "").trim(), statut: "a_valider", jours: 0, cree: Date.now() });
       return id;
     },
@@ -76,9 +81,18 @@ module.exports = function installFakeApi({ data, user, acces }) {
       for (const [k, f] of [["p_prenom", "prenom"], ["p_besoin", "besoin"], ["p_quand", "quand"], ["p_quartier", "quartier"]]) {
         if (c[k] != null && (String(c[k]).trim() || (f !== "prenom" && f !== "besoin"))) d[f] = String(c[k]).trim();
       }
+      signal();
       return entrRow(d);
     },
-    async entraideSupprimer(id) { guardRef(); log("entraideSupprimer", id); const i = S.entraide.findIndex(x => x.id === id); if (i < 0) throw new Error("Demande introuvable."); S.entraide.splice(i, 1); },
+    async entraideSupprimer(id) { guardRef(); log("entraideSupprimer", id); const i = S.entraide.findIndex(x => x.id === id); if (i < 0) throw new Error("Demande introuvable."); S.entraide.splice(i, 1); signal(); },
+    // En direct : comme le canal privé « entraide » de la base (écoute réservée aux comptes avec un droit Entraide)
+    async entraideEnDirect(onMaj, onEtat) {
+      log("entraideEnDirect");
+      if (!entrMoi()) { setTimeout(() => onEtat(false)); return () => {}; }
+      const l = { onMaj };
+      ecoutes.add(l); setTimeout(() => onEtat(true));
+      return () => ecoutes.delete(l);
+    },
     async loadPublic() {
       log("loadPublic");
       return { poles: clone(S.poles), services: S.services.map(s => ({ ...s, nb_contacts: S.contacts.filter(c => c.service_id === s.id).length })) };

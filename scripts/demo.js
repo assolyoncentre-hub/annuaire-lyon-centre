@@ -16,6 +16,11 @@ const save = () => { try { localStorage.setItem(KEY, JSON.stringify(window.__S))
 for (const [name, fn] of Object.entries(window.__api)) {
   if (typeof fn === "function") window.__api[name] = async (...args) => { try { return await fn(...args); } finally { save(); } };
 }
+// Plusieurs onglets ouverts : une demande enregistrée dans l'un apparaît en direct dans les autres
+addEventListener("storage", e => {
+  if (e.key !== KEY || !e.newValue) return;
+  try { window.__S.entraide = JSON.parse(e.newValue).entraide || []; window.__entraideSignal(); } catch { /* données illisibles */ }
+});
 // Badge « DEV » à côté du nom ; un clic propose de remettre les données de démonstration à zéro
 document.addEventListener("DOMContentLoaded", () => {
   const b = document.createElement("button");

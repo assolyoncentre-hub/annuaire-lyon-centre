@@ -54,6 +54,18 @@ window.makeApi = function () {
     // champs : { p_statut, p_prenom, p_besoin, p_quand, p_quartier } (absent = inchangé)
     entraideModifier: (id, champs) => sbRpc("entraide_modifier", { p_id: id, ...champs }),
     entraideSupprimer: id => sbRpc("entraide_supprimer", { p_id: id }),
+    // En direct : la base diffuse un signal vide sur le canal privé « entraide » à chaque changement d'une demande
+    // (écoute réservée aux comptes qui ont un droit Entraide). onMaj() à chaque signal, onEtat(true/false) selon la connexion.
+    // Renvoie la fonction qui arrête l'écoute.
+    async entraideEnDirect(onMaj, onEtat) {
+      const sb = await getSb();
+      const { data } = await sb.auth.getSession();
+      await sb.realtime.setAuth(data.session?.access_token || null);
+      const ch = sb.channel("entraide", { config: { private: true } })
+        .on("broadcast", { event: "maj" }, () => onMaj())
+        .subscribe(st => onEtat(st === "SUBSCRIBED"));
+      return () => sb.removeChannel(ch);
+    },
     responsables: id => rpc("annuaire_responsables", { p_pole: id }),
     // Staffs et pôles dont un leader porte ce nom (la base ne renvoie jamais les noms eux-mêmes)
     searchPeople: q => rpc("annuaire_recherche", { q }),
