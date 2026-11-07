@@ -1,24 +1,53 @@
-// Entraide : liste publique, formulaire progressif, modération par les référents (droit distinct de l'annuaire).
+// Entraide : visible seulement avec le droit « Voir l'entraide », modérée avec « Modérer l'entraide » (fiche contact).
 const { test, expect, ADMIN, calls } = require("./helpers");
 const axePath = require.resolve("axe-core/axe.min.js");
 
-const REFERENT = { email: "referent@example.org" };
+// Fiches hors annuaire avec seulement un droit Entraide (aucun droit sur l'annuaire)
+const fiche = (email, voir, moderer) => ({ email, droit: "aucun", prenom: "", nom: "", entraide_voir: voir, entraide_moderer: moderer });
+const MOD = { email: "mod@example.org" }, VOIR = { email: "voir@example.org" };
+const ACCES = [fiche("mod@example.org", true, true), fiche("voir@example.org", true, false), { email: "admin@example.org", droit: "admin", prenom: "", nom: "" }];
 const row = (page, prenom) => page.locator(".entr-mod-row", { has: page.locator("strong", { hasText: prenom }) });
 
-test("liste publique : demandes publiées seulement, sans téléphone @mobile", async ({ open, page }) => {
+test("visiteur non connecté : pas d'onglet Entraide, le lien direct demande une connexion @mobile", async ({ open, page }) => {
+  await open();
+  await expect(page.locator("#sw-entr")).toBeHidden();
   await open({ hash: "#entraide" });
-  await expect(page.locator("#h1")).toHaveText("Entraide");
+  await expect(page.locator("#admin-login")).toBeVisible();
+  await expect(page.locator("#login-title")).toHaveText("Accès réservé");
+  await expect(page.locator("#entr-view")).toBeHidden();
+  expect(await calls(page, "entraide")).toHaveLength(0);
+});
+
+test("administrateur de l'annuaire sans droit Entraide : ni onglet ni accès", async ({ open, page }) => {
+  await open({ user: ADMIN, hash: "#entraide", acces: ACCES });
+  await expect(page.locator("#sw-entr")).toBeHidden();
+  await expect(page.locator("#admin-denied")).toContainText("n'a pas accès à l'entraide.");
+});
+
+test("droit Voir : demandes publiées seulement, sans téléphone ni modération @mobile", async ({ open, page }) => {
+  await open({ user: VOIR, hash: "#entraide", acces: ACCES });
+  await expect(page.locator("#sw-entr")).toBeVisible();
   await expect(page.locator("#sw-entr")).toHaveAttribute("aria-current", "page");
   await expect(page.locator("#entr-count")).toHaveText("5 demandes en cours");
-  await expect(page.locator(".entr-row").first()).toContainText("Jeanne");
-  await expect(page.locator("#entr-list")).not.toContainText("Henri"); // à valider : pas encore publique
+  await expect(page.locator("#entr-list")).not.toContainText("Henri"); // à valider : pas encore publiée
   await expect(page.locator("#entr-view")).not.toContainText("39 98");
   await expect(page.locator("#entr-tabs")).toBeHidden();
-  await expect(page.locator("#entr-ref-link")).toBeVisible();
+  await page.evaluate(() => { location.hash = "#entraide/moderation"; });
+  await expect(page.locator("#admin-denied")).toContainText("n'est pas modérateur de l'entraide.");
+});
+
+test("une fiche hors annuaire avec le droit Voir se connecte et arrive sur l'entraide", async ({ open, page }) => {
+  await open({ hash: "#admin", acces: ACCES });
+  await page.fill("#otp-email", "voir@example.org");
+  await page.click("#otp-send");
+  await page.fill("#otp-code", "123456");
+  await expect(page).toHaveURL(/#entraide$/);
+  await expect(page.locator("#entr-pub")).toBeVisible();
+  await expect(page.locator("#sw-admin")).toBeHidden();
 });
 
 test("demander de l'aide : les champs se dévoilent un à un, puis remerciement @mobile", async ({ open, page }) => {
-  await open({ hash: "#entraide" });
+  await open({ user: VOIR, hash: "#entraide", acces: ACCES });
   await page.click("#entr-ask");
   await expect(page.locator("#e-besoin")).toBeFocused();
   await expect(page.locator("#e-quand")).toBeHidden();
@@ -44,33 +73,13 @@ test("demander de l'aide : les champs se dévoilent un à un, puis remerciement 
   await page.click("#e-next");
   await expect(page.locator("#e-done-title")).toHaveText("Merci Zoé !");
   expect((await calls(page, "entraideDemander"))[0].arg).toMatchObject({ p_besoin: "Un trajet pour un rendez-vous", p_quand: "Jeudi 14 h", p_quartier: "", p_prenom: "Zoé", p_accord: true });
-  // Pas publiée tant qu'un référent ne l'a pas validée
   await page.click("#e-close");
-  await expect(page.locator("#entr-list")).not.toContainText("Zoé");
-});
-
-test("modération : connexion demandée, refusée à un administrateur de l'annuaire non référent", async ({ open, page }) => {
-  await open({ hash: "#entraide/moderation" });
-  await expect(page.locator("#admin-login")).toBeVisible();
-  await expect(page.locator("#login-title")).toHaveText("Accès réservé");
-  await open({ user: ADMIN, hash: "#entraide/moderation" });
-  await expect(page.locator("#admin-denied")).toContainText("n'est pas référent de l'entraide.");
-  await expect(page.locator("#entr-mod")).toBeHidden();
-});
-
-test("un référent hors annuaire peut se connecter et arrive sur la modération", async ({ open, page }) => {
-  await open({ hash: "#admin" });
-  await page.fill("#otp-email", "referent@example.org");
-  await page.click("#otp-send");
-  await page.fill("#otp-code", "123456");
-  await expect(page).toHaveURL(/#entraide\/moderation$/);
-  await expect(page.locator("#entr-mod")).toBeVisible();
-  await expect(page.locator("#sw-admin")).toBeHidden(); // aucun droit sur l'annuaire
+  await expect(page.locator("#entr-list")).not.toContainText("Zoé"); // à valider par un modérateur
 });
 
 test("modération : publier sur WhatsApp, modifier, pourvue, refuser, supprimer", async ({ open, page }) => {
   await page.addInitScript(() => { window.open = (...a) => { (window.__opened ||= []).push(a); return null; }; });
-  await open({ user: REFERENT, hash: "#entraide/moderation" });
+  await open({ user: MOD, hash: "#entraide/moderation", acces: ACCES });
   await expect(page.locator("#entr-tab-mod")).toHaveText("Modération (2)");
   await expect(page.locator("#entr-tab-mod")).toHaveAttribute("aria-current", "page");
   await expect(page.locator("#entr-filters [aria-pressed=true]")).toHaveText("À valider (2)");
@@ -96,7 +105,7 @@ test("modération : publier sur WhatsApp, modifier, pourvue, refuser, supprimer"
   await colette.locator("[data-act=refuser]").click();
   await expect(page.locator("#entr-filters")).toContainText("À valider (0)");
 
-  // Publiée → pourvue : elle disparaît de la liste publique
+  // Publiée → pourvue : elle disparaît des demandes publiées
   await page.click("[data-filter=publiee]");
   await row(page, "Jeanne").locator("[data-act=pourvue]").click();
   await page.click("[data-filter=terminees]");
@@ -112,18 +121,45 @@ test("modération : publier sur WhatsApp, modifier, pourvue, refuser, supprimer"
   await expect(page.locator("#entr-list")).not.toContainText("Jeanne");
 });
 
-test("référents : ajout et retrait, sans pouvoir se retirer soi-même", async ({ open, page }) => {
-  await open({ user: REFERENT, hash: "#entraide/moderation" });
-  await page.click("[data-filter=referents]");
-  await expect(page.locator("[data-email='referent@example.org'] [data-act]")).toHaveCount(0);
-  await page.click("#entr-add-ref");
-  await page.fill("#er-prenom", "Anne");
-  await page.fill("#er-email", "Anne@Example.org");
-  await page.click("#ed-form [type=submit]");
-  await expect(page.locator("#entr-filters")).toContainText("Référents (2)");
-  await page.locator("[data-email='anne@example.org'] [data-act=retirer]").click();
-  await page.click("#ed-form [type=submit]");
-  await expect(page.locator("#entr-filters")).toContainText("Référents (1)");
+test("fiche contact : droits Voir et Modérer l'entraide, Modérer implique Voir", async ({ open, page }) => {
+  await open({ user: ADMIN, hash: "#admin/contacts" });
+  // Sa propre fiche : droits non modifiables
+  await page.locator("#admin-list .row", { hasText: "admin@example.org" }).locator("[data-act=edit]").click();
+  await expect(page.locator("#pe-entr-voir")).toBeDisabled();
+  await page.locator("#ed-form [data-close]").click();
+
+  const magali = () => page.locator("#admin-list .row", { hasText: "magali@example.org" });
+  await magali().locator("[data-act=edit]").click();
+  await expect(page.locator("#pe-entr-voir")).not.toBeChecked();
+  await page.check("#pe-entr-mod");
+  await expect(page.locator("#pe-entr-voir")).toBeChecked();
+  await page.locator("#ed-form [type=submit]").click();
+  await expect(page.locator("#editor")).toBeHidden();
+  expect((await calls(page, "savePerson"))[0].arg.fields.entraide).toBe("moderer");
+  await expect(magali().locator(".badge.entr")).toHaveText("Entraide : modération");
+  expect(await page.evaluate(() => window.__S.acces.find(a => a.email === "magali@example.org"))).toMatchObject({ droit: "leaders", entraide_voir: true, entraide_moderer: true });
+
+  // Décocher Voir retire aussi Modérer ; sans droit particulier, la ligne « acces » disparaît
+  await magali().locator("[data-act=edit]").click();
+  await page.uncheck("#pe-entr-voir");
+  await expect(page.locator("#pe-entr-mod")).not.toBeChecked();
+  await page.locator("#ed-form [type=submit]").click();
+  await expect(magali().locator(".badge.entr")).toHaveCount(0);
+  expect(await page.evaluate(() => window.__S.acces.some(a => a.email === "magali@example.org"))).toBe(false);
+});
+
+test("fiche hors annuaire avec seulement le droit Voir l'entraide", async ({ open, page }) => {
+  await open({ user: ADMIN, hash: "#admin/contacts" });
+  await page.click("#add-btn");
+  await page.fill("#pe-prenom", "Inès");
+  await page.fill("#pe-email", "ines@example.org");
+  await expect(page.locator('input[name="pe-droit"][value="aucun"]')).toBeDisabled();
+  await page.check("#pe-entr-voir");
+  await expect(page.locator('input[name="pe-droit"][value="aucun"]')).toBeEnabled();
+  await page.locator(".seg label", { hasText: "Aucun" }).click();
+  await page.locator("#ed-form [type=submit]").click();
+  await expect(page.locator("#editor")).toBeHidden();
+  expect(await page.evaluate(() => window.__S.acces.find(a => a.email === "ines@example.org"))).toMatchObject({ droit: "aucun", entraide_voir: true, entraide_moderer: false });
 });
 
 async function audit(page) {
@@ -133,7 +169,8 @@ async function audit(page) {
 }
 
 test("accessibilité : liste et formulaire @mobile", async ({ open, page }) => {
-  await open({ hash: "#entraide" });
+  await open({ user: VOIR, hash: "#entraide", acces: ACCES });
+  await expect(page.locator("#entr-count")).toHaveText("5 demandes en cours");
   expect(await audit(page)).toEqual([]);
   await page.click("#entr-ask");
   await page.fill("#e-besoin", "Un trajet");
@@ -142,7 +179,17 @@ test("accessibilité : liste et formulaire @mobile", async ({ open, page }) => {
 });
 
 test("accessibilité : modération @mobile", async ({ open, page }) => {
-  await open({ user: REFERENT, hash: "#entraide/moderation" });
+  await open({ user: MOD, hash: "#entraide/moderation", acces: ACCES });
   await expect(page.locator(".entr-mod-row").first()).toBeVisible();
   expect(await audit(page)).toEqual([]);
+});
+
+test("téléphone : quatre onglets (avec Entraide et Administration) visibles sans défilement @mobile", async ({ open, page }) => {
+  await open({ user: ADMIN, hash: "#entraide", acces: [{ email: "admin@example.org", droit: "admin", prenom: "", nom: "", entraide_voir: true, entraide_moderer: true }] });
+  await expect(page.locator("#sw-admin")).toBeVisible();
+  await expect(page.locator("#sw-entr")).toBeVisible();
+  const width = page.viewportSize().width;
+  const rights = await page.locator("#switch a:not([hidden])").evaluateAll(as => as.map(a => a.getBoundingClientRect().right));
+  expect(rights).toHaveLength(4);
+  for (const r of rights) expect(r).toBeLessThanOrEqual(width);
 });

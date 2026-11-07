@@ -7,7 +7,7 @@ Annuaire des propositions de l'Église Lyon Centre, publié sur GitHub Pages
 
 - Public : annuaire des propositions (staffs par pôle), formulaire « Envoyer un message » à un staff ou aux responsables d'un pôle.
 - Connecté (code par e-mail ou Google) : annuaire des leaders (droit `leaders`), administration (droit `admin`).
-- En cours : **Entraide** (onglet `#entraide`) : liste publique des demandes d'aide validées et formulaire « Demander de l'aide » ; modération par des référents qui auront leur propre droit, distinct des administrateurs de l'annuaire.
+- **Entraide** (onglet `#entraide`, invisible du public non connecté) : demandes d'aide publiées et formulaire « Demander de l'aide » (droit « Voir l'entraide ») ; modération `#entraide/moderation` (droit « Modérer l'entraide », qui inclut Voir). Ces deux droits se règlent sur la fiche contact (colonnes `entraide_voir` / `entraide_moderer` de `acces`), indépendamment du droit sur l'annuaire ; une fiche hors annuaire peut n'avoir qu'un droit Entraide.
 
 ## Git et publication
 
@@ -19,12 +19,12 @@ Annuaire des propositions de l'Église Lyon Centre, publié sur GitHub Pages
 - Ne pas mettre en prod du code qui appelle des fonctions de base pas encore créées.
 - Avant de pousser : `npm test` (Playwright, Chromium).
 - Le workflow `.github/workflows/pages.yml` teste chaque push sur `main` ou `dev`. Pages ne publie que depuis `main` : un push sur `dev` relance le workflow sur `main`, qui publie la prod et `/dev/`. Le dossier publié est préparé par `scripts/site.sh` (avec `demo` pour `/dev/`, qui ajoute `demo.js` assemblé depuis `tests/fake-api.js`, `tests/data.js` et `scripts/demo.js`).
-- Connexion en version de test : `admin@example.org` (ou un leader des données de test), code `123456`.
+- Connexion en version de test : `admin@example.org` (administrateur, avec les droits Voir et Modérer l'entraide) ou un leader des données de test (`damien@example.org`), code `123456`. Les données de démo sont gardées dans le navigateur ; clic sur le badge « DEV » pour les remettre à zéro.
 
 ## Base de données (Supabase « Annuaire Lyon Centre », `xhjmmzounimrfshlihhx`)
 
 - Les migrations ne sont pas dans le dépôt : toute modification du schéma passe par une **nouvelle migration nommée** (snake_case en français, comme `droits_d_acces`, `photos_contacts`), appliquée avec l'outil `apply_migration` du connecteur Supabase. Lister les migrations existantes avant d'en écrire une ; ne jamais modifier la base à la main hors migration ni réécrire une migration appliquée.
-- Tables fermées par RLS ; le public passe par des fonctions RPC qui ne renvoient que l'utile (jamais d'e-mail ni de téléphone en public). Les droits sont dans la table `acces` (fonction `mon_droit`).
+- Tables fermées par RLS ; le public passe par des fonctions RPC qui ne renvoient que l'utile (jamais d'e-mail ni de téléphone en public). Les droits sont dans la table `acces` (fonctions `mon_droit` pour l'annuaire, `mon_droit_entraide` pour l'entraide ; `acces_autorise` et le hook de création de compte acceptent l'un ou l'autre).
 - Fonction Edge `envoyer-message` : envoi des messages du formulaire public.
 - Toute nouvelle fonction de base a son équivalent dans `tests/fake-api.js`, avec les mêmes règles : il sert aux tests et à la version de test.
 

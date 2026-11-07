@@ -1,8 +1,8 @@
 // ---------- Entraide ----------
-// Onglet « Entraide » :
-//   #entraide            liste publique des demandes publiées et formulaire « Demander de l'aide » (progressif)
-//   #entraide/moderation modération, réservée aux référents (droit distinct de ceux de l'annuaire, vérifié par la base)
-// Utilise les outils d'app.js ($, esc, api, toast, setPageInert, openEditor, isReferent, telHref).
+// Onglet « Entraide », réservé aux comptes qui en ont le droit (fiche contact : « Voir » / « Modérer » l'entraide) :
+//   #entraide            demandes publiées et formulaire « Demander de l'aide » (progressif)       droit « voir »
+//   #entraide/moderation modération des demandes                                                    droit « modérer »
+// Utilise les outils d'app.js ($, esc, api, toast, setPageInert, openEditor, canEntraide, isReferent, telHref).
 
 const ENTR_STATUT = { a_valider: ["À valider", "wait"], publiee: ["Publiée", "lead"], pourvue: ["Pourvue", "ok"], refusee: ["Refusée", "none"] };
 const entrSince = iso => {
@@ -25,7 +25,7 @@ const entrShareUrl = d => "https://wa.me/?text=" + encodeURIComponent(entrMessag
 const entrChatUrl = d => "https://wa.me/" + d.telephone.replace(/^\+/, "") + "?text=" + encodeURIComponent(
   "Bonjour " + d.prenom + ", je suis référent de l'entraide de l'Église Lyon Centre. Je reviens vers vous au sujet de votre demande : « " + d.besoin + " ».");
 
-// --- Liste publique ---
+// --- Demandes publiées ---
 let entrLoaded = false;
 function renderEntraide(list) {
   $("entr-count").textContent = list.length ? list.length + (list.length > 1 ? " demandes en cours" : " demande en cours") : "";
@@ -43,36 +43,25 @@ async function loadEntraide() {
   catch { $("entr-count").textContent = ""; $("entr-list").innerHTML = '<p class="empty">Impossible de charger les demandes pour le moment.</p>'; }
 }
 
-// --- Modération (référents) ---
-let entrDemandes = null, entrReferents = [], entrFiltre = "a_valider", entrBusy = false;
-const ENTR_FILTRES = [["a_valider", "À valider"], ["publiee", "Publiées"], ["terminees", "Terminées"], ["referents", "Référents"]];
+// --- Modération ---
+let entrDemandes = null, entrFiltre = "a_valider", entrBusy = false;
+const ENTR_FILTRES = [["a_valider", "À valider"], ["publiee", "Publiées"], ["terminees", "Terminées"]];
 const entrDans = (d, f) => f === "terminees" ? d.statut === "pourvue" || d.statut === "refusee" : d.statut === f;
 
 async function loadModeration() {
   try {
-    [entrDemandes, entrReferents] = await Promise.all([api.entraideModeration(), api.referents()]);
+    entrDemandes = await api.entraideModeration();
   } catch (err) { entrDemandes = []; toast("Impossible de charger les demandes : " + (err?.message || "erreur inconnue")); }
   renderModeration();
 }
 
 function renderModeration() {
   const all = entrDemandes || [];
-  const n = f => f === "referents" ? entrReferents.length : all.filter(d => entrDans(d, f)).length;
+  const n = f => all.filter(d => entrDans(d, f)).length;
   $("entr-filters").innerHTML = ENTR_FILTRES.map(([k, label]) =>
     '<button type="button" class="afilter" data-filter="' + k + '" aria-pressed="' + (entrFiltre === k) + '">' + label + " (" + n(k) + ")</button>").join("");
   $("entr-tab-mod").textContent = "Modération" + (n("a_valider") ? " (" + n("a_valider") + ")" : "");
-  $("entr-add-ref").hidden = entrFiltre !== "referents";
   if (entrDemandes === null) { $("entr-mod-list").innerHTML = '<div class="empty">Chargement…</div>'; return; }
-
-  if (entrFiltre === "referents") {
-    const moi = String(session?.user?.email || "").toLowerCase();
-    $("entr-mod-list").innerHTML = entrReferents.map(r =>
-      '<div class="entr-mod-row" data-email="' + esc(r.email) + '"><div class="head"><strong>' + esc([r.prenom, r.nom].filter(Boolean).join(" ") || r.email) + "</strong>" +
-      '<span class="meta">' + esc(r.email) + "</span>" + (r.email === moi ? ' <span class="badge lead">Vous</span>' : "") + "</div>" +
-      (r.email === moi ? "" : '<div class="ops"><button type="button" class="btn btn-ghost btn-sm" data-act="retirer">Retirer</button></div>') + "</div>"
-    ).join("") || '<div class="empty">Aucun référent.</div>';
-    return;
-  }
 
   const list = all.filter(d => entrDans(d, entrFiltre));
   const btn = (act, label, cls = "btn-ghost") => '<button type="button" class="btn ' + cls + ' btn-sm" data-act="' + act + '"' + (entrBusy ? " disabled" : "") + ">" + label + "</button>";
@@ -125,15 +114,6 @@ $("entr-filters").addEventListener("click", e => {
 $("entr-mod-list").addEventListener("click", e => {
   const b = e.target.closest("button[data-act]");
   if (!b) return;
-  const email = b.closest("[data-email]")?.dataset.email;
-  if (email) {
-    openEditor("Entraide", "Retirer ce référent ?", '<p style="margin:0">' + esc(email) + " ne pourra plus modérer les demandes d'aide.</p>", async () => {
-      await api.retirerReferent(email);
-      entrReferents = entrReferents.filter(r => r.email !== email);
-      renderModeration(); toast("Référent retiré.");
-    }, "Retirer", true);
-    return;
-  }
   const d = entrDemandes.find(x => x.id === b.closest("[data-id]")?.dataset.id);
   if (!d) return;
   // Publication : WhatsApp s'ouvre avec le message prérempli (sans le numéro), on choisit le groupe et on envoie
@@ -151,26 +131,12 @@ $("entr-mod-list").addEventListener("click", e => {
       renderModeration(); toast("Demande supprimée.");
     }, "Supprimer", true);
 });
-$("entr-add-ref").addEventListener("click", () => openEditor("Entraide", "Ajouter un référent",
-  '<p class="hint" style="margin:0">Un référent modère les demandes d\'aide. Il se connecte avec cette adresse (code par e-mail ou Google), sans accès à l\'annuaire des leaders.</p>' +
-  '<div class="row2"><div class="field"><label for="er-prenom">Prénom</label><input id="er-prenom" autocomplete="off"></div>' +
-  '<div class="field"><label for="er-nom">Nom</label><input id="er-nom" autocomplete="off"></div></div>' +
-  '<div class="field"><label for="er-email">Adresse e-mail</label><input id="er-email" type="email" autocomplete="off"></div>',
-  async f => {
-    const v = id => f.querySelector("#" + id).value.trim();
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v("er-email"))) return toast("Adresse e-mail invalide."), false;
-    await api.ajouterReferent(v("er-email"), v("er-prenom"), v("er-nom"));
-    entrReferents = await api.referents();
-    renderModeration(); toast("Référent ajouté.");
-  }, "Ajouter"));
-
-// Appelé par route() (app.js) à chaque changement de vue ou de connexion
+// Appelé par route() (app.js) à chaque changement de vue ou de connexion (rien à afficher sans le droit)
 let entrModShown = false;
 function onEntraideRoute() {
   const h = location.hash, mod = h === "#entraide/moderation" && isReferent;
-  if (h !== "#entraide" && !mod) { entrModShown = false; return; }
+  if (!(h === "#entraide" && canEntraide) && !mod) { entrModShown = false; return; }
   $("entr-tabs").hidden = !isReferent;
-  $("entr-ref-link").parentElement.hidden = isReferent;
   $("entr-pub").hidden = mod;
   $("entr-mod").hidden = !mod;
   for (const [id, on] of [["entr-tab-pub", !mod], ["entr-tab-mod", mod]]) {

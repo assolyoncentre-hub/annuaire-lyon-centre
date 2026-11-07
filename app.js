@@ -226,25 +226,25 @@ $("m-form").addEventListener("submit", async e => {
 // et les fiches hors annuaire, réglés sur la fiche contact
 // (consultation de l'annuaire des leaders). Les administrateurs (table « acces ») ont en plus l'administration.
 // Un autre compte est déconnecté aussitôt ; la base refuse de toute façon toute lecture au-delà de ces droits.
-let isAdmin = false, canLeaders = false, isReferent = false, session = null, adminTab = "services", adminTerms = [], messages = [], acces = [], contactFilter = "tous";
+let isAdmin = false, canLeaders = false, canEntraide = false, isReferent = false, session = null, adminTab = "services", adminTerms = [], messages = [], acces = [], contactFilter = "tous";
 let authStarted = null, authLoaded = false, lastViewAdmin = null;
 
 async function onSession(s) {
   session = s;
   const droit = s ? await api.droit().catch(() => undefined) : null; // undefined : droits illisibles (réseau)
-  // Référent de l'entraide : droit distinct de ceux de l'annuaire (on peut être l'un sans l'autre)
-  const referent = s ? await api.estReferent().catch(() => false) : false;
-  if (s && droit === null && !referent) {
-    // Compte absent des contacts et des référents : pas de connexion
+  // Droit Entraide ("voir" ou "moderer"), réglé sur la fiche contact, indépendant du droit sur l'annuaire
+  const entraide = s ? await api.droitEntraide().catch(() => null) : null;
+  if (s && droit === null && !entraide) {
+    // Compte sans droit sur l'annuaire ni sur l'entraide : pas de connexion
     await api.signOut().catch(() => {});
     $("login-error").textContent = "Le compte " + (s.user?.email || "") + " n'a pas accès à l'annuaire.";
     $("login-error").hidden = false;
     s = null;
   }
   session = s;
-  isAdmin = droit === "admin"; canLeaders = !!droit; isReferent = !!s && referent;
-  // Référent sans accès à l'annuaire, connecté depuis « Connexion » : direction la modération de l'entraide
-  if (isReferent && !canLeaders && /^#(admin|leaders)/.test(location.hash)) history.replaceState(null, "", "#entraide/moderation");
+  isAdmin = droit === "admin"; canLeaders = !!droit; canEntraide = !!s && !!entraide; isReferent = !!s && entraide === "moderer";
+  // Accès à l'entraide seulement, connecté depuis « Connexion » : direction l'entraide (la modération pour un modérateur)
+  if (canEntraide && !canLeaders && /^#(admin|leaders)/.test(location.hash)) history.replaceState(null, "", isReferent ? "#entraide/moderation" : "#entraide");
   if (canLeaders) await Promise.all([loadAdmin(), isAdmin && api.messages().then(m => { messages = m; }, () => {}), isAdmin && loadAcces()]);
   route();
 }
@@ -276,17 +276,18 @@ function route() {
   // Ancienne adresse de la page (« serviteurs ») : redirigée
   if (location.hash === "#serviteurs") history.replaceState(null, "", "#leaders");
   const h = location.hash, serv = h === "#leaders", showServ = serv && canLeaders;
-  // Entraide : liste publique (#entraide) ; modération (#entraide/moderation) réservée aux référents, sinon connexion
-  const entrMod = h === "#entraide/moderation", entr = h === "#entraide" || (entrMod && isReferent);
+  // Entraide, réservée au droit « voir » (#entraide) et « modérer » (#entraide/moderation) : sinon connexion ou refus
+  const entrMod = h === "#entraide/moderation", entrHash = h === "#entraide" || entrMod;
+  const entr = (h === "#entraide" && canEntraide) || (entrMod && isReferent);
   // Administration : « #admin » (staffs), « #admin/poles », « #admin/contacts », « #admin/messages »
   const adminHash = h === "#admin" || h.startsWith("#admin/");
   if (adminHash) { const t = TAB_OF[h.slice(7)] || "services"; if (t !== adminTab) showTab(t); }
-  const admin = adminHash || (serv && !canLeaders) || (entrMod && !isReferent);
+  const admin = adminHash || (serv && !canLeaders) || (entrHash && !entr);
   $("dir-view").hidden = admin || serv || entr;
   $("entr-view").hidden = !entr;
   $("serv-view").hidden = !showServ;
   $("admin-view").hidden = !admin;
-  $("h1").textContent = entr || entrMod ? "Entraide" : serv ? "Annuaire des leaders" : admin ? (session ? "Administration" : "Connexion") : "Annuaire des propositions";
+  $("h1").textContent = entrHash ? "Entraide" : serv ? "Annuaire des leaders" : admin ? (session ? "Administration" : "Connexion") : "Annuaire des propositions";
   // En haut à droite : « Connexion », ou le prénom de la personne connectée (menu avec « Se déconnecter »)
   const label = session ? firstName() : "Connexion";
   $("admin-label").textContent = label;
@@ -297,13 +298,14 @@ function route() {
   // Administration seulement pour un administrateur connecté
   $("sw-admin").hidden = !isAdmin;
   for (const k of ["sw-prop", "sw-serv", "sw-entr", "sw-admin"]) $(k).removeAttribute("aria-current");
-  const cur = entr || entrMod ? "sw-entr" : serv ? "sw-serv" : adminHash ? (isAdmin ? "sw-admin" : null) : "sw-prop";
+  $("sw-entr").hidden = !canEntraide;
+  const cur = entrHash ? "sw-entr" : serv ? "sw-serv" : adminHash ? (isAdmin ? "sw-admin" : null) : "sw-prop";
   if (cur) $(cur).setAttribute("aria-current", "page");
-  $("login-title").textContent = serv || entrMod ? "Accès réservé" : "Connexion";
+  $("login-title").textContent = serv || entrHash ? "Accès réservé" : "Connexion";
   if (admin || serv) ensureAuth();
   $("admin-login").hidden = !admin || !!session || !authLoaded;
-  $("admin-denied").hidden = !admin || !session || (serv ? canLeaders : entrMod ? isReferent : isAdmin);
-  $("denied-what").textContent = serv ? "n'a pas accès à l'annuaire des leaders." : entrMod ? "n'est pas référent de l'entraide." : "n'est pas administrateur de l'annuaire.";
+  $("admin-denied").hidden = !admin || !session || (serv ? canLeaders : entrHash ? entr : isAdmin);
+  $("denied-what").textContent = serv ? "n'a pas accès à l'annuaire des leaders." : entrMod ? "n'est pas modérateur de l'entraide." : entrHash ? "n'a pas accès à l'entraide." : "n'est pas administrateur de l'annuaire.";
   if (session) $("login-error").hidden = $("login-ok").hidden = true;
   $("admin-body").hidden = !adminHash || !isAdmin;
   const email = session?.user?.email || "";
@@ -340,7 +342,7 @@ $("admin-link").addEventListener("click", () => {
 });
 document.addEventListener("click", e => { if (!$("acct-menu").hidden && !e.target.closest(".acct")) closeAcct(); });
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("acct-menu").hidden) { closeAcct(); $("admin-link").focus(); } });
-$("logout").onclick = $("logout-2").onclick = async () => { closeAcct(); resetOtp(); await api.signOut(); isAdmin = canLeaders = isReferent = false; session = null; acces = []; messages = []; contactsOf = {}; respOf = {}; contactRows = []; respRows = []; route(); render(); };
+$("logout").onclick = $("logout-2").onclick = async () => { closeAcct(); resetOtp(); await api.signOut(); isAdmin = canLeaders = canEntraide = isReferent = false; session = null; acces = []; messages = []; contactsOf = {}; respOf = {}; contactRows = []; respRows = []; route(); render(); };
 
 const poleNames = () => Object.keys(poles).sort(byPole);
 const isPoleTab = () => adminTab === "poles";
@@ -380,10 +382,11 @@ function renderAdmin() {
     const list = all.filter(p => (contactFilter === "tous" || (contactFilter === "admin" ? p.droit === "admin" : p.hors)) &&
       adminMatch([p.prenom, p.nom, p.email, p.telephone, ...personRoles(p)].join(" ")));
     const badge = p => p.droit === "admin" ? ' <span class="badge admin">Admin</span>' : p.droit === "aucun" ? ' <span class="badge none">Sans accès</span>' :
-      p.hors ? ' <span class="badge lead">Leader</span>' : "";
+      p.hors && p.droit !== "aucun" ? ' <span class="badge lead">Leader</span>' : "";
+    const badgeEntr = p => p.entraide === "moderer" ? ' <span class="badge entr">Entraide : modération</span>' : p.entraide === "voir" ? ' <span class="badge entr">Entraide</span>' : "";
     const row = p => {
       const roles = p.hors ? ["Ni staff ni pôle"] : personRoles(p);
-      return '<div class="row" data-id="' + esc(p.key) + '"><span></span><div><div class="title">' + esc(nomPrenom(p) || p.email) + badge(p) + "</div>" +
+      return '<div class="row" data-id="' + esc(p.key) + '"><span></span><div><div class="title">' + esc(nomPrenom(p) || p.email) + badge(p) + badgeEntr(p) + "</div>" +
         '<div class="meta"><span>' + (p.email ? esc(p.email) : "Pas d'e-mail") + "</span>" + (p.telephone ? "<span>" + esc(p.telephone) + "</span>" : "") + '<span class="ell" title="' + esc(roles.join(", ")) + '">' + esc(roles.join(", ")) + "</span></div></div>" +
         '<div class="ops"><button type="button" class="btn btn-ghost btn-sm" data-act="edit">Modifier</button>' +
         '<button type="button" class="btn btn-ghost btn-sm" data-act="del">Supprimer</button></div></div>';
@@ -791,15 +794,17 @@ function persons() {
 const myEmail = () => String(session?.user?.email || "").toLowerCase();
 // Liste des contacts : nom de famille d'abord (« BRUNET Jean (Père) »)
 const nomPrenom = p => [nomAff(p.nom), p.prenom, p.civilite === "Père" ? "(Père)" : ""].filter(Boolean).join(" ").trim();
+// Droit Entraide d'une ligne « acces » : "moderer" (implique voir), "voir" ou "aucun"
+const entraideDe = a => a?.entraide_moderer ? "moderer" : a?.entraide_voir ? "voir" : "aucun";
 function fiches() {
   const droits = new Map(acces.map(a => [a.email, a]));
   const list = persons().map(p => {
     const e = p.email.toLowerCase();
-    return { ...p, hors: false, droit: e ? droits.get(e)?.droit || "leaders" : null };
+    return { ...p, hors: false, droit: e ? droits.get(e)?.droit || "leaders" : null, entraide: entraideDe(droits.get(e)) };
   });
   const known = new Set(list.map(p => p.email.toLowerCase()).filter(Boolean));
   for (const a of acces) if (!known.has(a.email)) list.push({ key: "@" + a.email, civilite: a.civilite || "", prenom: a.prenom || "", nom: a.nom || "",
-    email: a.email, telephone: a.telephone || "", contacts: [], responsables: [], hors: true, droit: a.droit });
+    email: a.email, telephone: a.telephone || "", contacts: [], responsables: [], hors: true, droit: a.droit, entraide: entraideDe(a) });
   return list.sort((a, b) => byName(a.nom || "", b.nom || "") || byName(a.prenom || "", b.prenom || "") || byName(a.email, b.email));
 }
 const svcById = id => services.find(s => s._id === id);
@@ -849,7 +854,11 @@ function editPerson(p) {
     '<section class="ed-sec droits" role="radiogroup" aria-labelledby="pe-droits-t"><h3 class="ed-sec-title" id="pe-droits-t">Droits</h3><div class="seg">' +
     DROITS.map(([v, label, sub]) => '<label><input type="radio" name="pe-droit" value="' + v + '"' + (droit === v ? " checked" : "") + (self ? " disabled" : "") +
       "><b>" + label + "</b><span>" + sub + "</span></label>").join("") + "</div>" +
-    '<div class="hint" id="pe-droit-hint"></div></section>',
+    '<div class="hint" id="pe-droit-hint"></div></section>' +
+    '<section class="ed-sec" aria-labelledby="pe-entr-t"><h3 class="ed-sec-title" id="pe-entr-t">Entraide</h3><div class="entr-droits">' +
+    '<label class="check"><input type="checkbox" id="pe-entr-voir"' + (p?.entraide && p.entraide !== "aucun" ? " checked" : "") + (self ? " disabled" : "") + ">Voir l'entraide</label>" +
+    '<label class="check"><input type="checkbox" id="pe-entr-mod"' + (p?.entraide === "moderer" ? " checked" : "") + (self ? " disabled" : "") + ">Modérer l'entraide</label></div>" +
+    '<div class="hint">Voir : onglet Entraide (demandes et formulaire). Modérer : valider et publier les demandes (inclut Voir).</div></section>',
     async f => {
       const prenom = f.querySelector("#pe-prenom").value.trim(), nom = f.querySelector("#pe-nom").value.trim();
       const email = f.querySelector("#pe-email").value.trim().toLowerCase();
@@ -860,9 +869,10 @@ function editPerson(p) {
       const checked = name => [...f.querySelectorAll('input[name="' + name + '"]:checked')].map(i => i.value);
       const svcIds = checked("svc"), poleIds = checked("pole");
       const d = f.querySelector('input[name="pe-droit"]:checked')?.value || "leaders";
+      const entr = f.querySelector("#pe-entr-mod").checked ? "moderer" : f.querySelector("#pe-entr-voir").checked ? "voir" : "aucun";
       if (!svcIds.length && !poleIds.length) {
         if (!email) return invalid(f, "#pe-email", "Une personne sans staff ni pôle doit avoir une adresse e-mail pour se connecter.");
-        if (d === "aucun") return toast("Sans staff ni pôle, choisissez le droit Leader ou Administrateur."), false;
+        if (d === "aucun" && entr === "aucun") return toast("Sans staff ni pôle, choisissez le droit Leader ou Administrateur, ou un droit Entraide."), false;
       }
       if (self && email !== p.email.toLowerCase()) return invalid(f, "#pe-email", "Vous ne pouvez pas modifier votre propre adresse e-mail.");
       if (!p || email !== p.email.toLowerCase()) {
@@ -879,7 +889,7 @@ function editPerson(p) {
       };
       if (photo.data && !email) return invalid(f, "#pe-email", "Ajoutez une adresse e-mail pour enregistrer la photo.");
       await api.savePerson({ civilite: f.querySelector("#pe-civ").value || null, prenom, nom, email: email || null, telephone: telephone || null,
-        ancien_email: p?.email ? p.email.toLowerCase() : null }, {
+        ancien_email: p?.email ? p.email.toLowerCase() : null, ...(self ? {} : { entraide: entr }) }, {
         contacts: plan(p?.contacts || [], svcIds, "service_id", contactRows),
         responsables: plan(p?.responsables || [], poleIds, "pole_id", respRows),
       }, d);
@@ -925,13 +935,18 @@ function editPerson(p) {
     const noEmail = !f.querySelector("#pe-email").value.trim();
     f.querySelector("#pe-hors").hidden = !hors;
     const aucun = f.querySelector('input[name="pe-droit"][value="aucun"]');
-    if (!self) aucun.disabled = hors;
-    if (hors && aucun.checked) f.querySelector('input[name="pe-droit"][value="leaders"]').checked = true;
+    // Hors annuaire, « Aucun » n'est possible qu'avec un droit Entraide (la personne ne peut alors que voir l'entraide)
+    const entrVoir = f.querySelector("#pe-entr-voir").checked;
+    if (!self) aucun.disabled = hors && !entrVoir;
+    if (hors && aucun.checked && !entrVoir) f.querySelector('input[name="pe-droit"][value="leaders"]').checked = true;
     f.querySelector("#pe-droit-hint").textContent = self ? "Vous ne pouvez pas modifier votre propre droit." :
       noEmail ? "Sans e-mail, cette personne ne peut pas se connecter : le droit ne s'applique qu'avec une adresse." :
       "";
   };
   mselSync(f);
+  // Modérer implique Voir : cocher Modérer coche Voir, décocher Voir décoche Modérer
+  f.querySelector("#pe-entr-mod").addEventListener("change", e => { if (e.target.checked) f.querySelector("#pe-entr-voir").checked = true; });
+  f.querySelector("#pe-entr-voir").addEventListener("change", e => { if (!e.target.checked) f.querySelector("#pe-entr-mod").checked = false; });
   f.addEventListener("change", sync);
   f.querySelector("#pe-email").addEventListener("input", sync);
   sync();
@@ -963,7 +978,7 @@ $("ed-form").addEventListener("keydown", e => {
   e.stopPropagation(); const p = document.querySelector(".msel-panel:not([hidden])"); mselClose(); p.previousElementSibling.focus();
 });
 $("editor").addEventListener("click", e => { if (!e.target.closest(".msel")) mselClose(); });
-const DROITS = [["aucun", "Aucun", "Ne peut pas se connecter"], ["leaders", "Leader", "Voit l'annuaire des leaders quand il ou elle est connecté·e"], ["admin", "Administrateur", "Peut modifier les staffs, les pôles, les contacts et les droits"]];
+const DROITS = [["aucun", "Aucun", "Pas d'accès à l'annuaire des leaders"], ["leaders", "Leader", "Voit l'annuaire des leaders quand il ou elle est connecté·e"], ["admin", "Administrateur", "Peut modifier les staffs, les pôles, les contacts et les droits"]];
 function deletePerson(p) {
   const roles = personRoles(p), e = p.email.toLowerCase(), self = e && e === myEmail();
   openEditor("Supprimer le contact", fullName(p), '<p style="margin:0">Cette personne sera retirée' +

@@ -23,10 +23,12 @@ module.exports = function installFakeApi({ data, user, acces }) {
   const admin = () => droit() === "admin";
   const guard = () => { if (!admin()) throw new Error("refusé (règles d'accès)"); };
   const guardRead = () => { if (!droit()) throw new Error("refusé (règles d'accès)"); };
-  // Entraide : référents (liste distincte des droits de l'annuaire) ; dates relatives à l'ouverture de la page
-  S.entraide ||= []; S.referents ||= [];
-  const referent = () => !!session && S.referents.some(r => r.email === session.user.email.toLowerCase());
-  const guardRef = () => { if (!referent()) throw new Error("Accès réservé aux référents de l'entraide."); };
+  // Entraide : droit « voir » ou « modérer » sur la ligne « acces » (fiche contact) ; dates relatives à l'ouverture de la page
+  S.entraide ||= [];
+  const entrDe = e => { const a = S.acces.find(x => x.email === e); return a?.entraide_moderer ? "moderer" : a?.entraide_voir ? "voir" : null; };
+  const entrMoi = () => session ? entrDe(session.user.email.toLowerCase()) : null;
+  const guardVoir = () => { if (!entrMoi()) throw new Error("Accès réservé."); };
+  const guardRef = () => { if (entrMoi() !== "moderer") throw new Error("Accès réservé aux modérateurs de l'entraide."); };
   const ago = j => new Date(Date.now() - j * 86400000).toISOString();
   const entrRow = d => ({ id: d.id, created_at: d.cree ? new Date(d.cree).toISOString() : ago(d.jours), prenom: d.prenom, telephone: d.telephone, besoin: d.besoin,
     quand: d.quand, quartier: d.quartier, statut: d.statut, publiee_le: d.publieAt ? new Date(d.publieAt).toISOString() : d.statut !== "a_valider" && d.statut !== "refusee" ? ago(d.publie ?? d.jours) : null,
@@ -42,12 +44,12 @@ module.exports = function installFakeApi({ data, user, acces }) {
   window.__api = {
     // Entraide : mêmes règles que les fonctions entraide_* de la base
     async entraide() {
-      log("entraide");
+      guardVoir(); log("entraide");
       return S.entraide.filter(d => d.statut === "publiee").map(d => ({ id: d.id, prenom: d.prenom, quartier: d.quartier, besoin: d.besoin, quand: d.quand, publie_le: ago(d.publie ?? d.jours) }))
         .sort((a, b) => b.publie_le.localeCompare(a.publie_le));
     },
     async entraideDemander(d) {
-      log("entraideDemander", d);
+      guardVoir(); log("entraideDemander", d);
       if (d.p_site) return null;
       if (!d.p_accord) throw new Error("Votre accord est nécessaire pour publier la demande.");
       if (String(d.p_besoin || "").trim().length < 3) throw new Error("Décrivez en quelques mots ce dont vous avez besoin.");
@@ -60,7 +62,7 @@ module.exports = function installFakeApi({ data, user, acces }) {
       S.entraide.push({ id, prenom: d.p_prenom.trim(), telephone: t, besoin: d.p_besoin.trim(), quand: (d.p_quand || "").trim(), quartier: (d.p_quartier || "").trim(), statut: "a_valider", jours: 0, cree: Date.now() });
       return id;
     },
-    async estReferent() { return referent(); },
+    async droitEntraide() { return entrMoi(); },
     async entraideModeration() { guardRef(); return S.entraide.map(entrRow).sort((a, b) => b.created_at.localeCompare(a.created_at)); },
     async entraideModifier(id, c) {
       guardRef(); log("entraideModifier", { id, ...c });
@@ -77,17 +79,6 @@ module.exports = function installFakeApi({ data, user, acces }) {
       return entrRow(d);
     },
     async entraideSupprimer(id) { guardRef(); log("entraideSupprimer", id); const i = S.entraide.findIndex(x => x.id === id); if (i < 0) throw new Error("Demande introuvable."); S.entraide.splice(i, 1); },
-    async referents() { guardRef(); return clone(S.referents).sort((a, b) => (a.prenom + a.nom).localeCompare(b.prenom + b.nom)); },
-    async ajouterReferent(email, prenom, nom) {
-      guardRef(); log("ajouterReferent", email);
-      const e = String(email).trim().toLowerCase();
-      S.referents = S.referents.filter(r => r.email !== e).concat({ email: e, prenom: prenom.trim(), nom: nom.trim() });
-    },
-    async retirerReferent(email) {
-      guardRef();
-      if (email === session.user.email.toLowerCase()) throw new Error("Vous ne pouvez pas vous retirer vous-même.");
-      S.referents = S.referents.filter(r => r.email !== email);
-    },
     async loadPublic() {
       log("loadPublic");
       return { poles: clone(S.poles), services: S.services.map(s => ({ ...s, nb_contacts: S.contacts.filter(c => c.service_id === s.id).length })) };
@@ -114,7 +105,7 @@ module.exports = function installFakeApi({ data, user, acces }) {
     async session() { return session; },
     async onAuth(cb) { window.__authCb = cb; },
     // Connexion par code : le bon code est toujours 123456
-    async canSignIn(email) { const e = email.toLowerCase(); log("canSignIn", email); return !!droitDe(e) || S.referents.some(r => r.email === e); },
+    async canSignIn(email) { const e = email.toLowerCase(); log("canSignIn", email); return !!droitDe(e) || !!entrDe(e); },
     async sendCode(email) { log("sendCode", email); },
     // Lien de l'e-mail : l'empreinte « lien-ok » connecte damien@example.org
     async verifyLink(hash) {
@@ -162,8 +153,11 @@ module.exports = function installFakeApi({ data, user, acces }) {
       guard(); log("savePerson", { fields, plan, droit: d });
       const e = (fields.email || "").toLowerCase() || null, ancien = (fields.ancien_email || "").toLowerCase() || null;
       const moi = session.user.email.toLowerCase();
-      if ([e, ancien].includes(moi) && (d !== "admin" || e !== ancien)) throw new Error("Vous ne pouvez pas modifier votre propre accès.");
-      const { ancien_email, ...row } = fields;
+      const avant = S.acces.find(a => a.email === (ancien || e)) || {};
+      let voir = !!avant.entraide_voir, moderer = !!avant.entraide_moderer;
+      if ("entraide" in fields) { moderer = fields.entraide === "moderer"; voir = moderer || fields.entraide === "voir"; }
+      if ([e, ancien].includes(moi) && (d !== "admin" || e !== ancien || voir !== !!avant.entraide_voir || moderer !== !!avant.entraide_moderer)) throw new Error("Vous ne pouvez pas modifier votre propre accès.");
+      const { ancien_email, entraide, ...row } = fields;
       for (const kind of ["contacts", "responsables"]) {
         const pl = plan[kind] || {};
         S[kind] = S[kind].filter(r => !(pl.del || []).includes(r.id));
@@ -173,9 +167,9 @@ module.exports = function installFakeApi({ data, user, acces }) {
       if (ancien && ancien !== e) S.acces = S.acces.filter(a => a.email !== ancien);
       if (!e) return;
       const hors = !isContact(e);
-      if (hors && d === "aucun") throw new Error("Une personne sans staff ni pôle doit avoir un droit.");
+      if (hors && d === "aucun" && !voir) throw new Error("Une personne sans staff ni pôle doit avoir un droit.");
       S.acces = S.acces.filter(a => a.email !== e);
-      if (d !== "leaders" || hors) S.acces.push({ email: e, droit: d, civilite: row.civilite || null, prenom: row.prenom || "", nom: row.nom || "", telephone: row.telephone || null });
+      if (d !== "leaders" || hors || voir) S.acces.push({ email: e, droit: d, civilite: row.civilite || null, prenom: row.prenom || "", nom: row.nom || "", telephone: row.telephone || null, entraide_voir: voir, entraide_moderer: moderer });
     },
     async acces() { guard(); return clone(S.acces).sort((a, b) => a.email.localeCompare(b.email)); },
     async saveAcces(email, d) {

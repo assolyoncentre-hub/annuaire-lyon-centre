@@ -1,14 +1,16 @@
 // Corps de demo.js (version de test /dev/), assemblé par scripts/site.sh après tests/fake-api.js (fake)
 // et tests/data.js (data). Les modifications sont gardées dans ce navigateur (localStorage).
-// Connexion : administrateur « admin@example.org » (ou un leader des données), code 123456.
-const KEY = "annuaire-dev:donnees";
+// Connexion : administrateur « admin@example.org » (droits Voir et Modérer l'entraide), ou un leader des données ; code 123456.
+// Clé versionnée : changer de version efface les données de démo enregistrées par une version précédente.
+const KEY = "annuaire-dev:donnees-v2";
+try { localStorage.removeItem("annuaire-dev:donnees"); } catch { /* stockage indisponible */ }
 let saved = null;
 try { saved = JSON.parse(localStorage.getItem(KEY)); } catch { /* stockage indisponible */ }
 // Données gardées d'une version précédente : les nouvelles rubriques (ex. référents de l'entraide) sont complétées
 fake.exports({
   data: saved ? { ...data.exports, ...saved } : data.exports,
   user: null,
-  acces: saved?.acces || [{ email: "admin@example.org", droit: "admin", civilite: "", prenom: "Admin", nom: "Démo", telephone: "" }],
+  acces: saved?.acces || [{ email: "admin@example.org", droit: "admin", civilite: "", prenom: "Admin", nom: "Démo", telephone: "", entraide_voir: true, entraide_moderer: true }],
 });
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(window.__S)); } catch { /* stockage indisponible */ } };
 for (const [name, fn] of Object.entries(window.__api)) {

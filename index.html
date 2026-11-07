@@ -563,8 +563,6 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 #entr-mod[hidden], #entr-pub[hidden] { display: none; }
 #entr-mod .admin-tools { margin-top: 0; }
 .entr-filters { margin-left: 0; justify-content: flex-start; }
-#entr-add-ref { margin-left: auto; }
-#entr-add-ref[hidden] { display: none; }
 .entr-mod-row { padding: 16px 18px; border-top: 1px solid var(--border); display: grid; gap: 8px; }
 .entr-mod-row:first-child { border-top: 0; }
 .entr-mod-row .head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
@@ -576,9 +574,16 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .entr-mod-row .ops { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
 .entr-mod-row .ops a.btn { text-decoration: none; display: inline-block; }
 .badge.wait { background: #fff3e0; color: #9a4b00; }
-.entr-ref-link { margin: 20px 0 0; font-size: 14px; }
-.entr-ref-link a { color: var(--muted); }
-.entr-ref-link[hidden] { display: none; }
+.badge.entr { background: #fff3e0; color: #9a4b00; }
+.entr-droits { display: flex; flex-wrap: wrap; gap: 8px 24px; }
+.entr-droits label.check { display: inline-flex; align-items: center; gap: 10px; font: 500 15px/1.3 "DM Sans", system-ui, sans-serif; cursor: pointer; }
+.entr-droits input { width: 18px; height: 18px; margin: 0; accent-color: var(--brand); }
+/* Téléphone, quatre onglets (Entraide visible) : onglets resserrés, « Admin » réduit à son engrenage */
+@media (max-width: 520px) {
+  .switch:has(#sw-entr:not([hidden])):has(#sw-admin:not([hidden])) a { padding: 12px 7px; letter-spacing: 0; }
+  .switch:has(#sw-entr:not([hidden])):has(#sw-admin:not([hidden])) .short { display: none; }
+  .switch:has(#sw-entr:not([hidden])):has(#sw-admin:not([hidden])) .gear { margin-right: 0; }
+}
 </style>
 </head>
 <body>
@@ -589,7 +594,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
         <div class="acct-menu" id="acct-menu" hidden><button type="button" id="logout">Se déconnecter</button></div></div></div>
     <h1 id="h1">Annuaire des propositions</h1>
     <nav class="switch" id="switch" aria-label="Annuaires">
-      <a href="#" id="sw-prop">Propositions</a><a href="#leaders" id="sw-serv">Leaders</a><a href="#entraide" id="sw-entr">Entraide</a><a href="#admin" id="sw-admin" aria-label="Administration" hidden><svg class="gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span class="long">Administration</span><span class="short" aria-hidden="true">Admin</span></a>
+      <a href="#" id="sw-prop">Propositions</a><a href="#leaders" id="sw-serv">Leaders</a><a href="#entraide" id="sw-entr" hidden>Entraide</a><a href="#admin" id="sw-admin" aria-label="Administration" hidden><svg class="gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span class="long">Administration</span><span class="short" aria-hidden="true">Admin</span></a>
     </nav>
   </div>
 </header>
@@ -615,8 +620,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
     <a class="tab" href="#entraide" id="entr-tab-pub">Demandes publiées</a><a class="tab" href="#entraide/moderation" id="entr-tab-mod">Modération</a>
   </nav>
   <div id="entr-mod" hidden>
-    <div class="admin-tools"><div class="afilters entr-filters" id="entr-filters"></div>
-      <button type="button" class="btn btn-primary btn-sm" id="entr-add-ref" hidden>Ajouter un référent</button></div>
+    <div class="admin-tools"><div class="afilters entr-filters" id="entr-filters"></div></div>
     <div class="list" id="entr-mod-list"></div>
   </div>
   <div id="entr-pub">
@@ -624,7 +628,6 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
     <button type="button" class="btn btn-primary" id="entr-ask">Demander de l'aide</button></div>
   <p class="count" id="entr-count" role="status" aria-live="polite"></p>
   <div class="list entr-list" id="entr-list"></div>
-  <p class="entr-ref-link"><a href="#entraide/moderation" id="entr-ref-link">Espace des référents</a></p>
   </div>
 </main>
 </div>

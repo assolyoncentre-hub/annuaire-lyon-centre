@@ -113,7 +113,7 @@ test("téléphone : trois onglets sans débordement @mobile", async ({ open, pag
   await open({ user: ADMIN });
   await expect(page.locator("#sw-admin")).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize().width);
-  const top = await page.locator("#switch a").evaluateAll(as => as.map(a => Math.round(a.getBoundingClientRect().top)));
+  const top = await page.locator("#switch a:not([hidden])").evaluateAll(as => as.map(a => Math.round(a.getBoundingClientRect().top)));
   expect(new Set(top).size).toBe(1);
 });
 

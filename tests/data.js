@@ -43,7 +43,7 @@ module.exports = {
     { pole_id: "jeunes", civilite: null, prenom: "Alexia", nom: "do Carmo", email: "alexia@example.org", position: 0 },
   ],
   messages: [],
-  // Entraide : demandes fictives (statut, ancienneté en jours) et référents. Numéros de la tranche 06 39 98 réservée aux fictions.
+  // Entraide : demandes fictives (statut, ancienneté en jours). Numéros de la tranche 06 39 98 réservée aux fictions.
   entraide: [
     { id: "e1", prenom: "Jeanne", telephone: "+33639980001", quartier: "Croix-Rousse", besoin: "Me conduire chez le médecin, je ne peux pas me déplacer seule.", quand: "Jeudi 14 h", statut: "publiee", jours: 0 },
     { id: "e2", prenom: "Paul", telephone: "+33639980002", quartier: "", besoin: "Changer une ampoule au plafond de la cuisine, je n'ai pas d'escabeau.", quand: "Cette semaine", statut: "publiee", jours: 1 },
@@ -54,5 +54,4 @@ module.exports = {
     { id: "e7", prenom: "Colette", telephone: "+33639980007", quartier: "Guillotière", besoin: "Réparer un robinet qui fuit dans la salle de bains.", quand: "Avant vendredi", statut: "a_valider", jours: 1 },
     { id: "e8", prenom: "Gérard", telephone: "+33639980008", quartier: "Ainay", besoin: "Transporter des cartons de livres jusqu'à la bibliothèque paroissiale.", quand: "Mardi", statut: "pourvue", jours: 8 },
   ],
-  referents: [{ email: "referent@example.org", prenom: "Rémi", nom: "Fictif" }],
 };

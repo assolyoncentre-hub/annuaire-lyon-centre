@@ -44,17 +44,16 @@ window.makeApi = function () {
     },
     contacts: id => rpc("annuaire_contacts", { p_service: id }),
     // Entraide : demandes publiées (prénom, quartier, besoin, quand ; jamais le téléphone), et dépôt d'une demande
-    entraide: () => rpc("entraide_publiees"),
-    entraideDemander: d => rpc("entraide_demander", d),
-    // Entraide, réservé aux référents (droit vérifié par la base) : modération des demandes et liste des référents
-    estReferent: () => sbRpc("est_referent"),
+    // (réservé aux comptes qui ont le droit « voir l'entraide » : appels faits avec la session)
+    entraide: () => sbRpc("entraide_publiees"),
+    entraideDemander: d => sbRpc("entraide_demander", d),
+    // Droit Entraide de la personne connectée ("moderer", "voir" ou null), réglé sur sa fiche contact
+    droitEntraide: () => sbRpc("mon_droit_entraide"),
+    // Modération, réservée au droit « modérer » (vérifié par la base)
     entraideModeration: () => sbRpc("entraide_moderation"),
     // champs : { p_statut, p_prenom, p_besoin, p_quand, p_quartier } (absent = inchangé)
     entraideModifier: (id, champs) => sbRpc("entraide_modifier", { p_id: id, ...champs }),
     entraideSupprimer: id => sbRpc("entraide_supprimer", { p_id: id }),
-    referents: () => sbRpc("entraide_referents_liste"),
-    ajouterReferent: (email, prenom, nom) => sbRpc("entraide_ajouter_referent", { p_email: email, p_prenom: prenom, p_nom: nom }),
-    retirerReferent: email => sbRpc("entraide_retirer_referent", { p_email: email }),
     responsables: id => rpc("annuaire_responsables", { p_pole: id }),
     // Staffs et pôles dont un leader porte ce nom (la base ne renvoie jamais les noms eux-mêmes)
     searchPeople: q => rpc("annuaire_recherche", { q }),
@@ -71,7 +70,7 @@ window.makeApi = function () {
     // Connexion Google et droits. La bibliothèque n'est nécessaire que pour l'administration, au retour
     // de Google, ou si une session est déjà enregistrée dans le navigateur.
     authNeeded() {
-      if (/^#admin(\/|$)/.test(location.hash) || location.hash === "#leaders" || /[?&](code|error|connexion)=/.test(location.search)) return true;
+      if (/^#(admin|entraide)(\/|$)/.test(location.hash) || location.hash === "#leaders" || /[?&](code|error|connexion)=/.test(location.search)) return true;
       try { return !!localStorage.getItem("sb-" + ref + "-auth-token"); } catch { return false; }
     },
     async session() { return (await (await getSb()).auth.getSession()).data.session; },
@@ -136,7 +135,7 @@ window.makeApi = function () {
     savePerson: (fields, plan, droit = "leaders") => sbRpc("admin_save_person", { fields, plan, droit }),
     reorder: (kind, rows) => sbRpc("admin_reorder", { kind, rows }),
     // Droits par e-mail et fiches hors annuaire ; saveAcces(email, null) supprime la ligne
-    acces: async () => (await getSb()).from("acces").select("email, droit, civilite, prenom, nom, telephone").order("email").then(ok),
+    acces: async () => (await getSb()).from("acces").select("email, droit, civilite, prenom, nom, telephone, entraide_voir, entraide_moderer").order("email").then(ok),
     saveAcces: (email, droit) => sbRpc("admin_save_acces", { p_email: email, p_droit: droit }),
   };
 };
