@@ -170,7 +170,8 @@ test("demander de l'aide : les champs se dévoilent un à un, puis remerciement 
 test("modération : publier sur WhatsApp, modifier, pourvue, refuser, supprimer", async ({ open, page }) => {
   await page.addInitScript(() => { window.open = (...a) => { (window.__opened ||= []).push(a); return null; }; });
   await open({ user: MOD, hash: "#entraide/moderation", acces: ACCES });
-  await expect(page.locator("#entr-tab-mod")).toHaveText("Modération (2)");
+  await expect(page.locator("#entr-tab-mod .entr-pastille")).toBeVisible(); // pastille rouge : des demandes à modérer
+  await expect(page.locator("#entr-tab-mod")).toHaveText("Modération (demandes à modérer)");
   await expect(page.locator("#entr-tab-mod")).toHaveAttribute("aria-current", "page");
   await expect(page.locator("#entr-filters [aria-pressed=true]")).toHaveText("À valider (2)");
   const henri = row(page, "Henri");

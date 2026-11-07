@@ -64,7 +64,7 @@ function renderEntraide(list) {
       '<div class="who">' + esc(d.prenom) + (d.quartier ? ' <span class="where">· ' + esc(d.quartier) + "</span>" : "") + "</div>" +
       '<p class="need">' + esc(d.besoin) + "</p>" + (d.quand ? '<div class="when">' + ENTR_CAL + "<span>" + esc(d.quand) + "</span></div>" : "") +
       // « Je peux aider ! » : proposer son aide (fonction à venir)
-      '<div class="entr-pied"><button type="button" class="entr-aider" data-aider>Je peux aider !</button>' +
+      '<div class="entr-pied"><button type="button" class="btn btn-ghost btn-sm entr-aider" data-aider>Je peux aider !</button>' +
       '<time class="time" datetime="' + esc(d.publie_le) + '">' + entrHeure(d.publie_le) + "</time></div></article>" + entrRepsHtml(d.id, d.prenom);
   }).join("") : '<p class="empty">Aucune demande d\'aide en cours pour le moment.</p>';
   entrVus = new Set(list.map(d => d.id));
@@ -244,6 +244,7 @@ function entrRafraichir() {
   if (h === "#entraide" && canEntraide) loadEntraide();
   else if (h === "#entraide/moderation" && isReferent && entrModShown) loadModeration();
   else if (h === "#entraide/mes-demandes" && canEntraide) renderMesDemandes();
+  if (h !== "#entraide/moderation" && h.startsWith("#entraide")) entrMajPastille();
 }
 async function entrEcouter(on) {
   if (!on) { entrArret?.then(stop => stop?.()); entrArret = null; $("entr-live").hidden = true; return; }
@@ -262,6 +263,26 @@ let entrDemandes = null, entrFiltre = "a_valider", entrBusy = false;
 const ENTR_FILTRES = [["a_valider", "À valider"], ["publiee", "Publiées"], ["terminees", "Terminées"]];
 const entrDans = (d, f) => f === "terminees" ? d.statut === "pourvue" || d.statut === "refusee" : d.statut === f;
 
+// Pastille rouge sur « Modération » (onglet et liste déroulante) quand des demandes attendent d'être modérées
+let entrAModerer = false;
+function entrPastille(on) {
+  entrAModerer = on;
+  $("entr-tab-mod").innerHTML = "Modération" + (on ? '<span class="entr-pastille" aria-hidden="true"></span><span class="entr-cache"> (demandes à modérer)</span>' : "");
+  const opt = $("entr-nav-sel").querySelector('option[value="#entraide/moderation"]');
+  if (opt) opt.textContent = entrLibelleMod();
+  entrAlerteSel();
+}
+// Téléphone : la liste fermée montre aussi la pastille, sauf sur l'écran de modération
+const entrAlerteSel = () => $("entr-nav-sel").classList.toggle("alerte", entrAModerer && location.hash !== "#entraide/moderation");
+const entrLibelleMod = () => "Modération" + (entrAModerer ? " 🔴" : "");
+// Hors de l'écran de modération : on vérifie seulement s'il reste des demandes à valider
+let entrPastilleSeq = 0;
+async function entrMajPastille() {
+  if (!isReferent) return;
+  const seq = ++entrPastilleSeq;
+  try { const l = await api.entraideModeration(); if (seq === entrPastilleSeq) entrPastille(l.some(d => d.statut === "a_valider")); } catch { /* pastille inchangée */ }
+}
+
 async function loadModeration() {
   try {
     entrDemandes = await api.entraideModeration();
@@ -274,9 +295,7 @@ function renderModeration() {
   const n = f => all.filter(d => entrDans(d, f)).length;
   $("entr-filters").innerHTML = ENTR_FILTRES.map(([k, label]) =>
     '<button type="button" class="afilter" data-filter="' + k + '" aria-pressed="' + (entrFiltre === k) + '">' + label + " (" + n(k) + ")</button>").join("");
-  $("entr-tab-mod").textContent = "Modération" + (n("a_valider") ? " (" + n("a_valider") + ")" : "");
-  const opt = $("entr-nav-sel").querySelector('option[value="#entraide/moderation"]');
-  if (opt) opt.textContent = $("entr-tab-mod").textContent;
+  if (entrDemandes !== null) entrPastille(n("a_valider") > 0);
   if (entrDemandes === null) { $("entr-mod-list").innerHTML = '<div class="empty">Chargement…</div>'; return; }
 
   const list = all.filter(d => entrDans(d, entrFiltre));
@@ -363,11 +382,12 @@ function onEntraideRoute() {
   }
   // Téléphone : même navigation en liste déroulante
   const sel = $("entr-nav-sel");
-  sel.innerHTML = [["#entraide", "Demandes d'aide"], ["#entraide/mes-demandes", "Mes demandes"], ...(isReferent ? [["#entraide/moderation", $("entr-tab-mod").textContent]] : [])]
+  sel.innerHTML = [["#entraide", "Demandes d'aide"], ["#entraide/mes-demandes", "Mes demandes"], ...(isReferent ? [["#entraide/moderation", entrLibelleMod()]] : [])]
     .map(([v, l]) => '<option value="' + v + '">' + esc(l) + "</option>").join("");
   sel.value = mod ? "#entraide/moderation" : mes ? "#entraide/mes-demandes" : "#entraide";
+  entrAlerteSel();
   if (mes) renderMesDemandes();
-  if (!mod) { entrModShown = false; if (!mes) loadEntraide(); }
+  if (!mod) { entrModShown = false; entrMajPastille(); if (!mes) loadEntraide(); }
   else if (!entrModShown) { entrModShown = true; entrDemandes = null; renderModeration(); loadModeration(); }
 }
 $("entr-nav-sel").addEventListener("change", e => { location.hash = e.target.value; });
