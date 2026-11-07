@@ -81,27 +81,35 @@ function renderEntraide(list) {
 const entrReponses = new Map(); // id de la demande → [{ id, texte, le, modifie }]
 let entrRepId = null, entrRepEdit = null, entrRepNum = 0, entrBrouillon = null; // brouillon : demande dont le texte est gardé après fermeture
 const ENTR_CADENAS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
+const entrRecues = new Map(); // Mes demandes : id de la conversation → messages reçus de cette personne
+// Fil d'une demande (mes messages) ou, dans Mes demandes, conversation avec une personne (ses messages et les miens, par date)
 function entrRepsHtml(id, prenom) {
-  const l = entrReponses.get(id) || [];
-  return '<div class="entr-reps" data-pour="' + esc(id) + '" data-prenom="' + esc(prenom) + '">' + (l.length ?
-    '<p class="entr-rep-note">' + ENTR_CADENAS + "Vos messages ne sont visibles que par " + esc(prenom) + "</p>" +
-    l.map(r => '<div class="entr-moi" data-rep="' + r.id + '"><p class="txt">' + esc(r.texte) + "</p>" +
-      '<div class="entr-moi-pied"><span class="entr-moi-act"><button type="button" data-modifier>Modifier</button><button type="button" data-supprimer>Supprimer</button></span>' +
-      '<time class="time" datetime="' + esc(r.le) + '">' + (r.modifie ? "Modifié · " : "") + entrHeure(r.le) + "</time></div></div>").join("") +
-    '<button type="button" class="entr-plus" data-plus>+ Ajouter un message</button>' : "") + "</div>";
+  const l = entrReponses.get(id) || [], recues = entrRecues.get(id) || [];
+  const tous = [...recues.map(r => ({ ...r, recue: true })), ...l].sort((a, b) => a.le.localeCompare(b.le));
+  return '<div class="entr-reps" data-pour="' + esc(id) + '" data-prenom="' + esc(prenom) + '">' + (tous.length ?
+    (recues.length ? "" : '<p class="entr-rep-note">' + ENTR_CADENAS + "Vos messages ne sont visibles que par " + esc(prenom) + "</p>") +
+    tous.map(r => r.recue
+      ? '<div class="entr-recue" style="--c:' + entrCouleur(r.prenom) + '"><div class="who">' + esc(r.prenom) + "</div>" +
+        '<p class="txt">' + esc(r.texte) + '</p><time class="time" datetime="' + esc(r.le) + '">' + esc(entrJour(r.le)) + ", " + entrHeure(r.le) + "</time></div>"
+      : '<div class="entr-moi" data-rep="' + r.id + '"><p class="txt">' + esc(r.texte) + "</p>" +
+        '<div class="entr-moi-pied"><span class="entr-moi-act"><button type="button" data-modifier>Modifier</button><button type="button" data-supprimer>Supprimer</button></span>' +
+        '<time class="time" datetime="' + esc(r.le) + '">' + (r.modifie ? "Modifié · " : "") + (recues.length ? esc(entrJour(r.le)) + ", " : "") + entrHeure(r.le) + "</time></div></div>").join("") +
+    '<button type="button" class="entr-plus" data-plus>' + (recues.length ? "Répondre à " + esc(prenom) : "+ Ajouter un message") + "</button>" : "") + "</div>";
 }
-const entrGroupe = id => $("entr-list").querySelector('.entr-reps[data-pour="' + CSS.escape(id) + '"]');
+const entrGroupe = id => $("entr-view").querySelector('.entr-reps[data-pour="' + CSS.escape(id) + '"]');
+const entrBoutonAider = g => g?.previousElementSibling?.matches(".entr-msg") ? g.previousElementSibling.querySelector(".entr-aider") : null;
 // Place la zone de rédaction : à la fin du fil de la demande, ou à la place du message modifié
 function entrPlacerReponse(id, editId) {
   const g = entrGroupe(id);
   if (!g) return false;
   document.querySelectorAll(".entr-msg.repond, .entr-reps.ecrit, .entr-moi.edite").forEach(x => x.classList.remove("repond", "ecrit", "edite"));
-  g.previousElementSibling.classList.add("repond");
+  if (g.previousElementSibling?.matches(".entr-msg")) g.previousElementSibling.classList.add("repond");
   g.classList.add("ecrit");
   entrRepId = id; entrRepEdit = editId;
   const f = $("entr-rep"), b = editId != null && g.querySelector('[data-rep="' + editId + '"]');
   if (b) { b.classList.add("edite"); b.after(f); } else g.append(f);
   $("entr-rep-t").textContent = (b ? "Modifier votre message à " : "Répondre à ") + g.dataset.prenom;
+  $("entr-rep-qui").textContent = "Votre réponse ne sera vue que par " + g.dataset.prenom + ".";
   $("entr-rep-x").setAttribute("aria-label", b ? "Annuler la modification" : "Fermer sans envoyer");
   f.hidden = false;
   return true;
@@ -133,7 +141,7 @@ function entrFermerReponse(rendreFocus = true) {
   entrRepId = entrRepEdit = null;
   if (!rendreFocus) return;
   const g = entrGroupe(id);
-  (editId != null && g?.querySelector('[data-rep="' + editId + '"] [data-modifier]') || g?.previousElementSibling.querySelector(".entr-aider"))?.focus();
+  (editId != null && g?.querySelector('[data-rep="' + editId + '"] [data-modifier]') || entrBoutonAider(g) || g?.querySelector(".entr-plus"))?.focus();
 }
 // Réaffiche le fil des réponses d'une demande, puis met le focus sur l'élément choisi
 function entrMajGroupe(id, cible) {
@@ -142,9 +150,9 @@ function entrMajGroupe(id, cible) {
   if (g.contains($("entr-rep"))) entrFermerReponse(false);
   g.outerHTML = entrRepsHtml(id, g.dataset.prenom);
   const n = entrGroupe(id);
-  (n.querySelector(cible) || n.previousElementSibling.querySelector(".entr-aider")).focus({ preventScroll: true });
+  (n.querySelector(cible) || entrBoutonAider(n) || n.querySelector(".entr-plus"))?.focus({ preventScroll: true });
 }
-$("entr-list").addEventListener("click", e => {
+function entrClicFil(e) {
   const b = e.target.closest("button");
   if (!b) return;
   const g = b.closest(".entr-reps"), m = b.closest(".entr-msg");
@@ -152,13 +160,15 @@ $("entr-list").addEventListener("click", e => {
   else if (b.matches("[data-plus]")) entrOuvrirReponse(g.dataset.pour);
   else if (b.matches("[data-modifier]")) entrOuvrirReponse(g.dataset.pour, Number(b.closest(".entr-moi").dataset.rep));
   else if (b.matches("[data-supprimer]")) entrSupprimerReponse(g, b.closest(".entr-moi"));
-});
+}
+$("entr-list").addEventListener("click", entrClicFil);
+$("entr-mes-list").addEventListener("click", entrClicFil);
 // Supprimer un de ses messages : sans confirmation, la bulle implose et ce qui suit remonte
 // (tout le fil s'il s'agissait du dernier message)
 function entrSupprimerReponse(g, bulle) {
   const id = g.dataset.pour, rid = Number(bulle.dataset.rep), l = entrReponses.get(id) || [];
   if (entrRepEdit === rid) entrFermerReponse(false);
-  const el = l.length > 1 ? bulle : g, fin = () => {
+  const el = l.length > 1 || entrRecues.get(id)?.length ? bulle : g, fin = () => {
     entrReponses.set(id, l.filter(r => r.id !== rid));
     entrMajGroupe(id, ".entr-plus");
   };
@@ -330,7 +340,7 @@ let entrModShown = false;
 function onEntraideRoute() {
   const h = location.hash, mod = h === "#entraide/moderation" && isReferent, mes = h === "#entraide/mes-demandes" && canEntraide;
   entrEcouter(canEntraide);
-  if (h !== "#entraide") entrFermerReponse();
+  if (h !== "#entraide" && h !== "#entraide/mes-demandes") entrFermerReponse();
   if (!(h === "#entraide" && canEntraide) && !mod && !mes) { entrModShown = false; return; }
   $("entr-tab-mod").hidden = !isReferent;
   $("entr-pub").hidden = mod || mes;
@@ -364,6 +374,8 @@ async function renderMesDemandes() {
     catch { if (seq === entrMesSeq) el.innerHTML = '<p class="empty">Impossible de charger vos demandes pour le moment.</p>'; return; }
     if (seq !== entrMesSeq) return;
   }
+  const rep = $("entr-rep"), repFocus = rep.contains(document.activeElement), garder = !rep.hidden && el.contains(rep);
+  if (garder) $("entr-pub").append(rep); // la réponse en cours de rédaction survit au rafraîchissement
   el.innerHTML = list.length ? [...list].sort((a, b) => b.created_at.localeCompare(a.created_at)).map(d => {
     const [label, cls] = ENTR_MON_STATUT[d.statut] || ENTR_MON_STATUT.a_valider, rep = d.reponses || [];
     return '<article class="entr-msg entr-mienne">' +
@@ -371,13 +383,21 @@ async function renderMesDemandes() {
       '<p class="need">' + esc(d.besoin) + "</p>" + (d.quand ? '<div class="when">' + ENTR_CAL + "<span>" + esc(d.quand) + "</span></div>" : "") +
       '<div class="entr-pied"><span class="badge ' + cls + '">' + esc(label) + "</span>" +
       '<time class="time" datetime="' + esc(d.created_at) + '">' + esc(entrJour(d.created_at)) + ", " + entrHeure(d.created_at) + "</time></div></article>" +
-      (rep.length ? '<div class="entr-reps entr-recues"><p class="entr-rep-note">' + ENTR_CADENAS +
+      (rep.length ? '<div class="entr-convs"><p class="entr-rep-note">' + ENTR_CADENAS +
         (rep.length > 1 ? rep.length + " réponses, qui ne sont visibles que par vous" : "1 réponse, qui n'est visible que par vous") + "</p>" +
-        rep.map(r => '<div class="entr-recue" style="--c:' + entrCouleur(r.prenom) + '"><div class="who">' + esc(r.prenom) + "</div>" +
-          '<p class="txt">' + esc(r.texte) + '</p><time class="time" datetime="' + esc(r.le) + '">' + esc(entrJour(r.le)) + ", " + entrHeure(r.le) + "</time></div>").join("") + "</div>"
+        // une conversation par personne : ses messages et mes réponses, que je suis seul(e) à voir avec elle
+        [...new Set(rep.map(r => r.prenom))].map(p => {
+          const conv = "mes:" + d.id + ":" + p;
+          entrRecues.set(conv, rep.filter(r => r.prenom === p));
+          return entrRepsHtml(conv, p);
+        }).join("") + "</div>"
         : d.statut === "publiee" ? '<p class="entr-sans-rep">Aucune réponse pour l\'instant.</p>' : "");
   }).join("")
     : '<p class="entr-mes-vide">Vous n\'avez pas encore déposé de demande d\'aide. Utilisez « J\'ai besoin d\'aide » : vous retrouverez ici vos demandes et les réponses reçues.</p>';
+  if (garder) {
+    if (entrPlacerReponse(entrRepId, entrRepEdit)) { if (repFocus) $("entr-rep-txt").focus({ preventScroll: true }); }
+    else { rep.hidden = true; entrRepId = null; }
+  }
 }
 onEntraideRoute(); // premier affichage : route() a pu s'exécuter avant le chargement de ce fichier
 

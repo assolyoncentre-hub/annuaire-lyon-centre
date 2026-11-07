@@ -73,7 +73,7 @@ test("demandes en conversation : les plus récentes en haut, nouvelles demandes 
   await expect(page.locator(".entr-msg.repond + .entr-reps > #entr-rep")).toHaveCount(1);
   await expect(page.locator(".entr-msg.repond .who")).toContainText("Jeanne");
   await expect(page.locator("#entr-rep-t")).toHaveText("Répondre à Jeanne");
-  await expect(page.locator("#entr-rep")).toContainText("Votre réponse ne sera vue que par la personne qui demande de l'aide.");
+  await expect(page.locator("#entr-rep")).toContainText("Votre réponse ne sera vue que par Jeanne.");
   await expect(page.locator("#entr-rep-txt")).toBeFocused();
   await expect(page.locator("#entr-rep-send")).toBeDisabled();
   await page.fill("#entr-rep-txt", "Bonjour, je peux vous conduire jeudi.");
@@ -295,8 +295,25 @@ test("Mes demandes : seulement mes demandes, avec les réponses reçues @mobile"
   const paul = mes.filter({ hasText: "escabeau" });
   await expect(paul).toContainText("Publiée");
   // Réponses reçues, juste sous la demande, dans l'ordre d'arrivée
-  const recues = page.locator(".entr-mienne:has-text('escabeau') + .entr-recues");
+  const recues = page.locator(".entr-mienne:has-text('escabeau') + .entr-convs");
   await expect(recues).toContainText("3 réponses, qui ne sont visibles que par vous");
   await expect(recues.locator(".entr-recue .who")).toHaveText(["Damien", "Damien", "Claire"]);
+  // Une conversation par personne, chacune avec « Répondre à … »
+  const damien = recues.locator('.entr-reps[data-prenom="Damien"]');
+  await expect(recues.locator(".entr-plus")).toHaveText(["Répondre à Damien", "Répondre à Claire"]);
+  await damien.getByRole("button", { name: "Répondre à Damien" }).click();
+  await expect(page.locator("#entr-rep")).toContainText("Votre réponse ne sera vue que par Damien.");
+  await expect(page.locator("#entr-rep-txt")).toBeFocused();
+  await page.fill("#entr-rep-txt", "Jeudi 18 h, c'est parfait, merci !");
+  await page.keyboard.press("Enter");
+  // Ma réponse s'ajoute à la conversation avec Damien seulement, après ses messages
+  await expect(damien.locator(".entr-recue, .entr-moi").last()).toContainText("Jeudi 18 h, c'est parfait");
+  await expect(damien.locator(".entr-moi")).toHaveCount(1);
+  await expect(recues.locator('.entr-reps[data-prenom="Claire"] .entr-moi')).toHaveCount(0);
+  await expect(damien.locator(".entr-plus")).toBeFocused();
+  // Supprimer : la conversation reste (les messages de Damien)
+  await damien.locator(".entr-moi").getByRole("button", { name: "Supprimer" }).click();
+  await expect(damien.locator(".entr-moi")).toHaveCount(0);
+  await expect(damien.locator(".entr-recue")).toHaveCount(2);
   await expect(page.locator("#entr-mes")).not.toContainText("39 98");
 });
