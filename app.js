@@ -863,10 +863,10 @@ function editPerson(p) {
     DROITS.map(([v, label, sub]) => '<label><input type="radio" name="pe-droit" value="' + v + '"' + (droit === v ? " checked" : "") + (self ? " disabled" : "") +
       "><b>" + label + "</b><span>" + sub + "</span></label>").join("") + "</div>" +
     '<div class="hint" id="pe-droit-hint"></div></section>' +
-    '<section class="ed-sec" aria-labelledby="pe-entr-t"><h3 class="ed-sec-title" id="pe-entr-t">Entraide</h3><div class="entr-droits">' +
-    '<label class="check"><input type="checkbox" id="pe-entr-voir"' + (p?.entraide && p.entraide !== "aucun" ? " checked" : "") + (self ? " disabled" : "") + ">Voir l'entraide</label>" +
-    '<label class="check"><input type="checkbox" id="pe-entr-mod"' + (p?.entraide === "moderer" ? " checked" : "") + (self ? " disabled" : "") + ">Modérer l'entraide</label></div>" +
-    '<div class="hint">Voir : onglet Entraide (demandes et formulaire). Modérer : valider et publier les demandes (inclut Voir).</div></section>',
+    '<section class="ed-sec droits" role="radiogroup" aria-labelledby="pe-entr-t"><h3 class="ed-sec-title" id="pe-entr-t">Entraide</h3><div class="seg">' +
+    DROITS_ENTRAIDE.map(([v, label, sub]) => '<label><input type="radio" name="pe-entr" value="' + v + '"' + ((p?.entraide || "aucun") === v ? " checked" : "") + (self ? " disabled" : "") +
+      "><b>" + label + "</b><span>" + sub + "</span></label>").join("") + "</div>" +
+    (self ? '<div class="hint">Vous ne pouvez pas modifier votre propre droit.</div>' : "") + "</section>",
     async f => {
       const prenom = f.querySelector("#pe-prenom").value.trim(), nom = f.querySelector("#pe-nom").value.trim();
       const email = f.querySelector("#pe-email").value.trim().toLowerCase();
@@ -877,7 +877,7 @@ function editPerson(p) {
       const checked = name => [...f.querySelectorAll('input[name="' + name + '"]:checked')].map(i => i.value);
       const svcIds = checked("svc"), poleIds = checked("pole");
       const d = f.querySelector('input[name="pe-droit"]:checked')?.value || "leaders";
-      const entr = f.querySelector("#pe-entr-mod").checked ? "moderer" : f.querySelector("#pe-entr-voir").checked ? "voir" : "aucun";
+      const entr = f.querySelector('input[name="pe-entr"]:checked')?.value || "aucun";
       if (!svcIds.length && !poleIds.length) {
         if (!email) return invalid(f, "#pe-email", "Une personne sans staff ni pôle doit avoir une adresse e-mail pour se connecter.");
         if (d === "aucun" && entr === "aucun") return toast("Sans staff ni pôle, choisissez le droit Leader ou Administrateur, ou un droit Entraide."), false;
@@ -944,7 +944,7 @@ function editPerson(p) {
     f.querySelector("#pe-hors").hidden = !hors;
     const aucun = f.querySelector('input[name="pe-droit"][value="aucun"]');
     // Hors annuaire, « Aucun » n'est possible qu'avec un droit Entraide (la personne ne peut alors que voir l'entraide)
-    const entrVoir = f.querySelector("#pe-entr-voir").checked;
+    const entrVoir = !f.querySelector('input[name="pe-entr"][value="aucun"]').checked;
     if (!self) aucun.disabled = hors && !entrVoir;
     if (hors && aucun.checked && !entrVoir) f.querySelector('input[name="pe-droit"][value="leaders"]').checked = true;
     f.querySelector("#pe-droit-hint").textContent = self ? "Vous ne pouvez pas modifier votre propre droit." :
@@ -952,9 +952,6 @@ function editPerson(p) {
       "";
   };
   mselSync(f);
-  // Modérer implique Voir : cocher Modérer coche Voir, décocher Voir décoche Modérer
-  f.querySelector("#pe-entr-mod").addEventListener("change", e => { if (e.target.checked) f.querySelector("#pe-entr-voir").checked = true; });
-  f.querySelector("#pe-entr-voir").addEventListener("change", e => { if (!e.target.checked) f.querySelector("#pe-entr-mod").checked = false; });
   f.addEventListener("change", sync);
   f.querySelector("#pe-email").addEventListener("input", sync);
   sync();
@@ -986,6 +983,7 @@ $("ed-form").addEventListener("keydown", e => {
   e.stopPropagation(); const p = document.querySelector(".msel-panel:not([hidden])"); mselClose(); p.previousElementSibling.focus();
 });
 $("editor").addEventListener("click", e => { if (!e.target.closest(".msel")) mselClose(); });
+const DROITS_ENTRAIDE = [["aucun", "Aucun", "Pas d'accès à l'entraide"], ["voir", "Voir", "Voit les demandes d'aide et peut en déposer une"], ["moderer", "Modérer", "Valide, publie et clôt les demandes, en plus de les voir"]];
 const DROITS = [["aucun", "Aucun", "Pas d'accès à l'annuaire des leaders"], ["leaders", "Leader", "Voit l'annuaire des leaders quand il ou elle est connecté·e"], ["admin", "Administrateur", "Peut modifier les staffs, les pôles, les contacts et les droits"]];
 function deletePerson(p) {
   const roles = personRoles(p), e = p.email.toLowerCase(), self = e && e === myEmail();

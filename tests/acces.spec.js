@@ -51,7 +51,7 @@ test("administrateur : droits réglés sur la fiche contact, sans onglet Admins"
   await magali().locator("[data-act=edit]").click();
   await expect(page.locator('input[name="pe-droit"][value="leaders"]')).toBeChecked();
   await expect(page.locator("#pe-hors")).toBeHidden();
-  await page.locator(".seg label", { hasText: "Administrateur" }).click();
+  await page.locator("#pe-droits-t + .seg label", { hasText: "Administrateur" }).click();
   await page.locator("#ed-form [type=submit]").click();
   await expect(page.locator("#editor")).toBeHidden();
   const save = (await calls(page, "savePerson"))[0].arg;
@@ -77,7 +77,7 @@ test("administrateur : droits réglés sur la fiche contact, sans onglet Admins"
   await page.locator("#cfilters .dd-ok").click();
   await expect(droits).toHaveAttribute("aria-expanded", "false");
   await magali().locator("[data-act=edit]").click();
-  await page.locator(".seg label", { hasText: "Aucun" }).click();
+  await page.locator("#pe-droits-t + .seg label", { hasText: "Aucun" }).click();
   await page.locator("#ed-form [type=submit]").click();
   await expect(magali().locator(".badge")).toHaveText("Sans accès");
   expect(await page.evaluate(() => window.__S.acces.find(a => a.email === "magali@example.org").droit)).toBe("aucun");

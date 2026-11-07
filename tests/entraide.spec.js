@@ -121,28 +121,28 @@ test("modération : publier sur WhatsApp, modifier, pourvue, refuser, supprimer"
   await expect(page.locator("#entr-list")).not.toContainText("Jeanne");
 });
 
-test("fiche contact : droits Voir et Modérer l'entraide, Modérer implique Voir", async ({ open, page }) => {
+test("fiche contact : droit Entraide Aucun / Voir / Modérer", async ({ open, page }) => {
   await open({ user: ADMIN, hash: "#admin/contacts" });
   // Sa propre fiche : droits non modifiables
   await page.locator("#admin-list .row", { hasText: "admin@example.org" }).locator("[data-act=edit]").click();
-  await expect(page.locator("#pe-entr-voir")).toBeDisabled();
+  await expect(page.locator('input[name="pe-entr"][value="voir"]')).toBeDisabled();
   await page.locator("#ed-form [data-close]").click();
 
   const magali = () => page.locator("#admin-list .row", { hasText: "magali@example.org" });
   await magali().locator("[data-act=edit]").click();
-  await expect(page.locator("#pe-entr-voir")).not.toBeChecked();
-  await page.check("#pe-entr-mod");
-  await expect(page.locator("#pe-entr-voir")).toBeChecked();
+  await expect(page.locator('input[name="pe-entr"][value="aucun"]')).toBeChecked();
+  await page.locator("#pe-entr-t + .seg label", { hasText: "Modérer" }).click();
+  await expect(page.locator('input[name="pe-entr"][value="moderer"]')).toBeChecked();
   await page.locator("#ed-form [type=submit]").click();
   await expect(page.locator("#editor")).toBeHidden();
   expect((await calls(page, "savePerson"))[0].arg.fields.entraide).toBe("moderer");
   await expect(magali().locator(".badge.entr")).toHaveText("Entraide : modération");
   expect(await page.evaluate(() => window.__S.acces.find(a => a.email === "magali@example.org"))).toMatchObject({ droit: "leaders", entraide_voir: true, entraide_moderer: true });
 
-  // Décocher Voir retire aussi Modérer ; sans droit particulier, la ligne « acces » disparaît
+  // Retour à Aucun : sans droit particulier, la ligne « acces » disparaît
   await magali().locator("[data-act=edit]").click();
-  await page.uncheck("#pe-entr-voir");
-  await expect(page.locator("#pe-entr-mod")).not.toBeChecked();
+  await expect(page.locator('input[name="pe-entr"][value="moderer"]')).toBeChecked();
+  await page.locator("#pe-entr-t + .seg label", { hasText: "Aucun" }).click();
   await page.locator("#ed-form [type=submit]").click();
   await expect(magali().locator(".badge.entr")).toHaveCount(0);
   expect(await page.evaluate(() => window.__S.acces.some(a => a.email === "magali@example.org"))).toBe(false);
@@ -154,9 +154,9 @@ test("fiche hors annuaire avec seulement le droit Voir l'entraide", async ({ ope
   await page.fill("#pe-prenom", "Inès");
   await page.fill("#pe-email", "ines@example.org");
   await expect(page.locator('input[name="pe-droit"][value="aucun"]')).toBeDisabled();
-  await page.check("#pe-entr-voir");
+  await page.locator("#pe-entr-t + .seg label", { hasText: /^Voir/ }).click();
   await expect(page.locator('input[name="pe-droit"][value="aucun"]')).toBeEnabled();
-  await page.locator(".seg label", { hasText: "Aucun" }).click();
+  await page.locator("#pe-droits-t + .seg label", { hasText: "Aucun" }).click();
   await page.locator("#ed-form [type=submit]").click();
   await expect(page.locator("#editor")).toBeHidden();
   expect(await page.evaluate(() => window.__S.acces.find(a => a.email === "ines@example.org"))).toMatchObject({ droit: "aucun", entraide_voir: true, entraide_moderer: false });
