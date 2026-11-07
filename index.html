@@ -664,6 +664,9 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .entr-tabs[hidden] { display: none; }
 /* Boutons accolés, comme un interrupteur à plusieurs positions : seule la page affichée est en bleu */
 .entr-tabs { gap: 0; }
+/* Onglets et « J'ai besoin d'aide » : même hauteur (44 px sur téléphone, comme la liste déroulante) */
+.entr-bar .tab, .entr-bar #entr-ask { box-sizing: border-box; height: 40px; display: inline-flex; align-items: center; }
+@media (max-width: 520px) { .entr-bar #entr-ask { height: 44px; } }
 .entr-tabs .tab { position: relative; display: inline-flex; align-items: center; margin-left: -1.5px; border-radius: 0; text-decoration: none; }
 .entr-tabs .tab:first-child { margin-left: 0; border-radius: 8px 0 0 8px; }
 .entr-tabs .tab:last-child, .entr-tabs .tab:has(+ .tab[hidden]) { border-radius: 0 8px 8px 0; }
