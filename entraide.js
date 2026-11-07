@@ -1,7 +1,7 @@
 // ---------- Entraide ----------
 // Onglet « Entraide », réservé aux comptes qui en ont le droit (fiche contact : « Voir » / « Modérer » l'entraide) :
 //   #entraide            demandes publiées et formulaire « J'ai besoin d'aide » (progressif)       droit « voir »
-//   #entraide/mes-demandes  mes demandes (maquette)                                                  droit « voir »
+//   #entraide/mes-demandes  mes demandes et réponses                                                 droit « voir »
 //   #entraide/moderation modération des demandes                                                    droit « modérer »
 // Utilise les outils d'app.js ($, esc, api, toast, setPageInert, openEditor, canEntraide, isReferent, telHref).
 
@@ -55,19 +55,29 @@ function renderEntraide(list) {
   let jour = null, nouvelles = 0;
   const rep = $("entr-rep"), repFocus = rep.contains(document.activeElement);
   if (!rep.hidden) $("entr-pub").append(rep); // la réponse en cours de rédaction survit au rafraîchissement
+  const refocus = entrMemoFocus(t);
   t.innerHTML = list.length ? [...list].sort((a, b) => b.publie_le.localeCompare(a.publie_le)).map(d => {
     const j = entrJour(d.publie_le), sep = j !== jour ? '<div class="entr-day"><span>' + esc(j) + "</span></div>" : "";
     const neuve = entrLoaded && !entrVus.has(d.id);
     if (neuve) nouvelles++;
     jour = j;
-    return sep + '<article class="entr-msg' + (neuve ? " new" : "") + '" style="--c:' + entrCouleur(d.prenom) + '" data-id="' + esc(d.id) + '">' +
-      '<div class="who">' + esc(d.prenom) + (d.quartier ? ' <span class="where">· ' + esc(d.quartier) + "</span>" : "") + "</div>" +
+    // Ma propre demande : fond bleu, et lien vers les réponses reçues (pastille rouge si l'une attend ma réponse)
+    const mienne = entrMesListe.find(x => x.id === d.id), convs = mienne?.conversations || [];
+    if (mienne) entrFils.delete(d.id);
+    else entrFils.set(d.id, { ...(entrAidesListe.find(c => c.demande_id === d.id) || { messages: [] }), demande: d.id, auteur: false });
+    const pied = mienne
+      ? (convs.length ? '<button type="button" class="btn btn-ghost btn-sm entr-aider entr-voir" data-voir>' + (convs.length > 1 ? "Voir les " + convs.length + " réponses" : "Voir la réponse") +
+          (convs.some(entrAttend) ? '<span class="entr-pastille" aria-hidden="true"></span><span class="entr-cache"> (en attente de votre réponse)</span>' : "") + "</button>"
+        : '<span class="entr-sans-rep-pub">Pas encore de réponse</span>')
+      : '<button type="button" class="btn btn-ghost btn-sm entr-aider" data-aider>Je peux aider !</button>';
+    return sep + '<article class="entr-msg' + (mienne ? " entr-mienne" : "") + (neuve ? " new" : "") + '" style="--c:' + entrCouleur(d.prenom) + '" data-id="' + esc(d.id) + '">' +
+      '<div class="who">' + (mienne ? "Ma demande" : esc(d.prenom)) + (d.quartier ? ' <span class="where">· ' + esc(d.quartier) + "</span>" : "") + "</div>" +
       '<p class="need">' + esc(d.besoin) + "</p>" + (d.quand ? '<div class="when">' + ENTR_CAL + "<span>" + esc(d.quand) + "</span></div>" : "") +
-      // « Je peux aider ! » : proposer son aide (fonction à venir)
-      '<div class="entr-pied"><button type="button" class="btn btn-ghost btn-sm entr-aider" data-aider>Je peux aider !</button>' +
-      '<time class="time" datetime="' + esc(d.publie_le) + '">' + entrHeure(d.publie_le) + "</time></div></article>" + entrRepsHtml(d.id, d.prenom);
+      '<div class="entr-pied">' + pied +
+      '<time class="time" datetime="' + esc(d.publie_le) + '">' + entrHeure(d.publie_le) + "</time></div></article>" + (mienne ? "" : entrRepsHtml(d.id, d.prenom));
   }).join("") : '<p class="empty">Aucune demande d\'aide en cours pour le moment.</p>';
   entrVus = new Set(list.map(d => d.id));
+  refocus();
   if (!rep.hidden) {
     if (entrPlacerReponse(entrRepId, entrRepEdit)) { if (repFocus) $("entr-rep-txt").focus({ preventScroll: true }); }
     else { rep.hidden = true; entrRepId = null; } // demande retirée entre-temps
@@ -76,30 +86,31 @@ function renderEntraide(list) {
   if (enHaut) $("entr-jump").hidden = true;
   else if (nouvelles) $("entr-jump").hidden = false;
 }
-// « Je peux aider ! » : réponses écrites juste sous la demande, en fil, avec Modifier / Supprimer et « Ajouter un message ».
-// Maquette : les réponses restent dans la page (perdues au rechargement), rien n'est envoyé.
-const entrReponses = new Map(); // id de la demande → [{ id, texte, le, modifie }]
-let entrRepId = null, entrRepEdit = null, entrRepNum = 0, entrBrouillon = null; // brouillon : demande dont le texte est gardé après fermeture
+// Messagerie : « Je peux aider ! » ouvre une conversation privée avec l'auteur de la demande, écrite juste sous la demande ;
+// dans Mes demandes, une conversation par personne qui a proposé son aide. Messages enregistrés par la base (entraide_ecrire…),
+// mis à jour en direct ; Modifier / Supprimer pour mes messages, « Décliner » (fin de la conversation) pour l'auteur de la demande.
+// Fils affichés : clé (id de la demande dans le fil public, "mes:" + id de conversation dans Mes demandes) →
+// { demande, conv, prenom (l'autre personne), messages [{ id, texte, le, moi, modifie }], declinee, auteur (ma demande) }
+const entrFils = new Map();
+let entrRepId = null, entrRepEdit = null, entrBrouillon = null; // brouillon : fil dont le texte est gardé après fermeture
 const ENTR_CADENAS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
-const entrRecues = new Map(); // Mes demandes : id de la conversation → messages reçus de cette personne
-const entrDeclines = new Set(); // Mes demandes : conversations auxquelles j'ai mis fin (« Décliner »)
-// Fil d'une demande (mes messages) ou, dans Mes demandes, conversation avec une personne (ses messages et les miens, par date)
+// Une conversation attend ma réponse si son dernier message vient de l'autre personne (et qu'elle n'est pas terminée)
+const entrAttend = c => !c.declinee && c.messages.length > 0 && !c.messages[c.messages.length - 1].moi;
 function entrRepsHtml(id, prenom) {
-  const l = entrReponses.get(id) || [], recues = entrRecues.get(id) || [], fini = entrDeclines.has(id);
-  const tous = [...recues.map(r => ({ ...r, recue: true })), ...l].sort((a, b) => a.le.localeCompare(b.le));
-  return '<div class="entr-reps" data-pour="' + esc(id) + '" data-prenom="' + esc(prenom) + '">' + (tous.length ?
-    (recues.length ? "" : '<p class="entr-rep-note">' + ENTR_CADENAS + "Vos messages ne sont visibles que par " + esc(prenom) + "</p>") +
-    tous.map(r => r.recue
-      ? '<div class="entr-recue" style="--c:' + entrCouleur(r.prenom) + '"><div class="who">' + esc(r.prenom) + "</div>" +
-        '<p class="txt">' + esc(r.texte) + '</p><time class="time" datetime="' + esc(r.le) + '">' + esc(entrJour(r.le)) + ", " + entrHeure(r.le) + "</time></div>"
-      : '<div class="entr-moi" data-rep="' + r.id + '"><p class="txt">' + esc(r.texte) + "</p>" +
+  const f = entrFils.get(id) || { messages: [] }, l = f.messages, recues = l.some(r => !r.moi), fini = f.declinee;
+  return '<div class="entr-reps" data-pour="' + esc(id) + '" data-prenom="' + esc(prenom) + '">' + (l.length ?
+    (recues || f.auteur ? "" : '<p class="entr-rep-note">' + ENTR_CADENAS + "Vos messages ne sont visibles que par " + esc(prenom) + "</p>") +
+    l.map(r => !r.moi
+      ? '<div class="entr-recue" tabindex="-1" data-msg="' + esc(r.id) + '" style="--c:' + entrCouleur(prenom) + '"><div class="who">' + esc(prenom) + "</div>" +
+        '<p class="txt">' + esc(r.texte) + '</p><time class="time" datetime="' + esc(r.le) + '">' + (r.modifie ? "Modifié · " : "") + esc(entrJour(r.le)) + ", " + entrHeure(r.le) + "</time></div>"
+      : '<div class="entr-moi" data-rep="' + esc(r.id) + '"><p class="txt">' + esc(r.texte) + "</p>" +
         '<div class="entr-moi-pied"><span class="entr-moi-act">' + (fini ? "" : '<button type="button" data-modifier>Modifier</button><button type="button" data-supprimer>Supprimer</button>') + "</span>" +
-        '<time class="time" datetime="' + esc(r.le) + '">' + (r.modifie ? "Modifié · " : "") + (recues.length ? esc(entrJour(r.le)) + ", " : "") + entrHeure(r.le) + "</time></div></div>").join("") +
-    (fini ? '<p class="entr-fin">Vous avez décliné l\'aide de ' + esc(prenom) + " : la conversation est terminée. " +
-        '<button type="button" class="entr-reprendre" data-reprendre>Reprendre</button></p>'
-      : recues.length ? '<div class="entr-conv-act"><button type="button" class="entr-plus" data-plus>Répondre à ' + esc(prenom) + "</button>" +
+        '<time class="time" datetime="' + esc(r.le) + '">' + (r.modifie ? "Modifié · " : "") + (recues ? esc(entrJour(r.le)) + ", " : "") + entrHeure(r.le) + "</time></div></div>").join("") +
+    (fini ? '<p class="entr-fin">' + (f.auteur ? "Vous avez décliné l'aide de " + esc(prenom) + " : la conversation est terminée. " +
+        '<button type="button" class="entr-reprendre" data-reprendre>Reprendre</button>' : esc(prenom) + " a mis fin à la conversation.") + "</p>"
+      : f.auteur ? '<div class="entr-conv-act"><button type="button" class="entr-plus" data-plus>Répondre à ' + esc(prenom) + "</button>" +
         '<button type="button" class="entr-decliner" data-decliner>Décliner</button></div>'
-      : '<button type="button" class="entr-plus" data-plus>+ Ajouter un message</button>') : "") + "</div>";
+      : '<button type="button" class="entr-plus" data-plus>' + (recues ? "Répondre à " + esc(prenom) : "+ Ajouter un message") + "</button>") : "") + "</div>";
 }
 const entrGroupe = id => $("entr-view").querySelector('.entr-reps[data-pour="' + CSS.escape(id) + '"]');
 const entrBoutonAider = g => g?.previousElementSibling?.matches(".entr-msg") ? g.previousElementSibling.querySelector(".entr-aider") : null;
@@ -111,7 +122,7 @@ function entrPlacerReponse(id, editId) {
   if (g.previousElementSibling?.matches(".entr-msg")) g.previousElementSibling.classList.add("repond");
   g.classList.add("ecrit");
   entrRepId = id; entrRepEdit = editId;
-  const f = $("entr-rep"), b = editId != null && g.querySelector('[data-rep="' + editId + '"]');
+  const f = $("entr-rep"), b = editId != null && g.querySelector('[data-rep="' + CSS.escape(editId) + '"]');
   if (b) { b.classList.add("edite"); b.after(f); } else g.append(f);
   $("entr-rep-t").textContent = (b ? "Modifier votre message à " : "Répondre à ") + g.dataset.prenom;
   $("entr-rep-qui").textContent = "Votre réponse ne sera vue que par " + g.dataset.prenom + ".";
@@ -126,7 +137,7 @@ function entrTexte(v) {
   $("entr-rep-send").disabled = !v.trim();
 }
 function entrOuvrirReponse(id, editId = null) {
-  const r = editId != null && (entrReponses.get(id) || []).find(x => x.id === editId);
+  const r = editId != null && (entrFils.get(id)?.messages || []).find(x => x.id === editId && x.moi);
   if (r) entrTexte(r.texte);
   else if (entrBrouillon !== id) entrTexte("");
   entrBrouillon = r ? null : id;
@@ -146,61 +157,73 @@ function entrFermerReponse(rendreFocus = true) {
   entrRepId = entrRepEdit = null;
   if (!rendreFocus) return;
   const g = entrGroupe(id);
-  (editId != null && g?.querySelector('[data-rep="' + editId + '"] [data-modifier]') || entrBoutonAider(g) || g?.querySelector(".entr-plus"))?.focus();
+  (editId != null && g?.querySelector('[data-rep="' + CSS.escape(editId) + '"] [data-modifier]') || entrBoutonAider(g) || g?.querySelector(".entr-plus"))?.focus();
 }
-// Réaffiche le fil des réponses d'une demande, puis met le focus sur l'élément choisi
-function entrMajGroupe(id, cible) {
-  const g = entrGroupe(id);
-  if (!g) return;
-  if (g.contains($("entr-rep"))) entrFermerReponse(false);
-  g.outerHTML = entrRepsHtml(id, g.dataset.prenom);
-  if (String(id).startsWith("mes:")) entrMajMes();
-  const n = entrGroupe(id);
-  (n.querySelector(cible) || entrBoutonAider(n) || n.querySelector(".entr-plus"))?.focus({ preventScroll: true });
+// Après un envoi (ou une suppression, un déclin) : la vue affichée se recharge, puis le focus va sur l'élément choisi du fil
+async function entrApres(id, cible) {
+  if (entrGroupe(id)?.contains($("entr-rep"))) entrFermerReponse(false);
+  await (location.hash === "#entraide/mes-demandes" ? renderMesDemandes() : loadEntraide());
+  const n = entrGroupe(id), b = n && entrBoutonAider(n);
+  ((n && cible && n.querySelector(cible)) || n?.querySelector(".entr-plus") || b || n)?.focus({ preventScroll: true });
 }
-function entrClicFil(e) {
+// Réaffichage en direct (nouveau message…) : le focus reste sur le même bouton ou message, retrouvé par ses attributs
+function entrMemoFocus(root) {
+  const a = document.activeElement;
+  if (!root.contains(a) || $("entr-rep").contains(a)) return () => {};
+  const at = (el, k) => el && el.hasAttribute(k) ? "[" + k + '="' + CSS.escape(el.getAttribute(k)) + '"]' : "";
+  const g = a.closest("[data-pour], [data-id], [data-demande]"), r = a.closest("[data-rep], [data-msg]");
+  const sel = [g && (at(g, "data-pour") || at(g, "data-id") || at(g, "data-demande")), r && (at(r, "data-rep") || at(r, "data-msg")),
+    ["data-plus", "data-decliner", "data-reprendre", "data-modifier", "data-supprimer", "data-aider", "data-voir"].filter(k => a.hasAttribute(k)).map(k => "[" + k + "]").join("")]
+    .filter(Boolean).join(" ");
+  return () => { if (sel && (document.activeElement === document.body || !document.activeElement)) root.querySelector(sel)?.focus({ preventScroll: true }); };
+}
+const entrErreur = err => toast(err?.message || "L'opération n'a pas pu aboutir. Merci de réessayer.");
+async function entrClicFil(e) {
   const b = e.target.closest("button");
   if (!b) return;
   const g = b.closest(".entr-reps"), m = b.closest(".entr-msg");
   if (b.matches("[data-aider]")) entrOuvrirReponse(m.dataset.id);
+  else if (b.matches("[data-voir]")) entrVoirReponses(m.dataset.id);
   else if (b.matches("[data-plus]")) entrOuvrirReponse(g.dataset.pour);
-  else if (b.matches("[data-modifier]")) entrOuvrirReponse(g.dataset.pour, Number(b.closest(".entr-moi").dataset.rep));
+  else if (b.matches("[data-modifier]")) entrOuvrirReponse(g.dataset.pour, b.closest(".entr-moi").dataset.rep);
   else if (b.matches("[data-supprimer]")) entrSupprimerReponse(g, b.closest(".entr-moi"));
-  // Décliner : met fin à la conversation (plus de réponse possible), « Reprendre » la rouvre
-  else if (b.matches("[data-decliner]")) {
-    if (entrRepId === g.dataset.pour) entrFermerReponse(false);
-    entrDeclines.add(g.dataset.pour);
-    entrMajGroupe(g.dataset.pour, "[data-reprendre]");
-    toast("Vous avez décliné l'aide de " + g.dataset.prenom + " (maquette : rien n'est envoyé).");
-  } else if (b.matches("[data-reprendre]")) { entrDeclines.delete(g.dataset.pour); entrMajGroupe(g.dataset.pour, "[data-plus]"); }
+  // Décliner : met fin à la conversation (plus de message possible), « Reprendre » la rouvre
+  else if (b.matches("[data-decliner], [data-reprendre]")) {
+    const id = g.dataset.pour, oui = b.matches("[data-decliner]");
+    if (entrRepId === id) entrFermerReponse(false);
+    b.disabled = true;
+    try { await api.entraideDecliner(entrFils.get(id).conv, oui); }
+    catch (err) { b.disabled = false; return entrErreur(err); }
+    await entrApres(id, oui ? "[data-reprendre]" : "[data-plus]");
+  }
 }
 $("entr-list").addEventListener("click", entrClicFil);
 $("entr-mes-list").addEventListener("click", entrClicFil);
 // Supprimer un de ses messages : sans confirmation, la bulle implose et ce qui suit remonte
 // (tout le fil s'il s'agissait du dernier message)
-function entrSupprimerReponse(g, bulle) {
-  const id = g.dataset.pour, rid = Number(bulle.dataset.rep), l = entrReponses.get(id) || [];
+async function entrSupprimerReponse(g, bulle) {
+  const id = g.dataset.pour, rid = bulle.dataset.rep, l = entrFils.get(id)?.messages || [];
   if (entrRepEdit === rid) entrFermerReponse(false);
-  const el = l.length > 1 || entrRecues.get(id)?.length ? bulle : g, fin = () => {
-    entrReponses.set(id, l.filter(r => r.id !== rid));
-    entrMajGroupe(id, ".entr-plus");
-  };
-  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return fin();
-  // 1) la bulle implose (léger gonflement puis contraction vers son centre), 2) sa place se referme
-  el.style.pointerEvents = "none";
-  el.style.transformOrigin = "50% 50%";
-  el.animate([
-    { transform: "scale(1)", opacity: 1 },
-    { transform: "scale(1.04)", opacity: 1, offset: .2 },
-    { transform: "scale(0)", opacity: 0 },
-  ], { duration: 280, easing: "cubic-bezier(.55, 0, .75, .3)", fill: "forwards" }).onfinish = () => {
+  const el = l.length > 1 ? bulle : g;
+  const envoi = api.entraideMessageSupprimer(rid);
+  if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    // 1) la bulle implose (léger gonflement puis contraction vers son centre), 2) sa place se referme
+    el.style.pointerEvents = "none";
+    el.style.transformOrigin = "50% 50%";
+    await el.animate([
+      { transform: "scale(1)", opacity: 1 },
+      { transform: "scale(1.04)", opacity: 1, offset: .2 },
+      { transform: "scale(0)", opacity: 0 },
+    ], { duration: 280, easing: "cubic-bezier(.55, 0, .75, .3)", fill: "forwards" }).finished;
     const cs = getComputedStyle(el);
     el.style.overflow = "hidden";
-    el.animate([
+    await el.animate([
       { height: el.offsetHeight + "px", marginTop: cs.marginTop, marginBottom: cs.marginBottom, paddingTop: cs.paddingTop, paddingBottom: cs.paddingBottom },
       { height: "0px", marginTop: "0px", marginBottom: "0px", paddingTop: "0px", paddingBottom: "0px" },
-    ], { duration: 200, easing: "ease-out", fill: "forwards" }).onfinish = fin;
-  };
+    ], { duration: 200, easing: "ease-out", fill: "forwards" }).finished;
+  }
+  try { await envoi; } catch (err) { entrErreur(err); }
+  await entrApres(id, ".entr-plus");
 }
 $("entr-rep-x").addEventListener("click", () => entrFermerReponse());
 $("entr-rep").addEventListener("keydown", e => { if (e.key === "Escape") { e.stopPropagation(); entrFermerReponse(); } });
@@ -213,17 +236,19 @@ $("entr-rep-txt").addEventListener("input", e => {
 $("entr-rep-txt").addEventListener("keydown", e => {
   if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); if (!$("entr-rep-send").disabled) $("entr-rep").requestSubmit(); }
 });
-$("entr-rep").addEventListener("submit", e => {
+let entrEnvoi = false;
+$("entr-rep").addEventListener("submit", async e => {
   e.preventDefault();
-  const texte = $("entr-rep-txt").value.trim(), id = entrRepId, editId = entrRepEdit;
-  if (!texte || id == null) return;
-  const l = entrReponses.get(id) || [];
-  if (editId != null) { const r = l.find(x => x.id === editId); if (r && r.texte !== texte) { r.texte = texte; r.modifie = true; } }
-  else l.push({ id: ++entrRepNum, texte, le: new Date().toISOString(), modifie: false });
-  entrReponses.set(id, l);
+  const texte = $("entr-rep-txt").value.trim(), id = entrRepId, editId = entrRepEdit, f = entrFils.get(id);
+  if (!texte || id == null || entrEnvoi) return;
+  entrEnvoi = true; $("entr-rep-send").disabled = true;
+  try {
+    if (editId != null) await api.entraideMessageModifier(editId, texte);
+    else await api.entraideEcrire(texte, f?.conv ? { p_conversation: f.conv } : { p_demande: f?.demande ?? id });
+  } catch (err) { entrEnvoi = false; $("entr-rep-send").disabled = false; return entrErreur(err); }
+  entrEnvoi = false;
   entrTexte(""); entrBrouillon = null;
-  entrMajGroupe(id, editId != null ? '[data-rep="' + editId + '"] [data-modifier]' : ".entr-plus");
-  toast(editId != null ? "Message modifié (maquette : rien n'est envoyé)." : "Message envoyé (maquette : rien n'est réellement envoyé).");
+  await entrApres(id, editId != null ? '[data-rep="' + CSS.escape(editId) + '"] [data-modifier]' : ".entr-plus");
 });
 $("entr-jump").addEventListener("click", () => { entrVersLeHaut(); $("entr-jump").hidden = true; });
 addEventListener("scroll", () => { if (!$("entr-jump").hidden && entrEnHaut()) $("entr-jump").hidden = true; }, { passive: true });
@@ -232,8 +257,13 @@ async function loadEntraide() {
   const seq = ++entrSeq;
   if (!entrLoaded) $("entr-count").textContent = "Chargement…";
   try {
-    const [list, aidees] = await Promise.all([api.entraide(), api.entraidePourvues()]);
-    if (seq === entrSeq) { renderEntraide(list); renderAidees(aidees); entrLoaded = true; }
+    // Mes demandes et mes conversations d'aidant : pour reconnaître mes demandes et afficher mes fils (sans bloquer le fil si erreur)
+    const [list, aidees, mes, aides] = await Promise.all([api.entraide(), api.entraidePourvues(),
+      api.entraideMesDemandes().catch(() => null), api.entraideMesAides().catch(() => null)]);
+    if (seq !== entrSeq) return;
+    if (mes) entrMajMes(mes);
+    if (aides) entrMajAides(aides);
+    renderEntraide(list); renderAidees(aidees); entrLoaded = true;
   }
   catch { if (!entrLoaded) { $("entr-count").textContent = ""; $("entr-list").innerHTML = '<p class="empty">Impossible de charger les demandes pour le moment.</p>'; } }
 }
@@ -264,11 +294,13 @@ let entrDemandes = null, entrFiltre = "a_valider", entrBusy = false;
 const ENTR_FILTRES = [["a_valider", "À valider"], ["publiee", "Publiées"], ["terminees", "Terminées"]];
 const entrDans = (d, f) => f === "terminees" ? d.statut === "pourvue" || d.statut === "refusee" : d.statut === f;
 
-// Pastilles rouges (onglet et liste déroulante) pour attirer l'attention :
-// « Modération » s'il y a des demandes à valider, « Mes demandes » s'il y a un message sans réponse de ma part (conversation non déclinée)
+// Pastilles rouges (onglet et liste déroulante) pour attirer l'attention : « Modération » s'il y a des demandes à valider,
+// « Mes demandes » si une personne qui propose son aide attend ma réponse, « Demandes d'aide » si l'auteur d'une demande
+// m'a répondu (conversations non terminées dont le dernier message n'est pas de moi)
 const ENTR_PASTILLES = {
-  "#entraide/moderation": { tab: "entr-tab-mod", label: "Modération", cache: " (demandes à modérer)", on: false },
+  "#entraide": { tab: "entr-tab-pub", label: "Demandes d'aide", cache: " (réponses à lire)", on: false },
   "#entraide/mes-demandes": { tab: "entr-tab-mes", label: "Mes demandes", cache: " (messages sans réponse)", on: false },
+  "#entraide/moderation": { tab: "entr-tab-mod", label: "Modération", cache: " (demandes à modérer)", on: false },
 };
 function entrPastille(hash, on) {
   const p = ENTR_PASTILLES[hash];
@@ -282,24 +314,18 @@ const entrLibelle = hash => ENTR_PASTILLES[hash].label + (ENTR_PASTILLES[hash].o
 // Téléphone : la liste fermée montre aussi la pastille d'une autre page que celle affichée
 const entrAlerteSel = () => $("entr-nav-sel").classList.toggle("alerte",
   Object.entries(ENTR_PASTILLES).some(([h, p]) => p.on && location.hash !== h));
-// Mes demandes : une conversation attend ma réponse si son dernier message vient de l'autre personne et que je ne l'ai pas déclinée
-let entrMesListe = [];
-function entrMajMes(list = entrMesListe) {
-  entrMesListe = list;
-  entrPastille("#entraide/mes-demandes", list.some(d => [...new Set((d.reponses || []).map(r => r.prenom))].some(p => {
-    const conv = "mes:" + d.id + ":" + p, recu = d.reponses.filter(r => r.prenom === p).map(r => r.le).sort().pop();
-    const moi = (entrReponses.get(conv) || []).map(r => r.le).sort().pop() || "";
-    return !entrDeclines.has(conv) && recu > moi;
-  })));
-}
-// Hors de la page concernée : on recharge seulement ce qu'il faut pour les pastilles
+let entrMesListe = [], entrAidesListe = [];
+function entrMajMes(list) { entrMesListe = list; entrPastille("#entraide/mes-demandes", list.some(d => d.conversations.some(entrAttend))); }
+function entrMajAides(list) { entrAidesListe = list; entrPastille("#entraide", list.some(entrAttend)); }
+// Données des pastilles que la vue affichée ne recharge pas elle-même
 let entrPastilleSeq = 0;
 async function entrMajPastille() {
-  const seq = ++entrPastilleSeq, h = location.hash;
+  const seq = ++entrPastilleSeq, h = location.hash, ok = f => l => { if (seq === entrPastilleSeq) f(l); };
   if (isReferent && h !== "#entraide/moderation")
-    api.entraideModeration().then(l => { if (seq === entrPastilleSeq) entrPastille("#entraide/moderation", l.some(d => d.statut === "a_valider")); }).catch(() => {});
-  if (canEntraide && api.entraideMesDemandes && h !== "#entraide/mes-demandes")
-    api.entraideMesDemandes().then(l => { if (seq === entrPastilleSeq) entrMajMes(l); }).catch(() => {});
+    api.entraideModeration().then(ok(l => entrPastille("#entraide/moderation", l.some(d => d.statut === "a_valider")))).catch(() => {});
+  if (!canEntraide || h === "#entraide") return; // le fil public recharge déjà mes demandes et mes aides
+  if (h !== "#entraide/mes-demandes") api.entraideMesDemandes().then(ok(entrMajMes)).catch(() => {});
+  api.entraideMesAides().then(ok(entrMajAides)).catch(() => {});
 }
 
 async function loadModeration() {
@@ -411,38 +437,36 @@ function onEntraideRoute() {
   else if (!entrModShown) { entrModShown = true; entrDemandes = null; renderModeration(); loadModeration(); }
 }
 $("entr-nav-sel").addEventListener("change", e => { location.hash = e.target.value; });
-// Mes demandes (maquette) : mes demandes d'aide et les réponses reçues, rien d'autre.
-// Version de test : le faux serveur relie les demandes au compte (entraideMesDemandes) ; en prod, la base ne le fait pas
-// encore : seules les demandes envoyées depuis l'ouverture de la page apparaissent, sans réponse.
-const entrMesDemandes = [];
+// Mes demandes : mes demandes d'aide (reliées à mon compte par la base) et, pour chacune, une conversation par personne
+// qui a proposé son aide ; elle et moi sommes seuls à la voir.
 const ENTR_MON_STATUT = { a_valider: ["En attente de validation", "wait"], publiee: ["Publiée", "lead"], pourvue: ["Aidé ✓", "ok"], refusee: ["Non publiée", "none"] };
-let entrMesSeq = 0;
+let entrMesSeq = 0, entrCibleMes = null;
 async function renderMesDemandes() {
   const seq = ++entrMesSeq, el = $("entr-mes-list");
-  let list = entrMesDemandes.map(d => ({ ...d, statut: "a_valider", created_at: d.le, reponses: [] }));
-  if (api.entraideMesDemandes) {
-    if (!el.childElementCount) el.innerHTML = '<p class="empty">Chargement…</p>';
-    try { list = await api.entraideMesDemandes(); }
-    catch { if (seq === entrMesSeq) el.innerHTML = '<p class="empty">Impossible de charger vos demandes pour le moment.</p>'; return; }
-    if (seq !== entrMesSeq) return;
-  }
+  if (!el.childElementCount) el.innerHTML = '<p class="empty">Chargement…</p>';
+  let list;
+  try { list = await api.entraideMesDemandes(); }
+  catch { if (seq === entrMesSeq) el.innerHTML = '<p class="empty">Impossible de charger vos demandes pour le moment.</p>'; return; }
+  if (seq !== entrMesSeq) return;
   entrMajMes(list);
   const rep = $("entr-rep"), repFocus = rep.contains(document.activeElement), garder = !rep.hidden && el.contains(rep);
   if (garder) $("entr-pub").append(rep); // la réponse en cours de rédaction survit au rafraîchissement
+  const refocus = entrMemoFocus(el);
   el.innerHTML = list.length ? [...list].sort((a, b) => b.created_at.localeCompare(a.created_at)).map(d => {
-    const [label, cls] = ENTR_MON_STATUT[d.statut] || ENTR_MON_STATUT.a_valider, rep = d.reponses || [];
-    return '<article class="entr-msg entr-mienne">' +
+    const [label, cls] = ENTR_MON_STATUT[d.statut] || ENTR_MON_STATUT.a_valider;
+    const convs = d.conversations.filter(c => c.messages.length), n = convs.reduce((t, c) => t + c.messages.filter(m => !m.moi).length, 0);
+    return '<article class="entr-msg entr-mienne" data-demande="' + esc(d.id) + '" tabindex="-1">' +
       '<div class="who">Ma demande' + (d.quartier ? ' <span class="where">· ' + esc(d.quartier) + "</span>" : "") + "</div>" +
       '<p class="need">' + esc(d.besoin) + "</p>" + (d.quand ? '<div class="when">' + ENTR_CAL + "<span>" + esc(d.quand) + "</span></div>" : "") +
       '<div class="entr-pied"><span class="badge ' + cls + '">' + esc(label) + "</span>" +
       '<time class="time" datetime="' + esc(d.created_at) + '">' + esc(entrJour(d.created_at)) + ", " + entrHeure(d.created_at) + "</time></div></article>" +
-      (rep.length ? '<div class="entr-convs"><p class="entr-rep-note">' + ENTR_CADENAS +
-        (rep.length > 1 ? rep.length + " réponses, qui ne sont visibles que par vous" : "1 réponse, qui n'est visible que par vous") + "</p>" +
-        // une conversation par personne : ses messages et mes réponses, que je suis seul(e) à voir avec elle
-        [...new Set(rep.map(r => r.prenom))].map(p => {
-          const conv = "mes:" + d.id + ":" + p;
-          entrRecues.set(conv, rep.filter(r => r.prenom === p));
-          return entrRepsHtml(conv, p);
+      (convs.length ? '<div class="entr-convs"><p class="entr-rep-note">' + ENTR_CADENAS +
+        (n > 1 ? n + " réponses, qui ne sont visibles que par vous" : n + " réponse, qui n'est visible que par vous") + "</p>" +
+        // une conversation par personne : ses messages et les miens, que je suis seul(e) à voir avec elle
+        convs.map(c => {
+          const k = "mes:" + c.id;
+          entrFils.set(k, { ...c, conv: c.id, demande: d.id, auteur: true });
+          return entrRepsHtml(k, c.prenom);
         }).join("") + "</div>"
         : d.statut === "publiee" ? '<p class="entr-sans-rep">Aucune réponse pour l\'instant.</p>' : "");
   }).join("")
@@ -451,7 +475,17 @@ async function renderMesDemandes() {
     if (entrPlacerReponse(entrRepId, entrRepEdit)) { if (repFocus) $("entr-rep-txt").focus({ preventScroll: true }); }
     else { rep.hidden = true; entrRepId = null; }
   }
+  refocus();
+  // Arrivée depuis « Voir les réponses » : le message qui attend ma réponse (sinon la demande) est mis en vue et reçoit le focus
+  if (entrCibleMes) {
+    const id = entrCibleMes, d = list.find(x => x.id === id), c = d?.conversations.find(entrAttend);
+    entrCibleMes = null;
+    const g = c && entrGroupe("mes:" + c.id), cible = g ? [...g.querySelectorAll(".entr-recue")].pop() : el.querySelector('[data-demande="' + CSS.escape(id) + '"]');
+    if (cible) { cible.scrollIntoView({ block: "center" }); cible.focus({ preventScroll: true }); cible.classList.add("entr-repere"); }
+  }
 }
+// Depuis le fil public, sur ma demande : aller aux réponses dans Mes demandes
+function entrVoirReponses(id) { entrCibleMes = id; location.hash = "#entraide/mes-demandes"; }
 onEntraideRoute(); // premier affichage : route() a pu s'exécuter avant le chargement de ce fichier
 
 // --- Formulaire progressif : chaque « Continuer » (ou Entrée) dévoile l'étape suivante sous la précédente ---
@@ -504,7 +538,6 @@ eForm.addEventListener("submit", async e => {
   try {
     await api.entraideDemander({ p_besoin: f.besoin.value, p_quand: f.quand.value, p_quartier: f.quartier.value,
       p_prenom: f.prenom.value, p_telephone: f.tel.value, p_accord: f.accord.checked, p_site: f.site.value });
-    entrMesDemandes.push({ besoin: f.besoin.value.trim(), quand: f.quand.value.trim(), quartier: f.quartier.value.trim(), prenom: f.prenom.value.trim(), le: new Date().toISOString() });
     if (location.hash === "#entraide/mes-demandes") renderMesDemandes();
     $("e-done-title").textContent = "Merci " + f.prenom.value.trim() + " !";
     eForm.hidden = true;

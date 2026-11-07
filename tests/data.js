@@ -47,18 +47,26 @@ module.exports = {
   entraide: [
     { id: "e1", prenom: "Jeanne", telephone: "+33639980001", quartier: "Croix-Rousse", besoin: "Me conduire chez le médecin, je ne peux pas me déplacer seule.", quand: "Jeudi 14 h", statut: "publiee", jours: 0 },
     { id: "e2", auteur: "admin@example.org", prenom: "Paul", telephone: "+33639980002", quartier: "", besoin: "Changer une ampoule au plafond de la cuisine, je n'ai pas d'escabeau.", quand: "Cette semaine", statut: "publiee", jours: 1 },
-    { id: "e3", prenom: "Marie", telephone: "+33639980003", quartier: "Presqu'île", besoin: "Porter des courses lourdes depuis le marché.", quand: "Samedi matin", statut: "publiee", jours: 2 },
+    { id: "e3", auteur: "marie@example.org", prenom: "Marie", telephone: "+33639980003", quartier: "Presqu'île", besoin: "Porter des courses lourdes depuis le marché.", quand: "Samedi matin", statut: "publiee", jours: 2 },
     { id: "e4", prenom: "Bernard", telephone: "+33639980004", quartier: "Saint-Jean", besoin: "Monter un meuble livré en kit : une armoire deux portes, notice comprise mais je n'y arrive pas seul.", quand: "Le week-end prochain", statut: "publiee", jours: 3 },
     { id: "e5", prenom: "Monique", telephone: "+33639980005", quartier: "Terreaux", besoin: "Apprendre à faire un appel vidéo avec mes petits-enfants.", quand: "", statut: "publiee", jours: 5 },
     { id: "e6", prenom: "Henri", telephone: "+33639980006", quartier: "Fourvière", besoin: "M'accompagner à la messe du dimanche, je marche difficilement.", quand: "Dimanche 10 h 30", statut: "a_valider", jours: 0 },
     { id: "e7", auteur: "admin@example.org", prenom: "Colette", telephone: "+33639980007", quartier: "Guillotière", besoin: "Réparer un robinet qui fuit dans la salle de bains.", quand: "Avant vendredi", statut: "a_valider", jours: 1 },
     { id: "e8", auteur: "admin@example.org", prenom: "Gérard", telephone: "+33639980008", quartier: "Ainay", besoin: "Transporter des cartons de livres jusqu'à la bibliothèque paroissiale.", quand: "Mardi", statut: "pourvue", jours: 8 },
   ],
-  // Réponses « Je peux aider ! » (maquette, version de test) : prénom de la personne qui répond, ancienneté en heures
-  entraideReponses: [
-    { id: "r1", demande: "e2", prenom: "Damien", texte: "Bonjour ! J'ai un escabeau, je peux passer jeudi en fin de journée.", heures: 20 },
-    { id: "r2", demande: "e2", prenom: "Damien", texte: "Vers 18 h, ça vous irait ?", heures: 19.5 },
-    { id: "r3", demande: "e2", prenom: "Claire", texte: "Si jeudi ne convient pas, je suis disponible samedi matin.", heures: 6 },
-    { id: "r4", demande: "e8", prenom: "Thomas", texte: "Je peux transporter les cartons mardi avec ma voiture.", heures: 200 },
+  // Messagerie : une conversation par personne qui propose son aide (aidant : son e-mail), messages datés en heures
+  entraideConversations: [
+    { id: "c1", demande: "e2", aidant: "damien@example.org", prenom: "Damien", heures: 20 },
+    { id: "c2", demande: "e2", aidant: "claire@example.org", prenom: "Claire", heures: 6 },
+    { id: "c3", demande: "e8", aidant: "thomas@example.org", prenom: "Thomas", heures: 200 },
+    { id: "c4", demande: "e3", aidant: "admin@example.org", prenom: "Admin", heures: 5 },
+  ],
+  entraideMessages: [
+    { id: "m1", conversation: "c1", auteur: "damien@example.org", texte: "Bonjour ! J'ai un escabeau, je peux passer jeudi en fin de journée.", heures: 20 },
+    { id: "m2", conversation: "c1", auteur: "damien@example.org", texte: "Vers 18 h, ça vous irait ?", heures: 19.5 },
+    { id: "m3", conversation: "c2", auteur: "claire@example.org", texte: "Si jeudi ne convient pas, je suis disponible samedi matin.", heures: 6 },
+    { id: "m4", conversation: "c3", auteur: "thomas@example.org", texte: "Je peux transporter les cartons mardi avec ma voiture.", heures: 200 },
+    { id: "m5", conversation: "c4", auteur: "admin@example.org", texte: "Je passe au marché samedi, je peux porter vos courses.", heures: 5 },
+    { id: "m6", conversation: "c4", auteur: "marie@example.org", texte: "Merci beaucoup ! Rendez-vous à 10 h devant l'entrée ?", heures: 3 },
   ],
 };

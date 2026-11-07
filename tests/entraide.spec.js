@@ -349,5 +349,72 @@ test("pastille rouge sur Mes demandes tant qu'un message attend ma réponse @mob
   await expect(page.locator("#entr-tab-mes .entr-pastille")).toHaveCount(1);
   await conv("Claire").getByRole("button", { name: "Décliner" }).click();
   await expect(page.locator("#entr-tab-mes .entr-pastille")).toHaveCount(0);
-  await expect(page.locator("#entr-nav-sel")).not.toHaveClass(/alerte/);
+  await expect(page.locator("#entr-nav-sel option").nth(1)).toHaveText("Mes demandes");
+});
+
+test("messagerie : ma demande dans le fil mène à la réponse en attente, messages reçus en direct @mobile", async ({ open, page }) => {
+  const MOI = [{ email: "admin@example.org", droit: "admin", prenom: "", nom: "", entraide_voir: true, entraide_moderer: false }];
+  await open({ user: ADMIN, hash: "#entraide", acces: MOI });
+  // Ma demande (Paul) : fond bleu, pas de « Je peux aider ! », lien vers les 2 conversations avec pastille
+  const mienne = page.locator("#entr-list .entr-msg.entr-mienne");
+  await expect(mienne).toHaveCount(1);
+  await expect(mienne).toContainText("Ma demande");
+  await expect(mienne.locator("[data-aider]")).toHaveCount(0);
+  await expect(mienne.locator("[data-voir]")).toHaveText("Voir les 2 réponses (en attente de votre réponse)");
+  await expect(mienne.locator("[data-voir] .entr-pastille")).toBeVisible();
+  await mienne.locator("[data-voir]").click();
+  await expect(page).toHaveURL(/#entraide\/mes-demandes$/);
+  // Focus et défilement sur le dernier message de Damien, qui attend ma réponse
+  await expect(page.locator(":focus")).toContainText("Vers 18 h, ça vous irait ?");
+  await expect(page.locator(":focus")).toBeInViewport();
+  // Damien écrit depuis son compte : son message apparaît en direct, sans recharger
+  await page.evaluate(() => {
+    window.__S.entraideMessages.push({ id: "live-m", conversation: "c1", auteur: "damien@example.org", texte: "Je peux aussi venir vendredi.", le: new Date().toISOString() });
+    window.__entraideSignal();
+  });
+  await expect(page.locator('.entr-reps[data-prenom="Damien"] .entr-recue').last()).toContainText("Je peux aussi venir vendredi.");
+  // Ma réponse part dans la conversation (et non sur la demande)
+  await page.locator('.entr-reps[data-prenom="Damien"]').getByRole("button", { name: "Répondre à Damien" }).click();
+  await page.fill("#entr-rep-txt", "Vendredi c'est parfait.");
+  await page.keyboard.press("Enter");
+  await expect(page.locator('.entr-reps[data-prenom="Damien"] .entr-moi')).toContainText("Vendredi c'est parfait.");
+  expect((await calls(page, "entraideEcrire")).at(-1).arg).toEqual({ texte: "Vendredi c'est parfait.", p_conversation: "c1" });
+});
+
+test("messagerie : côté personne qui aide, réponse de l'auteur et pastille sur Demandes d'aide @mobile", async ({ open, page }) => {
+  const MOI = [{ email: "admin@example.org", droit: "admin", prenom: "", nom: "", entraide_voir: true, entraide_moderer: false }];
+  await open({ user: ADMIN, hash: "#entraide/mes-demandes", acces: MOI });
+  await expect(page.locator("#entr-tab-pub .entr-pastille")).toHaveCount(1); // Marie m'a répondu
+  await page.goto(page.url().replace(/#.*/, "") + "#entraide");
+  const marie = page.locator('#entr-list .entr-reps[data-prenom="Marie"]');
+  await expect(marie.locator(".entr-moi")).toContainText("je peux porter vos courses");
+  await expect(marie.locator(".entr-recue")).toContainText("Rendez-vous à 10 h");
+  await expect(marie.locator(".entr-decliner")).toHaveCount(0); // seul l'auteur de la demande peut décliner
+  await marie.getByRole("button", { name: "Répondre à Marie" }).click();
+  await page.fill("#entr-rep-txt", "Parfait, à samedi !");
+  await page.keyboard.press("Enter");
+  await expect(marie.locator(".entr-moi").last()).toContainText("Parfait, à samedi !");
+  await expect(page.locator("#entr-tab-pub .entr-pastille")).toHaveCount(0);
+  // Première proposition sur une autre demande : la conversation s'ouvre sur la demande
+  await page.locator('#entr-list .entr-msg[data-id="e1"] [data-aider]').click();
+  await page.fill("#entr-rep-txt", "Je peux vous conduire.");
+  await page.keyboard.press("Enter");
+  await expect(page.locator('#entr-list .entr-reps[data-pour="e1"] .entr-moi')).toContainText("Je peux vous conduire.");
+  expect((await calls(page, "entraideEcrire")).at(-1).arg).toEqual({ texte: "Je peux vous conduire.", p_demande: "e1" });
+  // Marie met fin à la conversation : je le vois, sans pouvoir écrire
+  await page.evaluate(() => { window.__S.entraideConversations.find(c => c.id === "c4").declinee = true; window.__entraideSignal(); });
+  await expect(marie.locator(".entr-fin")).toHaveText("Marie a mis fin à la conversation.");
+  await expect(marie.locator(".entr-plus, [data-modifier]")).toHaveCount(0);
+});
+
+test("messagerie : règles du serveur (mêmes que la base)", async ({ open, page }) => {
+  const MOI = [{ email: "admin@example.org", droit: "admin", prenom: "", nom: "", entraide_voir: true, entraide_moderer: false }];
+  await open({ user: ADMIN, hash: "#entraide", acces: MOI });
+  // [fonction, arguments] → message d'erreur renvoyé par le serveur (ou « ok »)
+  const essai = (fn, ...args) => page.evaluate(async ([fn, args]) => { try { await window.__api[fn](...args); return "ok"; } catch (e) { return e.message; } }, [fn, args]);
+  expect(await essai("entraideEcrire", "Moi-même", { p_demande: "e2" })).toBe("Vous ne pouvez pas proposer votre aide sur votre propre demande.");
+  expect(await essai("entraideEcrire", "Pas pour moi", { p_conversation: "zz" })).toBe("Conversation introuvable.");
+  expect(await essai("entraideMessageSupprimer", "m1")).toBe("Message introuvable."); // message de Damien
+  expect(await essai("entraideDecliner", "c4", true)).toBe("Conversation introuvable."); // pas ma demande
+  expect(await essai("entraideEcrire", "Sur une demande à valider", { p_demande: "e6" })).toBe("Cette demande n'est plus en cours.");
 });

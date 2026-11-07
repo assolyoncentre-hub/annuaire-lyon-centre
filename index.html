@@ -586,7 +586,14 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .entr-msg .when { display: flex; align-items: center; gap: 6px; margin-top: 4px; color: var(--text); font: 600 13px/1.3 Montserrat, sans-serif; }
 .entr-msg .when svg { flex: none; width: 15px; height: 15px; color: var(--muted); }
 /* « Je peux aider ! » : bouton blanc à contour noir du site (.btn .btn-ghost .btn-sm), largeur fixe */
-.entr-aider { display: flex; justify-content: center; width: 180px; margin-top: 8px; }
+.entr-aider { display: flex; align-items: center; justify-content: center; width: 180px; margin-top: 8px; }
+/* Ma demande dans le fil : « Voir les réponses » (pastille si l'une attend ma réponse) ou « Pas encore de réponse » */
+.entr-sans-rep-pub { color: var(--muted); font-size: 13px; }
+/* Message mis en vue à l'arrivée depuis « Voir les réponses » : bref halo */
+.entr-repere { animation: entr-repere 1.6s ease-out; }
+@keyframes entr-repere { 0%, 30% { box-shadow: 0 0 0 3px var(--brand); } 100% { box-shadow: 0 0 0 3px transparent; } }
+.entr-recue:focus, .entr-mienne:focus { outline: none; }
+.entr-recue:focus-visible, .entr-mienne:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 .entr-aider:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 /* Zone de réponse (« Je peux aider ! ») : sous la demande, en retrait, reliée à la bulle par un trait comme une réponse */
 .entr-reps { position: relative; width: min(84%, 560px); margin: -8px 0 18px 28px; }

@@ -2,8 +2,8 @@
 // et tests/data.js (data). Les modifications sont gardées dans ce navigateur (localStorage).
 // Connexion : administrateur « admin@example.org » (droits Voir et Modérer l'entraide), ou un leader des données ; code 123456.
 // Clé versionnée : changer de version efface les données de démo enregistrées par une version précédente.
-const KEY = "annuaire-dev:donnees-v3";
-try { localStorage.removeItem("annuaire-dev:donnees"); localStorage.removeItem("annuaire-dev:donnees-v2"); } catch { /* stockage indisponible */ }
+const KEY = "annuaire-dev:donnees-v4";
+try { for (const k of ["", "-v2", "-v3"]) localStorage.removeItem("annuaire-dev:donnees" + k); } catch { /* stockage indisponible */ }
 let saved = null;
 try { saved = JSON.parse(localStorage.getItem(KEY)); } catch { /* stockage indisponible */ }
 // Données gardées d'une version précédente : les nouvelles rubriques (ex. référents de l'entraide) sont complétées
@@ -16,10 +16,15 @@ const save = () => { try { localStorage.setItem(KEY, JSON.stringify(window.__S))
 for (const [name, fn] of Object.entries(window.__api)) {
   if (typeof fn === "function") window.__api[name] = async (...args) => { try { return await fn(...args); } finally { save(); } };
 }
-// Plusieurs onglets ouverts : une demande enregistrée dans l'un apparaît en direct dans les autres
+// Plusieurs onglets ouverts (par exemple connectés avec deux comptes) : une demande ou un message enregistré dans l'un
+// apparaît en direct dans les autres
 addEventListener("storage", e => {
   if (e.key !== KEY || !e.newValue) return;
-  try { window.__S.entraide = JSON.parse(e.newValue).entraide || []; window.__entraideSignal(); } catch { /* données illisibles */ }
+  try {
+    const d = JSON.parse(e.newValue);
+    for (const k of ["entraide", "entraideConversations", "entraideMessages"]) window.__S[k] = d[k] || [];
+    window.__entraideSignal();
+  } catch { /* données illisibles */ }
 });
 // Badge « DEV » à côté du nom ; un clic propose de remettre les données de démonstration à zéro
 document.addEventListener("DOMContentLoaded", () => {

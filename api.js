@@ -56,17 +56,28 @@ window.makeApi = function () {
     // champs : { p_statut, p_prenom, p_besoin, p_quand, p_quartier } (absent = inchangé)
     entraideModifier: (id, champs) => sbRpc("entraide_modifier", { p_id: id, ...champs }),
     entraideSupprimer: id => sbRpc("entraide_supprimer", { p_id: id }),
-    // En direct : la base diffuse un signal vide sur le canal privé « entraide » à chaque changement d'une demande
-    // (écoute réservée aux comptes qui ont un droit Entraide). onMaj() à chaque signal, onEtat(true/false) selon la connexion.
-    // Renvoie la fonction qui arrête l'écoute.
+    // Messagerie : mes demandes avec une conversation par personne qui a proposé son aide, et les conversations que
+    // j'ai ouvertes en proposant la mienne (messages : { id, texte, le, moi, modifie }). Seuls les deux comptes concernés les voient.
+    entraideMesDemandes: () => sbRpc("entraide_mes_demandes"),
+    entraideMesAides: () => sbRpc("entraide_mes_aides"),
+    // Écrire sur une demande publiée ({ p_demande }) ou dans une conversation ({ p_conversation })
+    entraideEcrire: (texte, cible) => sbRpc("entraide_ecrire", { p_texte: texte, ...cible }),
+    entraideMessageModifier: (id, texte) => sbRpc("entraide_message_modifier", { p_id: id, p_texte: texte }),
+    entraideMessageSupprimer: id => sbRpc("entraide_message_supprimer", { p_id: id }),
+    entraideDecliner: (conversation, declinee) => sbRpc("entraide_decliner", { p_conversation: conversation, p_declinee: declinee }),
+    // En direct : la base diffuse un signal vide sur le canal privé « entraide » à chaque changement d'une demande, et sur
+    // « entraide:<mon e-mail> » à chaque message qui me concerne (écoute réservée aux comptes qui ont un droit Entraide).
+    // onMaj() à chaque signal, onEtat(true/false) selon la connexion. Renvoie la fonction qui arrête l'écoute.
     async entraideEnDirect(onMaj, onEtat) {
       const sb = await getSb();
       const { data } = await sb.auth.getSession();
       await sb.realtime.setAuth(data.session?.access_token || null);
-      const ch = sb.channel("entraide", { config: { private: true } })
+      const email = (data.session?.user?.email || "").toLowerCase();
+      const etats = {};
+      const chs = ["entraide", ...(email ? ["entraide:" + email] : [])].map(t => sb.channel(t, { config: { private: true } })
         .on("broadcast", { event: "maj" }, () => onMaj())
-        .subscribe(st => onEtat(st === "SUBSCRIBED"));
-      return () => sb.removeChannel(ch);
+        .subscribe(st => { etats[t] = st === "SUBSCRIBED"; onEtat(Object.values(etats).every(Boolean)); }));
+      return () => chs.forEach(ch => sb.removeChannel(ch));
     },
     responsables: id => rpc("annuaire_responsables", { p_pole: id }),
     // Staffs et pôles dont un leader porte ce nom (la base ne renvoie jamais les noms eux-mêmes)

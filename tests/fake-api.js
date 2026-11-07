@@ -25,7 +25,10 @@ module.exports = function installFakeApi({ data, user, acces }) {
   const guardRead = () => { if (!droit()) throw new Error("refusé (règles d'accès)"); };
   // Entraide : droit « voir » ou « modérer » sur la ligne « acces » (fiche contact) ; dates relatives à l'ouverture de la page
   S.entraide ||= [];
-  S.entraideReponses ||= [];
+  S.entraideConversations ||= [];
+  S.entraideMessages ||= [];
+  delete S.entraideReponses; // ancienne maquette
+  for (const x of [...S.entraideConversations, ...S.entraideMessages]) if (!x.le) x.le = new Date(Date.now() - (x.heures || 0) * 3600000).toISOString();
   const entrDe = e => { const a = S.acces.find(x => x.email === e); return a?.entraide_moderer ? "moderer" : a?.entraide_voir ? "voir" : null; };
   const entrMoi = () => session ? entrDe(session.user.email.toLowerCase()) : null;
   const guardVoir = () => { if (!entrMoi()) throw new Error("Accès réservé."); };
@@ -34,6 +37,18 @@ module.exports = function installFakeApi({ data, user, acces }) {
   const ecoutes = new Set();
   const signal = () => setTimeout(() => { for (const l of ecoutes) l.onMaj(); });
   window.__entraideSignal = signal;
+  // Messagerie : seuls l'auteur de la demande et la personne qui propose son aide voient la conversation
+  const entrEmail = () => session.user.email.toLowerCase();
+  const entrAuteurConv = c => S.entraide.find(d => d.id === c.demande)?.auteur || "";
+  const entrMsgs = (conv, moi) => S.entraideMessages.filter(m => m.conversation === conv).sort((a, b) => a.le.localeCompare(b.le))
+    .map(m => ({ id: m.id, texte: m.texte, le: m.le, moi: m.auteur === moi, modifie: !!m.modifie }));
+  const entrPrenom = e => S.acces.find(a => a.email === e)?.prenom || [...S.contacts, ...S.responsables].find(r => (r.email || "").toLowerCase() === e)?.prenom
+    || e.split("@")[0].replace(/^./, x => x.toUpperCase());
+  const entrMonMessage = id => {
+    const m = S.entraideMessages.find(x => x.id === id && x.auteur === entrEmail());
+    if (!m || S.entraideConversations.find(c => c.id === m.conversation)?.declinee) throw new Error("Message introuvable.");
+    return m;
+  };
   const ago = j => new Date(Date.now() - j * 86400000).toISOString();
   const entrRow = d => ({ id: d.id, created_at: d.cree ? new Date(d.cree).toISOString() : ago(d.jours), prenom: d.prenom, telephone: d.telephone, besoin: d.besoin,
     quand: d.quand, quartier: d.quartier, statut: d.statut, publiee_le: d.publieAt ? new Date(d.publieAt).toISOString() : d.statut !== "a_valider" && d.statut !== "refusee" ? ago(d.publie ?? d.jours) : null,
@@ -75,14 +90,63 @@ module.exports = function installFakeApi({ data, user, acces }) {
       return id;
     },
     async droitEntraide() { return entrMoi(); },
-    // Mes demandes (maquette, version de test seulement) : les demandes du compte connecté et les réponses reçues
+    // Messagerie : mêmes règles que entraide_mes_demandes, entraide_mes_aides, entraide_ecrire… de la base
     async entraideMesDemandes() {
       guardVoir(); log("entraideMesDemandes");
-      const moi = session.user.email.toLowerCase();
-      return S.entraide.filter(d => d.auteur === moi).map(d => ({ ...entrRow(d), telephone: undefined,
-        reponses: S.entraideReponses.filter(r => r.demande === d.id).map(r => ({ id: r.id, prenom: r.prenom, texte: r.texte, le: new Date(Date.now() - r.heures * 3600000).toISOString() }))
-          .sort((a, b) => a.le.localeCompare(b.le)) }))
+      const moi = entrEmail();
+      return S.entraide.filter(d => d.auteur === moi).map(d => { const r = entrRow(d); return {
+        id: d.id, prenom: d.prenom, besoin: d.besoin, quand: d.quand, quartier: d.quartier, statut: d.statut, created_at: r.created_at,
+        conversations: S.entraideConversations.filter(c => c.demande === d.id).sort((a, b) => a.le.localeCompare(b.le))
+          .map(c => ({ id: c.id, prenom: c.prenom, declinee: !!c.declinee, messages: entrMsgs(c.id, moi) })) }; })
         .sort((a, b) => b.created_at.localeCompare(a.created_at));
+    },
+    async entraideMesAides() {
+      guardVoir(); log("entraideMesAides");
+      const moi = entrEmail();
+      return S.entraideConversations.filter(c => c.aidant === moi).sort((a, b) => a.le.localeCompare(b.le))
+        .map(c => ({ id: c.id, demande_id: c.demande, declinee: !!c.declinee, messages: entrMsgs(c.id, moi) }));
+    },
+    async entraideEcrire(texte, cible) {
+      guardVoir(); log("entraideEcrire", { texte, ...cible });
+      const moi = entrEmail(), t = String(texte || "").trim();
+      if (!t) throw new Error("Écrivez votre message.");
+      if (t.length > 2000) throw new Error("Le message doit faire 2000 caractères au maximum.");
+      let c;
+      if (!cible.p_conversation) {
+        const d = S.entraide.find(x => x.id === cible.p_demande);
+        if (!d || d.statut !== "publiee") throw new Error("Cette demande n'est plus en cours.");
+        if (d.auteur === moi) throw new Error("Vous ne pouvez pas proposer votre aide sur votre propre demande.");
+        c = S.entraideConversations.find(x => x.demande === d.id && x.aidant === moi);
+        if (!c) S.entraideConversations.push(c = { id: "c" + n++, demande: d.id, aidant: moi, prenom: entrPrenom(moi), le: new Date().toISOString() });
+      } else {
+        c = S.entraideConversations.find(x => x.id === cible.p_conversation);
+        if (!c || ![c.aidant, entrAuteurConv(c)].includes(moi)) throw new Error("Conversation introuvable.");
+      }
+      if (c.declinee) throw new Error("Cette conversation est terminée.");
+      const id = "m" + n++;
+      S.entraideMessages.push({ id, conversation: c.id, auteur: moi, texte: t, le: new Date().toISOString() });
+      signal();
+      return id;
+    },
+    async entraideMessageModifier(id, texte) {
+      guardVoir(); log("entraideMessageModifier", { id, texte });
+      const t = String(texte || "").trim();
+      if (!t) throw new Error("Écrivez votre message.");
+      const m = entrMonMessage(id);
+      if (m.texte !== t) { m.texte = t; m.modifie = true; signal(); }
+    },
+    async entraideMessageSupprimer(id) {
+      guardVoir(); log("entraideMessageSupprimer", id);
+      const m = entrMonMessage(id);
+      S.entraideMessages = S.entraideMessages.filter(x => x !== m);
+      if (!S.entraideMessages.some(x => x.conversation === m.conversation)) S.entraideConversations = S.entraideConversations.filter(c => c.id !== m.conversation);
+      signal();
+    },
+    async entraideDecliner(conv, declinee) {
+      guardVoir(); log("entraideDecliner", { conv, declinee });
+      const c = S.entraideConversations.find(x => x.id === conv);
+      if (!c || entrAuteurConv(c) !== entrEmail()) throw new Error("Conversation introuvable.");
+      c.declinee = !!declinee; signal();
     },
     async entraideModeration() { guardRef(); return S.entraide.map(entrRow).sort((a, b) => b.created_at.localeCompare(a.created_at)); },
     async entraideModifier(id, c) {
