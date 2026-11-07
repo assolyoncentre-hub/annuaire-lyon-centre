@@ -36,20 +36,20 @@ test("droit Voir : demandes publiées seulement, sans téléphone ni modération
   await expect(page.locator("#admin-denied")).toContainText("n'est pas modérateur de l'entraide.");
 });
 
-test("demandes en conversation : les plus récentes en bas, nouvelles demandes affichées en direct @mobile", async ({ open, page }) => {
+test("demandes en conversation : les plus récentes en haut, nouvelles demandes affichées en direct @mobile", async ({ open, page }) => {
   await open({ user: VOIR, hash: "#entraide", acces: ACCES });
   const bulles = page.locator("#entr-list .entr-msg");
   await expect(bulles).toHaveCount(5);
   await expect(page.locator("#entr-live")).toBeVisible();
   const dates = await page.locator("#entr-list time").evaluateAll(ts => ts.map(t => t.getAttribute("datetime")));
-  expect([...dates].sort()).toEqual(dates);
+  expect([...dates].sort().reverse()).toEqual(dates);
   await expect(page.locator("#entr-list .entr-day").first()).toBeVisible();
   // Seul le bouton reste pour déposer une demande
   await expect(page.locator("#entr-pub .entr-intro")).toHaveCount(0);
   await expect(page.locator("#entr-ask")).toBeVisible();
 
   // Deux parties : en cours, puis déjà aidés (demandes pourvues, sans bouton ni téléphone)
-  await expect(page.locator("#entr-pub h2.entr-titre")).toHaveText(["Ils ont besoin d'aide", "Ils ont déjà été aidés"]);
+  await expect(page.locator("#entr-pub h2.entr-titre")).toHaveText(["Ils/elles ont besoin d'aide", "Ils/elles ont déjà été aidés"]);
   await expect(page.locator("#entr-aides .entr-msg")).toHaveCount(1);
   await expect(page.locator("#entr-aides")).toContainText("Gérard");
   await expect(page.locator("#entr-aides .entr-aider")).toHaveCount(0);
@@ -60,14 +60,14 @@ test("demandes en conversation : les plus récentes en bas, nouvelles demandes a
   await bulles.first().locator(".entr-aider").click();
   await expect(page.locator("#toast")).toContainText("Bientôt disponible");
 
-  // Un modérateur publie une demande ailleurs : elle s'ajoute en bas, sans recharger la page
+  // Un modérateur publie une demande ailleurs : elle s'ajoute en haut, sans recharger la page
   await page.evaluate(() => {
-    window.__S.entraide.push({ id: "live1", prenom: "Pierre", telephone: "+33639980099", besoin: "Porter des cartons samedi", quand: "Samedi", quartier: "Vaise", statut: "publiee", publie: 0 });
+    window.__S.entraide.push({ id: "live1", prenom: "Pierre", telephone: "+33639980099", besoin: "Porter des cartons samedi", quand: "Samedi", quartier: "Vaise", statut: "publiee", publie: -0.0001 });
     window.__entraideSignal();
   });
   await expect(bulles).toHaveCount(6);
-  await expect(bulles.last()).toContainText("Pierre");
-  await expect(bulles.last()).toHaveClass(/new/);
+  await expect(bulles.first()).toContainText("Pierre");
+  await expect(bulles.first()).toHaveClass(/new/);
   await expect(page.locator("#entr-count")).toHaveText("6 demandes en cours");
   await expect(page.locator("#entr-view")).not.toContainText("39 98");
 });

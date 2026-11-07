@@ -21,7 +21,7 @@ const entrShareUrl = d => "https://wa.me/?text=" + encodeURIComponent(entrMessag
 const entrChatUrl = d => "https://wa.me/" + d.telephone.replace(/^\+/, "") + "?text=" + encodeURIComponent(
   "Bonjour " + d.prenom + ", je suis référent de l'entraide de l'Église Lyon Centre. Je reviens vers vous au sujet de votre demande : « " + d.besoin + " ».");
 
-// --- Demandes publiées : une conversation, les plus récentes en bas ---
+// --- Demandes publiées : une conversation, les plus récentes en haut ---
 let entrLoaded = false, entrVus = new Set();
 // Couleur du prénom (fixe pour un même prénom, comme les noms dans un groupe WhatsApp), lisible sur fond blanc
 const ENTR_COULEURS = ["#0060aa", "#0a7d6f", "#a0306b", "#b0451f", "#6b4fbb", "#8a5a00", "#1f6f3a"];
@@ -35,23 +35,23 @@ function entrJour(iso) {
   const t = d.toLocaleDateString("fr-FR", n < 7 ? { weekday: "long" } : { weekday: "long", day: "numeric", month: "long" });
   return t[0].toUpperCase() + t.slice(1);
 }
-// La page défile (plus de cadre) : « en bas » = bas de la page visible
-const entrEnBas = () => innerHeight + scrollY >= document.documentElement.scrollHeight - 80;
-const entrVersLeBas = () => scrollTo({ top: document.documentElement.scrollHeight });
-// Demandes pourvues (section « Ils ont déjà été aidés ») : dans l'ordre où elles ont été pourvues, sans bouton
+// Les plus récentes en haut : « en haut » = début du fil visible à l'écran
+const entrEnHaut = () => $("entr-list").getBoundingClientRect().top > -40;
+const entrVersLeHaut = () => $("entr-pub").scrollIntoView({ block: "start" });
+// Demandes pourvues (section « Ils/elles ont déjà été aidés ») : les dernières pourvues en haut, sans bouton
 function renderAidees(list) {
   $("entr-aides-sec").hidden = !list.length;
-  $("entr-aides").innerHTML = [...list].sort((a, b) => a.close_le.localeCompare(b.close_le)).map(d =>
+  $("entr-aides").innerHTML = [...list].sort((a, b) => b.close_le.localeCompare(a.close_le)).map(d =>
     '<article class="entr-msg aidee" style="--c:' + entrCouleur(d.prenom) + '" data-id="' + esc(d.id) + '">' +
     '<div class="who">' + esc(d.prenom) + (d.quartier ? ' <span class="where">· ' + esc(d.quartier) + "</span>" : "") + '<span class="aide-ok">Aidé ✓</span></div>' +
     '<p class="need">' + esc(d.besoin) + "</p>" +
     '<time class="time" datetime="' + esc(d.close_le) + '">Aidé ' + esc(entrJour(d.close_le).toLowerCase()) + "</time></article>").join("");
 }
 function renderEntraide(list) {
-  const t = $("entr-list"), enBas = entrLoaded && entrEnBas();
+  const t = $("entr-list"), enHaut = !entrLoaded || entrEnHaut();
   $("entr-count").textContent = list.length ? list.length + (list.length > 1 ? " demandes en cours" : " demande en cours") : "Aucune demande en cours";
   let jour = null, nouvelles = 0;
-  t.innerHTML = list.length ? [...list].sort((a, b) => a.publie_le.localeCompare(b.publie_le)).map(d => {
+  t.innerHTML = list.length ? [...list].sort((a, b) => b.publie_le.localeCompare(a.publie_le)).map(d => {
     const j = entrJour(d.publie_le), sep = j !== jour ? '<div class="entr-day"><span>' + esc(j) + "</span></div>" : "";
     const neuve = entrLoaded && !entrVus.has(d.id);
     if (neuve) nouvelles++;
@@ -64,15 +64,15 @@ function renderEntraide(list) {
       '<time class="time" datetime="' + esc(d.publie_le) + '">' + entrHeure(d.publie_le) + "</time></article>";
   }).join("") : '<p class="empty">Aucune demande d\'aide en cours pour le moment.</p>';
   entrVus = new Set(list.map(d => d.id));
-  // Comme une conversation : si on était en bas du fil, on y reste ; si on lisait plus haut, un bouton signale la nouveauté
-  if (enBas) { entrVersLeBas(); $("entr-jump").hidden = true; }
+  // Nouvelle demande en haut du fil : si on lisait plus bas, un bouton la signale
+  if (enHaut) $("entr-jump").hidden = true;
   else if (nouvelles) $("entr-jump").hidden = false;
 }
 $("entr-list").addEventListener("click", e => {
   if (e.target.closest("[data-aider]")) toast("Bientôt disponible : vous pourrez proposer votre aide directement d'ici.");
 });
-$("entr-jump").addEventListener("click", () => { entrVersLeBas(); $("entr-jump").hidden = true; });
-addEventListener("scroll", () => { if (!$("entr-jump").hidden && entrEnBas()) $("entr-jump").hidden = true; }, { passive: true });
+$("entr-jump").addEventListener("click", () => { entrVersLeHaut(); $("entr-jump").hidden = true; });
+addEventListener("scroll", () => { if (!$("entr-jump").hidden && entrEnHaut()) $("entr-jump").hidden = true; }, { passive: true });
 let entrSeq = 0;
 async function loadEntraide() {
   const seq = ++entrSeq;
