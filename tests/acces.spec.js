@@ -58,10 +58,24 @@ test("administrateur : droits réglés sur la fiche contact, sans onglet Admins"
   expect(save.droit).toBe("admin");
   expect(save.fields.ancien_email).toBe("magali@example.org");
   await expect(magali().locator(".badge")).toHaveText("Admin");
-  await expect(page.locator(".afilter", { hasText: "Administrateurs" })).toHaveText("Administrateurs (2)");
-  await page.locator(".afilter", { hasText: "Administrateurs" }).click();
+  // Filtre par droit : liste déroulante à choix multiple
+  const droits = page.locator("#admin-filters .filt-toggle");
+  await expect(droits).toHaveAttribute("aria-expanded", "false");
+  await droits.click();
+  const opt = label => page.locator("#cfilters .opt", { hasText: label });
+  await expect(opt("Administrateurs").locator(".n")).toHaveText("2");
+  await opt("Administrateurs").locator("input").check();
   await expect(page.locator("#admin-list .row")).toHaveCount(2);
-  await page.locator(".afilter", { hasText: "Tous" }).click();
+  await expect(droits.locator(".filt-cur")).toHaveText("· Administrateurs");
+  // Deux droits cochés : les contacts de l'un ou de l'autre
+  const nbLeaders = +(await opt("Leaders").locator(".n").textContent());
+  await opt("Leaders").locator("input").check();
+  await expect(droits.locator(".filt-n")).toHaveText("2");
+  await expect(page.locator("#admin-list .row")).toHaveCount(2 + nbLeaders);
+  await page.locator("#cfilters .dd-clear").click();
+  await expect(droits.locator(".filt-n")).toHaveText("");
+  await page.locator("#cfilters .dd-ok").click();
+  await expect(droits).toHaveAttribute("aria-expanded", "false");
   await magali().locator("[data-act=edit]").click();
   await page.locator(".seg label", { hasText: "Aucun" }).click();
   await page.locator("#ed-form [type=submit]").click();

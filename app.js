@@ -226,7 +226,7 @@ $("m-form").addEventListener("submit", async e => {
 // et les fiches hors annuaire, réglés sur la fiche contact
 // (consultation de l'annuaire des leaders). Les administrateurs (table « acces ») ont en plus l'administration.
 // Un autre compte est déconnecté aussitôt ; la base refuse de toute façon toute lecture au-delà de ces droits.
-let isAdmin = false, canLeaders = false, canEntraide = false, isReferent = false, session = null, adminTab = "services", adminTerms = [], messages = [], acces = [], contactFilter = "tous";
+let isAdmin = false, canLeaders = false, canEntraide = false, isReferent = false, session = null, adminTab = "services", adminTerms = [], messages = [], acces = [], contactFilter = new Set();
 let authStarted = null, authLoaded = false, lastViewAdmin = null;
 
 async function onSession(s) {
@@ -368,18 +368,31 @@ const adminMatch = text => { const w = words(text); return adminTerms.every(t =>
 const GRIP = '<svg viewBox="0 0 14 20" fill="currentColor" aria-hidden="true"><circle cx="4" cy="4" r="1.6"/><circle cx="10" cy="4" r="1.6"/><circle cx="4" cy="10" r="1.6"/><circle cx="10" cy="10" r="1.6"/><circle cx="4" cy="16" r="1.6"/><circle cx="10" cy="16" r="1.6"/></svg>';
 let drag = null, renderPending = false;
 
+// Contacts : filtres par droit [clé, libellé, couleur de la pastille, test]
+const CONTACT_FILTERS = [
+  ["admin", "Administrateurs", "#1d2733", p => p.droit === "admin"],
+  ["leaders", "Leaders", "#0a66c2", p => p.droit === "leaders"],
+  ["aucun", "Sans accès à l'annuaire", "#9aa5b1", p => p.droit !== "admin" && p.droit !== "leaders"],
+  ["entr-voir", "Voir l'entraide", "#e08a1e", p => p.entraide !== "aucun"],
+  ["entr-mod", "Modérer l'entraide", "#9a4b00", p => p.entraide === "moderer"],
+  ["hors", "Hors annuaire", "#6b4fbb", p => p.hors],
+];
 function renderAdmin() {
   if ($("admin-body").hidden) return;
   $("admin-filters").hidden = true;
+  if (adminTab !== "contacts") ddOpen($("admin-filters"), false);
   if (drag) { renderPending = true; return; }
   $("tab-services").textContent = "Staffs (" + services.length + ")";
   $("tab-poles").textContent = "Pôles (" + Object.keys(poles).length + ")";
   $("tab-messages").textContent = "Messages (" + messages.length + ")";
   $("tab-contacts").textContent = "Contacts (" + fiches().length + ")";
   if (adminTab === "contacts") {
-    const all = fiches(), nb = { admin: all.filter(p => p.droit === "admin").length, hors: all.filter(p => p.hors).length };
-    if (!nb[contactFilter]) contactFilter = "tous";
-    const list = all.filter(p => (contactFilter === "tous" || (contactFilter === "admin" ? p.droit === "admin" : p.hors)) &&
+    const all = fiches();
+    // Filtres par droit (choix multiple) : un contact s'affiche s'il correspond à l'un des droits cochés
+    const kinds = CONTACT_FILTERS.filter(([k, , , test]) => all.some(test));
+    for (const k of contactFilter) if (!kinds.some(([x]) => x === k)) contactFilter.delete(k);
+    const tests = kinds.filter(([k]) => contactFilter.has(k)).map(([, , , test]) => test);
+    const list = all.filter(p => (!tests.length || tests.some(t => t(p))) &&
       adminMatch([p.prenom, p.nom, p.email, p.telephone, ...personRoles(p)].join(" ")));
     const badge = p => p.droit === "admin" ? ' <span class="badge admin">Admin</span>' : p.droit === "aucun" ? ' <span class="badge none">Sans accès</span>' :
       p.hors && p.droit !== "aucun" ? ' <span class="badge lead">Leader</span>' : "";
@@ -391,10 +404,9 @@ function renderAdmin() {
         '<div class="ops"><button type="button" class="btn btn-ghost btn-sm" data-act="edit">Modifier</button>' +
         '<button type="button" class="btn btn-ghost btn-sm" data-act="del">Supprimer</button></div></div>';
     };
-    const chip = (k, label, n) => '<button type="button" class="afilter" data-filter="' + k + '" aria-pressed="' + (contactFilter === k) + '">' + label + " (" + n + ")</button>";
-    $("admin-filters").innerHTML = chip("tous", "Tous", all.length) + (nb.admin ? chip("admin", "Administrateurs", nb.admin) : "") +
-      (nb.hors ? chip("hors", "Hors annuaire", nb.hors) : "");
-    $("admin-filters").hidden = !nb.admin && !nb.hors;
+    servCur("cfilters", kinds.filter(([k]) => contactFilter.has(k)).map(([, label]) => label));
+    $("cfilters").innerHTML = ddList(kinds.map(([k, label, c, test]) => [k, label, c, all.filter(test).length]), contactFilter);
+    $("admin-filters").hidden = false;
     const dans = list.filter(p => !p.hors), hors = list.filter(p => p.hors);
     $("admin-list").innerHTML = (list.length ? '<div class="group">' + dans.map(row).join("") +
       (hors.length ? '<div class="group-head">Hors annuaire · accès sans être contact</div>' + hors.map(row).join("") : "") + "</div>" : '<div class="empty">Aucun contact.</div>');
@@ -524,10 +536,6 @@ async function endDrag() {
 document.addEventListener("pointerup", endDrag);
 document.addEventListener("pointercancel", endDrag);
 
-$("admin-filters").addEventListener("click", e => {
-  const fb = e.target.closest("[data-filter]");
-  if (fb) { contactFilter = fb.dataset.filter; renderAdmin(); }
-});
 $("admin-list").addEventListener("click", e => {
   const b = e.target.closest("[data-act]"); if (!b) return;
   const id = b.closest(".row").dataset.id;
@@ -1174,16 +1182,16 @@ function ddOpen(g, open) {
   list.style.maxHeight = open && getComputedStyle(list).position === "absolute"
     ? Math.max(160, Math.min(420, innerHeight - t.getBoundingClientRect().bottom - 20)) + "px" : "";
 }
-for (const [id, set] of [["sfilters", servPoles], ["sstaff", servStaffs]]) {
+for (const [id, set, draw] of [["sfilters", servPoles, () => renderServ()], ["sstaff", servStaffs, () => renderServ()], ["cfilters", contactFilter, () => renderAdmin()]]) {
   const list = $(id), g = list.parentNode;
   list.addEventListener("change", e => {
     const v = e.target.value;
     if (e.target.checked) set.add(v); else set.delete(v);
-    renderServ();
+    draw();
     list.querySelector('input[value="' + CSS.escape(v) + '"]')?.focus();
   });
   list.addEventListener("click", e => {
-    if (e.target.closest(".dd-clear")) { set.clear(); renderServ(); list.querySelector("input")?.focus(); }
+    if (e.target.closest(".dd-clear")) { set.clear(); draw(); list.querySelector("input")?.focus(); }
     else if (e.target.closest(".dd-ok")) { ddOpen(g, false); g.querySelector(".filt-toggle").focus(); }
   });
   // Ouvrir une liste referme l'autre
