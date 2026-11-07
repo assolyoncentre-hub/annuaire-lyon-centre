@@ -276,9 +276,9 @@ function route() {
   // Ancienne adresse de la page (« serviteurs ») : redirigée
   if (location.hash === "#serviteurs") history.replaceState(null, "", "#leaders");
   const h = location.hash, serv = h === "#leaders", showServ = serv && canLeaders;
-  // Entraide, réservée au droit « voir » (#entraide) et « modérer » (#entraide/moderation) : sinon connexion ou refus
-  const entrMod = h === "#entraide/moderation", entrHash = h === "#entraide" || entrMod;
-  const entr = (h === "#entraide" && canEntraide) || (entrMod && isReferent);
+  // Entraide, réservée au droit « voir » (#entraide, #entraide/mes-demandes) et « modérer » (#entraide/moderation) : sinon connexion ou refus
+  const entrMod = h === "#entraide/moderation", entrHash = h === "#entraide" || h === "#entraide/mes-demandes" || entrMod;
+  const entr = (entrHash && !entrMod && canEntraide) || (entrMod && isReferent);
   // Administration : « #admin » (staffs), « #admin/poles », « #admin/contacts », « #admin/messages »
   const adminHash = h === "#admin" || h.startsWith("#admin/");
   if (adminHash) { const t = TAB_OF[h.slice(7)] || "services"; if (t !== adminTab) showTab(t); }

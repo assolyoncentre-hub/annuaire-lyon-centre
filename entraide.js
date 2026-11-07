@@ -1,6 +1,7 @@
 // ---------- Entraide ----------
 // Onglet « Entraide », réservé aux comptes qui en ont le droit (fiche contact : « Voir » / « Modérer » l'entraide) :
 //   #entraide            demandes publiées et formulaire « Demander de l'aide » (progressif)       droit « voir »
+//   #entraide/mes-demandes  mes demandes (maquette)                                                  droit « voir »
 //   #entraide/moderation modération des demandes                                                    droit « modérer »
 // Utilise les outils d'app.js ($, esc, api, toast, setPageInert, openEditor, canEntraide, isReferent, telHref).
 
@@ -150,15 +151,34 @@ $("entr-list").addEventListener("click", e => {
   if (b.matches("[data-aider]")) entrOuvrirReponse(m.dataset.id);
   else if (b.matches("[data-plus]")) entrOuvrirReponse(g.dataset.pour);
   else if (b.matches("[data-modifier]")) entrOuvrirReponse(g.dataset.pour, Number(b.closest(".entr-moi").dataset.rep));
-  else if (b.matches("[data-supprimer]")) {
-    const id = g.dataset.pour, rid = Number(b.closest(".entr-moi").dataset.rep);
-    openEditor("Entraide", "Supprimer ce message ?", '<p style="margin:0">' + esc(g.dataset.prenom) + " ne le verra plus.</p>", () => {
-      entrReponses.set(id, (entrReponses.get(id) || []).filter(r => r.id !== rid));
-      setTimeout(() => entrMajGroupe(id, ".entr-plus")); // après la fermeture de la fenêtre (page de nouveau active)
-      toast("Message supprimé.");
-    }, "Supprimer", true);
-  }
+  else if (b.matches("[data-supprimer]")) entrSupprimerReponse(g, b.closest(".entr-moi"));
 });
+// Supprimer un de ses messages : sans confirmation, la bulle implose et ce qui suit remonte
+// (tout le fil s'il s'agissait du dernier message)
+function entrSupprimerReponse(g, bulle) {
+  const id = g.dataset.pour, rid = Number(bulle.dataset.rep), l = entrReponses.get(id) || [];
+  if (entrRepEdit === rid) entrFermerReponse(false);
+  const el = l.length > 1 ? bulle : g, fin = () => {
+    entrReponses.set(id, l.filter(r => r.id !== rid));
+    entrMajGroupe(id, ".entr-plus");
+  };
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return fin();
+  // 1) la bulle implose (léger gonflement puis contraction vers son centre), 2) sa place se referme
+  el.style.pointerEvents = "none";
+  el.style.transformOrigin = "50% 50%";
+  el.animate([
+    { transform: "scale(1)", opacity: 1 },
+    { transform: "scale(1.04)", opacity: 1, offset: .2 },
+    { transform: "scale(0)", opacity: 0 },
+  ], { duration: 280, easing: "cubic-bezier(.55, 0, .75, .3)", fill: "forwards" }).onfinish = () => {
+    const cs = getComputedStyle(el);
+    el.style.overflow = "hidden";
+    el.animate([
+      { height: el.offsetHeight + "px", marginTop: cs.marginTop, marginBottom: cs.marginBottom, paddingTop: cs.paddingTop, paddingBottom: cs.paddingBottom },
+      { height: "0px", marginTop: "0px", marginBottom: "0px", paddingTop: "0px", paddingBottom: "0px" },
+    ], { duration: 200, easing: "ease-out", fill: "forwards" }).onfinish = fin;
+  };
+}
 $("entr-rep-x").addEventListener("click", () => entrFermerReponse());
 $("entr-rep").addEventListener("keydown", e => { if (e.key === "Escape") { e.stopPropagation(); entrFermerReponse(); } });
 $("entr-rep-txt").addEventListener("input", e => {
@@ -232,6 +252,8 @@ function renderModeration() {
   $("entr-filters").innerHTML = ENTR_FILTRES.map(([k, label]) =>
     '<button type="button" class="afilter" data-filter="' + k + '" aria-pressed="' + (entrFiltre === k) + '">' + label + " (" + n(k) + ")</button>").join("");
   $("entr-tab-mod").textContent = "Modération" + (n("a_valider") ? " (" + n("a_valider") + ")" : "");
+  const opt = $("entr-nav-sel").querySelector('option[value="#entraide/moderation"]');
+  if (opt) opt.textContent = $("entr-tab-mod").textContent;
   if (entrDemandes === null) { $("entr-mod-list").innerHTML = '<div class="empty">Chargement…</div>'; return; }
 
   const list = all.filter(d => entrDans(d, entrFiltre));
@@ -305,18 +327,37 @@ $("entr-mod-list").addEventListener("click", e => {
 // Appelé par route() (app.js) à chaque changement de vue ou de connexion (rien à afficher sans le droit)
 let entrModShown = false;
 function onEntraideRoute() {
-  const h = location.hash, mod = h === "#entraide/moderation" && isReferent;
+  const h = location.hash, mod = h === "#entraide/moderation" && isReferent, mes = h === "#entraide/mes-demandes" && canEntraide;
   entrEcouter(canEntraide);
   if (h !== "#entraide") entrFermerReponse();
-  if (!(h === "#entraide" && canEntraide) && !mod) { entrModShown = false; return; }
-  $("entr-tabs").hidden = !isReferent;
-  $("entr-pub").hidden = mod;
+  if (!(h === "#entraide" && canEntraide) && !mod && !mes) { entrModShown = false; return; }
+  $("entr-tab-mod").hidden = !isReferent;
+  $("entr-pub").hidden = mod || mes;
+  $("entr-mes").hidden = !mes;
   $("entr-mod").hidden = !mod;
-  for (const [id, on] of [["entr-tab-pub", !mod], ["entr-tab-mod", mod]]) {
+  for (const [id, on] of [["entr-tab-pub", !mod && !mes], ["entr-tab-mes", mes], ["entr-tab-mod", mod]]) {
     if (on) $(id).setAttribute("aria-current", "page"); else $(id).removeAttribute("aria-current");
   }
-  if (!mod) { entrModShown = false; loadEntraide(); }
+  // Téléphone : même navigation en liste déroulante
+  const sel = $("entr-nav-sel");
+  sel.innerHTML = [["#entraide", "Ils/elles ont besoin d'aide"], ["#entraide/mes-demandes", "Mes demandes"], ...(isReferent ? [["#entraide/moderation", $("entr-tab-mod").textContent]] : [])]
+    .map(([v, l]) => '<option value="' + v + '">' + esc(l) + "</option>").join("");
+  sel.value = mod ? "#entraide/moderation" : mes ? "#entraide/mes-demandes" : "#entraide";
+  if (mes) renderMesDemandes();
+  if (!mod) { entrModShown = false; if (!mes) loadEntraide(); }
   else if (!entrModShown) { entrModShown = true; entrDemandes = null; renderModeration(); loadModeration(); }
+}
+$("entr-nav-sel").addEventListener("change", e => { location.hash = e.target.value; });
+// Mes demandes (maquette) : les demandes envoyées depuis l'ouverture de la page, avec leur état
+const entrMesDemandes = [];
+function renderMesDemandes() {
+  $("entr-mes-list").innerHTML = entrMesDemandes.length ? [...entrMesDemandes].reverse().map(d =>
+    '<article class="entr-msg" style="--c:' + entrCouleur(d.prenom) + '">' +
+      '<div class="who">' + esc(d.prenom) + (d.quartier ? ' <span class="where">· ' + esc(d.quartier) + "</span>" : "") + "</div>" +
+      '<p class="need">' + esc(d.besoin) + "</p>" + (d.quand ? '<div class="when">' + ENTR_CAL + "<span>" + esc(d.quand) + "</span></div>" : "") +
+      '<div class="entr-mes-etat"><span class="badge wait">En attente de validation</span><span>Aucune réponse pour l\'instant</span></div>' +
+      '<time class="time" datetime="' + esc(d.le) + '">' + entrHeure(d.le) + "</time></article>").join("")
+    : '<p class="entr-mes-vide">Vous n\'avez pas encore déposé de demande d\'aide. Utilisez « Demander de l\'aide » : vous retrouverez ici vos demandes, leur état et les réponses reçues.</p>';
 }
 onEntraideRoute(); // premier affichage : route() a pu s'exécuter avant le chargement de ce fichier
 
@@ -370,6 +411,8 @@ eForm.addEventListener("submit", async e => {
   try {
     await api.entraideDemander({ p_besoin: f.besoin.value, p_quand: f.quand.value, p_quartier: f.quartier.value,
       p_prenom: f.prenom.value, p_telephone: f.tel.value, p_accord: f.accord.checked, p_site: f.site.value });
+    entrMesDemandes.push({ besoin: f.besoin.value.trim(), quand: f.quand.value.trim(), quartier: f.quartier.value.trim(), prenom: f.prenom.value.trim(), le: new Date().toISOString() });
+    if (location.hash === "#entraide/mes-demandes") renderMesDemandes();
     $("e-done-title").textContent = "Merci " + f.prenom.value.trim() + " !";
     eForm.hidden = true;
     $("e-done").hidden = false;

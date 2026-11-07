@@ -538,19 +538,22 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .person .fields input[type=tel] { grid-column: 1 / -1; }
 /* Entraide : liste succincte des demandes publiées, et formulaire qui se dévoile champ après champ */
 /* Entraide : demandes publiées en conversation (bulles comme dans un groupe WhatsApp, aux couleurs du site) */
-/* Barre du haut : « Demander de l'aide » à gauche, sélecteur Demandes publiées / Modération (modérateurs) à droite */
+/* Barre du haut : onglets (Modération pour les modérateurs), puis « Demander de l'aide » juste à la suite */
 .entr-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin: 0 0 20px; }
-.entr-bar .entr-tabs { margin: 0 0 0 auto; }
+.entr-bar .entr-tabs { margin: 0; }
+.entr-tabs .tab[hidden] { display: none; }
 /* Titre « Ils/elles ont besoin d'aide » avec « En direct » ferré à droite sur la même ligne */
 .entr-titre-l { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.entr-court { display: none; }
-/* Téléphone : bouton et sélecteur restent sur une seule ligne (libellé court « Publiées ») */
+/* Téléphone : les onglets deviennent une liste déroulante, suivie du bouton sur la même ligne */
+.entr-nav-sel { display: none; }
 @media (max-width: 520px) {
   .entr-bar { flex-wrap: nowrap; gap: 8px; }
+  .entr-bar .entr-tabs { display: none; }
+  .entr-nav-sel { display: block; flex: 1 1 auto; min-width: 0; height: 44px; padding: 0 34px 0 14px; border: 1px solid var(--border); border-radius: 8px;
+    background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23005ea8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 10px center / 16px;
+    appearance: none; -webkit-appearance: none; color: var(--brand); font: 700 14px/1 Montserrat, sans-serif; text-overflow: ellipsis; cursor: pointer; }
+  .entr-nav-sel:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
   .entr-bar .btn { flex: none; padding-left: 14px; padding-right: 14px; }
-  .entr-bar .entr-tabs { width: auto; gap: 4px; }
-  .entr-bar .entr-tabs .tab { flex: none; padding: 9px 10px; }
-  .entr-long { display: none; } .entr-court { display: inline; }
 }
 /* Textes seulement lus par les lecteurs d'écran (nombre de demandes, destinataire de la réponse) */
 .entr-count { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
@@ -649,7 +652,10 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .entr-tabs[hidden] { display: none; }
 .entr-tabs .tab { text-decoration: none; display: inline-block; }
 .entr-tabs .tab[aria-current="page"] { background: var(--brand); border-color: var(--brand); color: #fff; }
-#entr-mod[hidden], #entr-pub[hidden] { display: none; }
+#entr-mod[hidden], #entr-pub[hidden], #entr-mes[hidden] { display: none; }
+/* Mes demandes : mêmes bulles que le fil, avec l'état de la demande */
+.entr-mes-etat { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 10px; color: var(--muted); font-size: 13px; }
+.entr-mes-vide { max-width: 560px; color: var(--muted); }
 #entr-mod .admin-tools { margin-top: 0; }
 .entr-filters { margin-left: 0; justify-content: flex-start; }
 .entr-mod-row { padding: 16px 18px; border-top: 1px solid var(--border); display: grid; gap: 8px; }
@@ -701,11 +707,16 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 </div>
 <div id="entr-view" class="view" hidden>
 <main class="wrap">
-  <!-- Référents connectés : bascule entre la liste publique et la modération -->
-  <div class="entr-bar" id="entr-bar"><button type="button" class="btn btn-primary" id="entr-ask">Demander de l'aide</button>
-    <nav class="tabs entr-tabs" id="entr-tabs" aria-label="Entraide" hidden>
-      <a class="tab" href="#entraide" id="entr-tab-pub"><span class="entr-long">Demandes publiées</span><span class="entr-court">Publiées</span></a><a class="tab" href="#entraide/moderation" id="entr-tab-mod">Modération</a>
-    </nav></div>
+  <!-- Navigation de l'entraide (Modération pour les modérateurs), suivie du bouton « Demander de l'aide » -->
+  <div class="entr-bar" id="entr-bar">
+    <nav class="tabs entr-tabs" id="entr-tabs" aria-label="Entraide">
+      <a class="tab" href="#entraide" id="entr-tab-pub">Ils/elles ont besoin d'aide</a><a class="tab" href="#entraide/mes-demandes" id="entr-tab-mes">Mes demandes</a><a class="tab" href="#entraide/moderation" id="entr-tab-mod" hidden>Modération</a>
+    </nav><select class="entr-nav-sel" id="entr-nav-sel" aria-label="Entraide : choisir la page"></select><button type="button" class="btn btn-primary" id="entr-ask">Demander de l'aide</button></div>
+  <!-- Mes demandes (maquette : seulement celles envoyées depuis l'ouverture de la page) -->
+  <div id="entr-mes" hidden>
+    <h2 class="entr-titre">Mes demandes</h2>
+    <div class="entr-thread" id="entr-mes-list"></div>
+  </div>
   <div id="entr-mod" hidden>
     <div class="admin-tools"><div class="afilters entr-filters" id="entr-filters"></div></div>
     <div class="list" id="entr-mod-list"></div>

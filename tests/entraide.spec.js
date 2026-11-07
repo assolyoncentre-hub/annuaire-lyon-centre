@@ -31,7 +31,17 @@ test("droit Voir : demandes publiées seulement, sans téléphone ni modération
   await expect(page.locator("#entr-count")).toHaveText("5 demandes en cours");
   await expect(page.locator("#entr-list")).not.toContainText("Henri"); // à valider : pas encore publiée
   await expect(page.locator("#entr-view")).not.toContainText("39 98");
-  await expect(page.locator("#entr-tabs")).toBeHidden();
+  await expect(page.locator("#entr-tab-mod")).toBeHidden();
+  // Mes demandes : pour tous (onglet, ou liste déroulante sur téléphone), vide tant qu'on n'a rien déposé
+  const sel = page.locator("#entr-nav-sel");
+  if (await sel.isVisible()) {
+    await expect(sel.locator("option")).toHaveText(["Ils/elles ont besoin d'aide", "Mes demandes"]); // pas de Modération
+    await sel.selectOption("#entraide/mes-demandes");
+  } else await page.locator("#entr-tab-mes").click();
+  await expect(page.locator("#entr-tab-mes")).toHaveAttribute("aria-current", "page");
+  await expect(sel).toHaveValue("#entraide/mes-demandes");
+  await expect(page.locator("#entr-mes")).toContainText("Vous n'avez pas encore déposé de demande d'aide.");
+  await expect(page.locator("#entr-pub")).toBeHidden();
   await page.evaluate(() => { location.hash = "#entraide/moderation"; });
   await expect(page.locator("#admin-denied")).toContainText("n'est pas modérateur de l'entraide.");
 });
@@ -95,9 +105,9 @@ test("demandes en conversation : les plus récentes en haut, nouvelles demandes 
   await expect(moi.first()).toContainText("jeudi à 14 h.");
   await expect(moi.first()).toContainText("Modifié");
   await expect(moi.first().getByRole("button", { name: "Modifier" })).toBeFocused();
-  // Supprimer : après confirmation
+  // Supprimer : sans confirmation (la bulle se replie)
   await moi.nth(1).getByRole("button", { name: "Supprimer" }).click();
-  await page.locator("#ed-form [type=submit]").click();
+  await expect(page.locator("#editor")).toBeHidden();
   await expect(moi).toHaveCount(1);
   await expect(fil.locator(".entr-plus")).toBeFocused();
   // Les réponses survivent à la mise à jour en direct du fil
