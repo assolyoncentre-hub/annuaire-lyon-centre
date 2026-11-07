@@ -64,57 +64,123 @@ function renderEntraide(list) {
       '<p class="need">' + esc(d.besoin) + "</p>" + (d.quand ? '<div class="when">' + ENTR_CAL + "<span>" + esc(d.quand) + "</span></div>" : "") +
       // « Je peux aider ! » : proposer son aide (fonction à venir)
       '<div class="entr-pied"><button type="button" class="entr-aider" data-aider>Je peux aider !</button>' +
-      '<time class="time" datetime="' + esc(d.publie_le) + '">' + entrHeure(d.publie_le) + "</time></div></article>";
+      '<time class="time" datetime="' + esc(d.publie_le) + '">' + entrHeure(d.publie_le) + "</time></div></article>" + entrRepsHtml(d.id, d.prenom);
   }).join("") : '<p class="empty">Aucune demande d\'aide en cours pour le moment.</p>';
   entrVus = new Set(list.map(d => d.id));
   if (!rep.hidden) {
-    const m = t.querySelector('.entr-msg[data-id="' + CSS.escape(entrRepId) + '"]');
-    if (m) { entrPlacerReponse(m); if (repFocus) $("entr-rep-txt").focus({ preventScroll: true }); }
+    if (entrPlacerReponse(entrRepId, entrRepEdit)) { if (repFocus) $("entr-rep-txt").focus({ preventScroll: true }); }
     else { rep.hidden = true; entrRepId = null; } // demande retirée entre-temps
   }
   // Nouvelle demande en haut du fil : si on lisait plus bas, un bouton la signale
   if (enHaut) $("entr-jump").hidden = true;
   else if (nouvelles) $("entr-jump").hidden = false;
 }
-// « Je peux aider ! » : zone de réponse glissée juste sous la demande (maquette : l'envoi n'est pas encore branché)
-let entrRepId = null;
-function entrPlacerReponse(m) {
-  document.querySelector(".entr-msg.repond")?.classList.remove("repond");
-  m.classList.add("repond");
-  entrRepId = m.dataset.id;
-  const f = $("entr-rep");
-  m.after(f);
-  $("entr-rep-t").textContent = "Répondre à " + m.querySelector(".who").firstChild.textContent.trim();
-  f.hidden = false;
+// « Je peux aider ! » : réponses écrites juste sous la demande, en fil, avec Modifier / Supprimer et « Ajouter un message ».
+// Maquette : les réponses restent dans la page (perdues au rechargement), rien n'est envoyé.
+const entrReponses = new Map(); // id de la demande → [{ id, texte, le, modifie }]
+let entrRepId = null, entrRepEdit = null, entrRepNum = 0, entrBrouillon = null; // brouillon : demande dont le texte est gardé après fermeture
+const ENTR_CADENAS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
+function entrRepsHtml(id, prenom) {
+  const l = entrReponses.get(id) || [];
+  return '<div class="entr-reps" data-pour="' + esc(id) + '" data-prenom="' + esc(prenom) + '">' + (l.length ?
+    '<p class="entr-rep-note">' + ENTR_CADENAS + "Vos messages, visibles seulement par " + esc(prenom) + "</p>" +
+    l.map(r => '<div class="entr-moi" data-rep="' + r.id + '"><p class="txt">' + esc(r.texte) + "</p>" +
+      '<div class="entr-moi-pied"><span class="entr-moi-act"><button type="button" data-modifier>Modifier</button><button type="button" data-supprimer>Supprimer</button></span>' +
+      '<time class="time" datetime="' + esc(r.le) + '">' + (r.modifie ? "Modifié · " : "") + entrHeure(r.le) + "</time></div></div>").join("") +
+    '<button type="button" class="entr-plus" data-plus>+ Ajouter un message</button>' : "") + "</div>";
 }
-function entrRepondre(btn) {
-  const f = $("entr-rep"), m = btn.closest(".entr-msg");
-  if (entrRepId !== m.dataset.id) { $("entr-rep-txt").value = ""; $("entr-rep-txt").style.height = ""; $("entr-rep-send").disabled = true; }
-  entrPlacerReponse(m);
-  f.scrollIntoView({ block: "nearest", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+const entrGroupe = id => $("entr-list").querySelector('.entr-reps[data-pour="' + CSS.escape(id) + '"]');
+// Place la zone de rédaction : à la fin du fil de la demande, ou à la place du message modifié
+function entrPlacerReponse(id, editId) {
+  const g = entrGroupe(id);
+  if (!g) return false;
+  document.querySelectorAll(".entr-msg.repond, .entr-reps.ecrit, .entr-moi.edite").forEach(x => x.classList.remove("repond", "ecrit", "edite"));
+  g.previousElementSibling.classList.add("repond");
+  g.classList.add("ecrit");
+  entrRepId = id; entrRepEdit = editId;
+  const f = $("entr-rep"), b = editId != null && g.querySelector('[data-rep="' + editId + '"]');
+  if (b) { b.classList.add("edite"); b.after(f); } else g.append(f);
+  $("entr-rep-t").textContent = (b ? "Modifier votre message à " : "Répondre à ") + g.dataset.prenom;
+  $("entr-rep-x").setAttribute("aria-label", b ? "Annuler la modification" : "Fermer sans envoyer");
+  f.hidden = false;
+  return true;
+}
+function entrTexte(v) {
+  const t = $("entr-rep-txt");
+  t.value = v; t.style.height = "";
+  if (v) t.style.height = t.scrollHeight + "px";
+  $("entr-rep-send").disabled = !v.trim();
+}
+function entrOuvrirReponse(id, editId = null) {
+  const r = editId != null && (entrReponses.get(id) || []).find(x => x.id === editId);
+  if (r) entrTexte(r.texte);
+  else if (entrBrouillon !== id) entrTexte("");
+  entrBrouillon = r ? null : id;
+  if (!entrPlacerReponse(id, r ? editId : null)) return;
+  $("entr-rep").scrollIntoView({ block: "nearest", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
   $("entr-rep-txt").focus({ preventScroll: true });
 }
-function entrFermerReponse() {
+// Ferme la zone de rédaction ; le focus revient sur ce qui l'a ouverte (Modifier, ou Je peux aider !)
+function entrFermerReponse(rendreFocus = true) {
   const f = $("entr-rep");
   if (f.hidden) return;
-  const m = document.querySelector(".entr-msg.repond");
-  m?.classList.remove("repond");
+  const id = entrRepId, editId = entrRepEdit;
+  document.querySelectorAll(".entr-msg.repond, .entr-reps.ecrit, .entr-moi.edite").forEach(x => x.classList.remove("repond", "ecrit", "edite"));
   f.hidden = true;
   $("entr-pub").append(f); // hors du fil, pour ne pas être effacée au prochain affichage
-  entrRepId = null;
-  m?.querySelector(".entr-aider").focus();
+  if (editId != null) entrBrouillon = null;
+  entrRepId = entrRepEdit = null;
+  if (!rendreFocus) return;
+  const g = entrGroupe(id);
+  (editId != null && g?.querySelector('[data-rep="' + editId + '"] [data-modifier]') || g?.previousElementSibling.querySelector(".entr-aider"))?.focus();
 }
-$("entr-list").addEventListener("click", e => { const b = e.target.closest("[data-aider]"); if (b) entrRepondre(b); });
-$("entr-rep-x").addEventListener("click", entrFermerReponse);
+// Réaffiche le fil des réponses d'une demande, puis met le focus sur l'élément choisi
+function entrMajGroupe(id, cible) {
+  const g = entrGroupe(id);
+  if (!g) return;
+  if (g.contains($("entr-rep"))) entrFermerReponse(false);
+  g.outerHTML = entrRepsHtml(id, g.dataset.prenom);
+  const n = entrGroupe(id);
+  (n.querySelector(cible) || n.previousElementSibling.querySelector(".entr-aider")).focus({ preventScroll: true });
+}
+$("entr-list").addEventListener("click", e => {
+  const b = e.target.closest("button");
+  if (!b) return;
+  const g = b.closest(".entr-reps"), m = b.closest(".entr-msg");
+  if (b.matches("[data-aider]")) entrOuvrirReponse(m.dataset.id);
+  else if (b.matches("[data-plus]")) entrOuvrirReponse(g.dataset.pour);
+  else if (b.matches("[data-modifier]")) entrOuvrirReponse(g.dataset.pour, Number(b.closest(".entr-moi").dataset.rep));
+  else if (b.matches("[data-supprimer]")) {
+    const id = g.dataset.pour, rid = Number(b.closest(".entr-moi").dataset.rep);
+    openEditor("Entraide", "Supprimer ce message ?", '<p style="margin:0">' + esc(g.dataset.prenom) + " ne le verra plus.</p>", () => {
+      entrReponses.set(id, (entrReponses.get(id) || []).filter(r => r.id !== rid));
+      setTimeout(() => entrMajGroupe(id, ".entr-plus")); // après la fermeture de la fenêtre (page de nouveau active)
+      toast("Message supprimé.");
+    }, "Supprimer", true);
+  }
+});
+$("entr-rep-x").addEventListener("click", () => entrFermerReponse());
 $("entr-rep").addEventListener("keydown", e => { if (e.key === "Escape") { e.stopPropagation(); entrFermerReponse(); } });
 $("entr-rep-txt").addEventListener("input", e => {
   const t = e.target;
   $("entr-rep-send").disabled = !t.value.trim();
   t.style.height = "auto"; t.style.height = t.scrollHeight + "px";
 });
+// Entrée envoie, Maj+Entrée va à la ligne (comme dans une messagerie)
+$("entr-rep-txt").addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); if (!$("entr-rep-send").disabled) $("entr-rep").requestSubmit(); }
+});
 $("entr-rep").addEventListener("submit", e => {
   e.preventDefault();
-  toast("Maquette : l'envoi de la réponse n'est pas encore branché.");
+  const texte = $("entr-rep-txt").value.trim(), id = entrRepId, editId = entrRepEdit;
+  if (!texte || id == null) return;
+  const l = entrReponses.get(id) || [];
+  if (editId != null) { const r = l.find(x => x.id === editId); if (r && r.texte !== texte) { r.texte = texte; r.modifie = true; } }
+  else l.push({ id: ++entrRepNum, texte, le: new Date().toISOString(), modifie: false });
+  entrReponses.set(id, l);
+  entrTexte(""); entrBrouillon = null;
+  entrMajGroupe(id, editId != null ? '[data-rep="' + editId + '"] [data-modifier]' : ".entr-plus");
+  toast(editId != null ? "Message modifié (maquette : rien n'est envoyé)." : "Message envoyé (maquette : rien n'est réellement envoyé).");
 });
 $("entr-jump").addEventListener("click", () => { entrVersLeHaut(); $("entr-jump").hidden = true; });
 addEventListener("scroll", () => { if (!$("entr-jump").hidden && entrEnHaut()) $("entr-jump").hidden = true; }, { passive: true });

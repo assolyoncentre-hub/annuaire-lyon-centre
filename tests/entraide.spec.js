@@ -60,7 +60,7 @@ test("demandes en conversation : les plus récentes en haut, nouvelles demandes 
   // « Je peux aider ! » ouvre la zone de réponse juste sous la demande
   await bulles.first().locator(".entr-aider").click();
   await expect(page.locator("#entr-rep")).toBeVisible();
-  await expect(page.locator(".entr-msg.repond + #entr-rep")).toHaveCount(1);
+  await expect(page.locator(".entr-msg.repond + .entr-reps > #entr-rep")).toHaveCount(1);
   await expect(page.locator(".entr-msg.repond .who")).toContainText("Jeanne");
   await expect(page.locator("#entr-rep-t")).toHaveText("Répondre à Jeanne");
   await expect(page.locator("#entr-rep")).toContainText("Votre réponse ne sera vue que par la personne qui demande de l'aide.");
@@ -71,6 +71,38 @@ test("demandes en conversation : les plus récentes en haut, nouvelles demandes 
   await page.keyboard.press("Escape");
   await expect(page.locator("#entr-rep")).toBeHidden();
   await expect(bulles.first().locator(".entr-aider")).toBeFocused();
+
+  // Envoi : le message s'affiche sous la demande, avec Modifier et Supprimer, puis on peut en ajouter un autre
+  await bulles.first().locator(".entr-aider").click();
+  await expect(page.locator("#entr-rep-txt")).toHaveValue("Bonjour, je peux vous conduire jeudi.");
+  await page.locator("#entr-rep-send").click();
+  const fil = page.locator("#entr-list .entr-reps").first(), moi = fil.locator(".entr-moi");
+  await expect(moi).toHaveText([/Bonjour, je peux vous conduire jeudi\./]);
+  await expect(fil).toContainText("Vos messages, visibles seulement par Jeanne");
+  await expect(page.locator("#entr-rep")).toBeHidden();
+  await expect(fil.locator(".entr-plus")).toBeFocused();
+  await fil.locator(".entr-plus").click();
+  await expect(page.locator("#entr-rep-txt")).toHaveValue("");
+  await page.fill("#entr-rep-txt", "Je passe vous prendre à 13 h 30.");
+  await page.keyboard.press("Enter");
+  await expect(moi).toHaveCount(2);
+  // Modifier : la zone reprend le texte à la place du message
+  await moi.first().getByRole("button", { name: "Modifier" }).click();
+  await expect(page.locator("#entr-rep-txt")).toHaveValue("Bonjour, je peux vous conduire jeudi.");
+  await expect(page.locator("#entr-rep-t")).toHaveText("Modifier votre message à Jeanne");
+  await page.fill("#entr-rep-txt", "Bonjour, je peux vous conduire jeudi à 14 h.");
+  await page.locator("#entr-rep-send").click();
+  await expect(moi.first()).toContainText("jeudi à 14 h.");
+  await expect(moi.first()).toContainText("Modifié");
+  await expect(moi.first().getByRole("button", { name: "Modifier" })).toBeFocused();
+  // Supprimer : après confirmation
+  await moi.nth(1).getByRole("button", { name: "Supprimer" }).click();
+  await page.locator("#ed-form [type=submit]").click();
+  await expect(moi).toHaveCount(1);
+  await expect(fil.locator(".entr-plus")).toBeFocused();
+  // Les réponses survivent à la mise à jour en direct du fil
+  await page.evaluate(() => window.__entraideSignal?.());
+  await expect(moi).toHaveCount(1);
 
   // Un modérateur publie une demande ailleurs : elle s'ajoute en haut, sans recharger la page
   await page.evaluate(() => {
