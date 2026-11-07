@@ -35,9 +35,11 @@ function entrJour(iso) {
   const t = d.toLocaleDateString("fr-FR", n < 7 ? { weekday: "long" } : { weekday: "long", day: "numeric", month: "long" });
   return t[0].toUpperCase() + t.slice(1);
 }
-const entrEnBas = t => t.scrollHeight - t.scrollTop - t.clientHeight < 40;
+// La page défile (plus de cadre) : « en bas » = bas de la page visible
+const entrEnBas = () => innerHeight + scrollY >= document.documentElement.scrollHeight - 80;
+const entrVersLeBas = () => scrollTo({ top: document.documentElement.scrollHeight });
 function renderEntraide(list) {
-  const t = $("entr-list"), enBas = !entrLoaded || entrEnBas(t);
+  const t = $("entr-list"), enBas = entrLoaded && entrEnBas();
   $("entr-count").textContent = list.length ? list.length + (list.length > 1 ? " demandes en cours" : " demande en cours") : "Aucune demande en cours";
   let jour = null, nouvelles = 0;
   t.innerHTML = list.length ? [...list].sort((a, b) => a.publie_le.localeCompare(b.publie_le)).map(d => {
@@ -51,12 +53,12 @@ function renderEntraide(list) {
       '<time class="time" datetime="' + esc(d.publie_le) + '">' + entrHeure(d.publie_le) + "</time></article>";
   }).join("") : '<p class="empty">Aucune demande d\'aide en cours pour le moment.</p>';
   entrVus = new Set(list.map(d => d.id));
-  // Comme une conversation : on reste en bas du fil ; si on lisait plus haut, un bouton signale la nouveauté
-  if (enBas) { t.scrollTop = t.scrollHeight; $("entr-jump").hidden = true; }
+  // Comme une conversation : si on était en bas du fil, on y reste ; si on lisait plus haut, un bouton signale la nouveauté
+  if (enBas) { entrVersLeBas(); $("entr-jump").hidden = true; }
   else if (nouvelles) $("entr-jump").hidden = false;
 }
-$("entr-jump").addEventListener("click", () => { const t = $("entr-list"); t.scrollTop = t.scrollHeight; $("entr-jump").hidden = true; });
-$("entr-list").addEventListener("scroll", e => { if (entrEnBas(e.target)) $("entr-jump").hidden = true; });
+$("entr-jump").addEventListener("click", () => { entrVersLeBas(); $("entr-jump").hidden = true; });
+addEventListener("scroll", () => { if (!$("entr-jump").hidden && entrEnBas()) $("entr-jump").hidden = true; }, { passive: true });
 let entrSeq = 0;
 async function loadEntraide() {
   const seq = ++entrSeq;
