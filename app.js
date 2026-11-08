@@ -86,6 +86,7 @@ const EYE_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stro
 // Staffs visibles dans les annuaires (un staff masqué ne figure que dans l'administration)
 const shownServices = () => services.filter(s => !s.masque);
 function render() {
+  if (location.hash === "#accueil") renderHome(); // nombre de staffs et de pôles, une fois chargés
   const pub = shownServices();
   const names = [...new Set(pub.map(s => s.pole).filter(Boolean))].sort(byPole);
   if (active && !names.includes(active)) active = null;
@@ -284,11 +285,13 @@ function route() {
   const adminHash = h === "#admin" || h.startsWith("#admin/");
   if (adminHash) { const t = TAB_OF[h.slice(7)] || "services"; if (t !== adminTab) showTab(t); }
   const admin = adminHash || (serv && !canLeaders) || (entrHash && !entr);
-  $("dir-view").hidden = admin || serv || entr;
+  const home = h === "#accueil";
+  $("home-view").hidden = !home;
+  $("dir-view").hidden = admin || serv || entr || home;
   $("entr-view").hidden = !entr;
   $("serv-view").hidden = !showServ;
   $("admin-view").hidden = !admin;
-  $("h1").textContent = entrHash ? "Entraide" : serv ? "Annuaire des leaders" : admin ? (session ? "Administration" : "Connexion") : "Annuaire des propositions";
+  $("h1").textContent = home ? "Bienvenue" : entrHash ? "Entraide" : serv ? "Annuaire des leaders" : admin ? (session ? "Administration" : "Connexion") : "Annuaire des propositions";
   // En haut à droite : « Connexion », ou le prénom de la personne connectée (menu avec « Se déconnecter »)
   const label = session ? firstName() : "Connexion";
   $("admin-label").textContent = label;
@@ -300,9 +303,9 @@ function route() {
   // Administration seulement pour un administrateur connecté
   $("sw-serv").hidden = !!session && !canLeaders;
   $("sw-admin").hidden = !isAdmin;
-  for (const k of ["sw-prop", "sw-serv", "sw-entr", "sw-admin"]) $(k).removeAttribute("aria-current");
+  for (const k of ["sw-home", "sw-prop", "sw-serv", "sw-entr", "sw-admin"]) $(k).removeAttribute("aria-current");
   $("sw-entr").hidden = !canEntraide;
-  const cur = entrHash ? "sw-entr" : serv ? "sw-serv" : adminHash ? (isAdmin ? "sw-admin" : null) : "sw-prop";
+  const cur = home ? "sw-home" : entrHash ? "sw-entr" : serv ? "sw-serv" : adminHash ? (isAdmin ? "sw-admin" : null) : "sw-prop";
   if (cur) $(cur).setAttribute("aria-current", "page");
   $("login-title").textContent = serv || entrHash ? "Accès réservé" : "Connexion";
   if (admin || serv) ensureAuth();
@@ -313,15 +316,66 @@ function route() {
   $("admin-body").hidden = !adminHash || !isAdmin;
   const email = session?.user?.email || "";
   $("denied-email").textContent = email;
+  // Bandeau : couleur de la page (celle de son affiche sur l'accueil)
+  const page = home ? null : entrMod ? "mod" : entrHash ? "entr" : serv ? "lead" : adminHash ? "admin" : admin ? null : "prop";
+  document.querySelector(".hero").style.setProperty("--hero", page ? PAGES[page].c2 : "");
+  if (home) renderHome();
   if (admin) renderAdmin();
   if (showServ) renderServ();
   // Retour en haut seulement en changeant de vue (pas quand la connexion se termine en arrière-plan)
   if (typeof onEntraideRoute === "function") onEntraideRoute(); // entraide.js : liste ou modération
-  const view = entrMod && isReferent ? "entr-mod" : entr ? "entr" : showServ ? "serv" : admin ? "admin" : "dir";
+  const view = home ? "home" : entrMod && isReferent ? "entr-mod" : entr ? "entr" : showServ ? "serv" : admin ? "admin" : "dir";
   if (view !== lastViewAdmin) window.scrollTo(0, 0);
   lastViewAdmin = view;
 }
 window.addEventListener("hashchange", route);
+
+// --- Accueil : une affiche par page accessible, dans l'ordre des onglets (couleurs reprises par le bandeau de la page)
+const ICO = {
+  prop: '<path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/>',
+  entr: '<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21l7.8-7.5 1-1.1a5.5 5.5 0 0 0 0-7.8z"/>',
+  lead: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.2a5 5 0 0 1 5.5 4.8"/>',
+  mod: '<path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6z"/><path d="m9 12 2 2 4-4"/>',
+  admin: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
+  ok: '<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>',
+  lock: '<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+};
+const ico = k => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICO[k] + "</svg>";
+// c1 : fond de l'affiche ; c2 : bandeau du titre, cadre de la porte et bandeau du haut de la page
+const PAGES = {
+  prop: { href: "#", titre: "Propositions", sous: "Trouver sa place", nom: "Annuaire des propositions", c1: "#33b5a4", c2: "#0d6b62" },
+  entr: { href: "#entraide", titre: "Entraide", sous: "Demander, aider", nom: "Entraide entre paroissiens", c1: "#ff7a6b", c2: "#b2332a" },
+  lead: { href: "#leaders", titre: "Leaders", sous: "Qui fait quoi", nom: "Annuaire des leaders", c1: "#9b7bea", c2: "#4b2a9c" },
+  mod: { href: "#entraide/moderation", titre: "Modération", sous: "Relire, publier", nom: "Modération de l'entraide", c1: "#ffb347", c2: "#a65b00" },
+  admin: { href: "#admin", titre: "Admin", sous: "Gérer l'annuaire", nom: "Administration", c1: "#4aa3ff", c2: "#004a8f" },
+};
+// Porte en ogive (proportions des affiches de l'Église : 1,24 fois plus haute que large)
+const OGIVE = "M0 124V45C0 25 28 6.6 50 0 72 6.6 100 25 100 45V124Z";
+function afficheHtml(k, infos, pastille) {
+  const p = PAGES[k];
+  return '<a class="aff" href="' + p.href + '" style="--c1:' + p.c1 + ";--c2:" + p.c2 + '"><div class="aff-visuel" aria-hidden="true">' +
+    '<div class="aff-label"><span class="aff-rond">' + ico(k) + "</span><strong>" + esc(p.titre) + "</strong><span>" + esc(p.sous) + "</span></div>" +
+    '<div class="aff-arche"><svg viewBox="0 0 100 124"><defs><radialGradient id="aff-g-' + k + '" cx="50%" cy="62%" r="70%"><stop offset="0" stop-color="#fff" stop-opacity=".55"/>' +
+    '<stop offset=".4" stop-color="' + p.c1 + '"/><stop offset="1" style="stop-color:color-mix(in srgb, ' + p.c1 + " 70%, " + p.c2 + ')"/></radialGradient></defs>' +
+    '<path d="' + OGIVE + '" fill="' + p.c2 + '"/><path d="' + OGIVE + '" fill="url(#aff-g-' + k + ')" transform="translate(3.7 4.6) scale(.926)"/></svg><span>' + ico(k) + "</span></div>" +
+    (pastille ? '<span class="aff-pastille"></span>' : "") + "</div>" +
+    '<div class="aff-bas"><h2>' + esc(p.nom) + (pastille ? '<span class="entr-cache"> ' + esc(pastille.trim()) + "</span>" : "") + '</h2><div class="aff-infos">' +
+    infos.filter(([, t]) => t).map(([i, t]) => "<span>" + ico(i) + esc(t) + "</span>").join("") + "</div></div></a>";
+}
+function renderHome() {
+  // pastille rouge (texte lu par les lecteurs d'écran) : comme celle de l'onglet de l'entraide
+  const pastille = h => typeof ENTR_PASTILLES !== "undefined" && ENTR_PASTILLES[h]?.on ? ENTR_PASTILLES[h].cache : "";
+  const nPoles = new Set(services.map(s => s.pole).filter(Boolean)).size, n = (k, un, plus) => k + " " + (k > 1 ? plus : un);
+  $("home-intro").innerHTML = session ? "Bonjour <strong>" + esc(firstName()) + "</strong>, où voulez-vous aller ?" : "Que cherchez-vous aujourd'hui ?";
+  $("home-grid").innerHTML = [
+    afficheHtml("prop", [["prop", services.length ? n(services.length, "staff", "staffs") + " · " + n(nPoles, "pôle", "pôles") : ""], ["ok", "Ouvert à tous"]]),
+    // Entraide : proposée aussi sans connexion (elle mène à la connexion), pas à une personne connectée sans ce droit
+    !session || canEntraide ? afficheHtml("entr", [canEntraide ? ["ok", "Demander ou proposer son aide"] : ["lock", "Connexion requise"]], pastille("#entraide")) : "",
+    canLeaders ? afficheHtml("lead", [["lock", "Réservé aux leaders"]]) : "",
+    isReferent ? afficheHtml("mod", [["lock", "Réservé aux modérateurs"]], pastille("#entraide/moderation")) : "",
+    isAdmin ? afficheHtml("admin", [["admin", "Staffs, pôles, contacts, droits"], ["lock", "Réservé aux administrateurs"]]) : "",
+  ].join("");
+}
 $("year").textContent = new Date().getFullYear();
 // Retour à l'annuaire des propositions (adresse sans « # »)
 const goHome = () => { history.pushState("", "", location.pathname + location.search); route(); };

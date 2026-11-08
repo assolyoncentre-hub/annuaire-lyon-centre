@@ -447,6 +447,7 @@ function entrPastille(hash, on) {
   const opt = $("entr-nav-sel").querySelector('option[value="' + hash + '"]');
   if (opt) opt.textContent = entrLibelle(hash);
   entrAlerteSel();
+  if (location.hash === "#accueil") renderHome(); // pastille sur l'affiche de l'accueil
 }
 const entrLibelle = hash => ENTR_PASTILLES[hash].label + (ENTR_PASTILLES[hash].on ? " 🔴" : "");
 // Téléphone : la liste fermée montre aussi la pastille d'une autre page que celle affichée
@@ -562,6 +563,7 @@ function onEntraideRoute() {
   const h = location.hash, mod = h === "#entraide/moderation" && isReferent;
   entrEcouter(canEntraide);
   if (h !== "#entraide") entrFermerReponse();
+  if (h === "#accueil") entrMajPastille(); // pastilles des affiches Entraide et Modération
   if (!(h === "#entraide" && canEntraide) && !mod) { entrModShown = false; return; }
   // Une seule page sans le droit de modérer : pas de barre de navigation (« Faire une demande » est dans Mes demandes)
   $("entr-bar").hidden = $("entr-tabs").hidden = $("entr-nav-sel").hidden = !isReferent;

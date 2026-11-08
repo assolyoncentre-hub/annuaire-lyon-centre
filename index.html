@@ -24,7 +24,7 @@
 body { margin: 0; background: var(--bg); color: var(--text);
   font: 16px/1.55 "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif; }
 /* Anneau décoratif dessiné en fond (le bandeau ne masque plus ce qui dépasse : le menu du compte peut en sortir) */
-.hero { background: var(--brand) radial-gradient(circle at calc(100% - 90px) 50px, transparent 154px, rgba(255, 255, 255, .07) 154.5px 210px, transparent 210.5px) no-repeat;
+.hero { background: var(--hero, var(--brand)) radial-gradient(circle at calc(100% - 90px) 50px, transparent 154px, rgba(255, 255, 255, .07) 154.5px 210px, transparent 210.5px) no-repeat;
   color: var(--brand-ink); position: relative; }
 .hero::after { display: none; }
 .hero::after { content: ""; position: absolute; right: -120px; top: -160px; width: 420px; height: 420px;
@@ -486,7 +486,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .switch a { padding: 12px 18px; border-radius: 10px 10px 0 0; color: var(--brand-ink); text-decoration: none;
   font: 600 13px/1 Montserrat, sans-serif; letter-spacing: .08em; text-transform: uppercase; opacity: .8; }
 .switch a:hover { opacity: 1; background: rgba(255, 255, 255, .1); }
-.switch a[aria-current="page"] { background: var(--bg); color: var(--brand); opacity: 1; }
+.switch a[aria-current="page"] { background: var(--bg); color: var(--hero, var(--brand)); opacity: 1; }
 /* Téléphone (après le style général, qui l'écrasait sinon) : onglets à parts égales sur toute la largeur,
    à 8 px des deux bords de l'écran ; un onglet au texte plus long garde la largeur de son texte */
 @media (max-width: 520px) {
@@ -834,6 +834,41 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
   .switch:has(#sw-entr:not([hidden])):has(#sw-admin:not([hidden])) .gear { margin-right: 0; }
 }
 #m-title:focus { outline: none; } /* focus posé à l'ouverture de la fenêtre, pour les lecteurs d'écran */
+
+/* Bandeau : couleur de la page affichée (celle de son affiche sur l'accueil), bleu du site sur l'accueil */
+.hero { transition: background-color .25s; }
+/* Onglet Accueil : une maison, tout à gauche */
+.switch a.sw-home { display: inline-flex; align-items: center; justify-content: center; padding: 10px 14px; }
+.switch a.sw-home svg { width: 18px; height: 18px; }
+@media (max-width: 520px) { .switch a.sw-home { flex: 0 0 auto; min-width: 0; padding: 10px 12px; } }
+/* Accueil : une « affiche » par page (anneaux concentriques, bandeau du titre, porte en ogive), puis son nom et ses infos */
+#home-view { padding: 28px 0 56px; }
+.home-intro { margin: 0 0 22px; font-size: 18px; }
+.home-intro strong { color: var(--brand); }
+.aff-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(440px, 100%), 1fr)); gap: 24px; }
+.aff { display: flex; flex-direction: column; overflow: hidden; border-radius: 22px; background: var(--surface); border: 1px solid var(--border); color: var(--text); text-decoration: none; transition: transform .15s, box-shadow .15s; }
+.aff:hover { transform: translateY(-3px); box-shadow: 0 16px 34px -18px rgba(0, 40, 80, .45); }
+.aff:focus-visible { outline: 3px solid var(--brand); outline-offset: 3px; }
+.aff-visuel { position: relative; aspect-ratio: 16 / 9; overflow: hidden; container-type: inline-size;
+  background: repeating-radial-gradient(circle at 76% 50%, color-mix(in srgb, var(--c1) 88%, var(--c2)) 0 6.5cqw, color-mix(in srgb, var(--c1) 80%, #fff) 6.5cqw 13cqw); }
+.aff-label { position: absolute; left: 9%; right: 40%; top: 57%; transform: translateY(-50%); z-index: 1; display: grid; gap: 2px; padding: 2.6cqw 4cqw 2.8cqw 7.5cqw;
+  border: 1.5px solid color-mix(in srgb, #fff 40%, transparent); border-radius: 12px; background: var(--c2); color: #fff; }
+.aff-label strong { font: 800 4.7cqw/.95 Phudu, Montserrat, sans-serif; text-transform: uppercase; letter-spacing: .01em; }
+.aff-label > span:last-child { font-size: max(13px, 3.1cqw); opacity: .92; }
+.aff-rond { position: absolute; left: -16px; top: -16px; width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; background: #fff; border: 3px solid var(--c2); color: var(--c2); }
+.aff-rond svg { width: 22px; height: 22px; }
+.aff-arche { position: absolute; z-index: 2; right: 3.7%; top: 3.5%; width: 40%; aspect-ratio: 100 / 124; }
+.aff-arche > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.aff-arche > span { position: absolute; inset: 18% 0 0; display: grid; place-items: center; color: #fff; }
+.aff-arche > span svg { width: 46%; height: auto; stroke-width: 1.6; filter: drop-shadow(0 6px 12px rgba(0, 0, 0, .25)); }
+.aff-pastille { position: absolute; right: 4%; top: 6%; z-index: 3; width: 18px; height: 18px; border-radius: 50%; background: #d92d20; box-shadow: 0 0 0 3px #fff; }
+.aff-bas { padding: 20px 24px 22px; }
+.aff-bas h2 { margin: 0 0 12px; font: 700 26px/1.15 "DM Sans", system-ui, sans-serif; color: var(--text); }
+.aff-infos { display: flex; flex-wrap: wrap; gap: 8px 22px; color: var(--muted); font-size: 16px; }
+.aff-infos span { display: inline-flex; align-items: center; gap: 8px; }
+.aff-infos svg { width: 20px; height: 20px; flex: none; }
+@media (max-width: 520px) { .aff-rond { width: 36px; height: 36px; left: -12px; top: -12px; } .aff-bas { padding: 16px 18px 18px; } .aff-bas h2 { font-size: 22px; } .aff-infos { font-size: 15px; } }
+@media (prefers-reduced-motion: reduce) { .aff, .hero { transition: none; } }
 </style>
 </head>
 <body>
@@ -844,10 +879,12 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
         <div class="acct-menu" id="acct-menu" hidden><button type="button" id="logout">Se déconnecter</button></div></div></div>
     <h1 id="h1">Annuaire des propositions</h1>
     <nav class="switch" id="switch" aria-label="Annuaires">
-      <a href="#" id="sw-prop">Propositions</a><a href="#leaders" id="sw-serv">Leaders</a><a href="#entraide" id="sw-entr" hidden>Entraide</a><a href="#admin" id="sw-admin" aria-label="Administration" hidden><svg class="gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span class="long">Administration</span><span class="short" aria-hidden="true">Admin</span></a>
+      <a href="#accueil" id="sw-home" class="sw-home" aria-label="Accueil"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h5v-6h4v6h5V9.5"/></svg></a><a href="#" id="sw-prop">Propositions</a><a href="#entraide" id="sw-entr" hidden>Entraide</a><a href="#leaders" id="sw-serv">Leaders</a><a href="#admin" id="sw-admin" aria-label="Administration" hidden><svg class="gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span class="long">Administration</span><span class="short" aria-hidden="true">Admin</span></a>
     </nav>
   </div>
 </header>
+<!-- Accueil (#accueil) : une affiche par page accessible (selon les droits), dans l'ordre des onglets -->
+<main id="home-view" class="view" hidden><div class="wrap"><p class="home-intro" id="home-intro"></p><div class="aff-grid" id="home-grid"></div></div></main>
 <div id="dir-view" class="view">
 <div class="bar" role="search" aria-label="Rechercher et filtrer les staffs"><div class="wrap filterbar"><input type="search" id="q" class="search" placeholder="Rechercher un staff, une personne…" aria-label="Rechercher" autocomplete="off"><div class="fgroup"><button type="button" class="filt-toggle" aria-expanded="false" aria-controls="filters"><span class="filt-lbl">Filtrer par pôle</span><span class="filt-cur"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button><div class="filters" id="filters"></div></div></div></div>
 <main class="wrap">

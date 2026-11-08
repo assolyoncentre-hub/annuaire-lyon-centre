@@ -30,3 +30,15 @@ test("annuaire des leaders @mobile", async ({ open, page }) => {
   await expect(page.locator(".serv-card").first()).toBeVisible();
   expect(await audit(page)).toEqual([]);
 });
+
+test("accueil sans connexion @mobile", async ({ open, page }) => {
+  await open({ hash: "#accueil" });
+  await expect(page.locator("#home-grid .aff")).toHaveCount(2);
+  expect(await audit(page)).toEqual([]);
+});
+
+test("accueil avec tous les droits @mobile", async ({ open, page }) => {
+  await open({ user: ADMIN, hash: "#accueil", acces: [{ email: "admin@example.org", droit: "admin", prenom: "", nom: "", entraide_voir: true, entraide_moderer: true }] });
+  await expect(page.locator("#home-grid .aff")).toHaveCount(5);
+  expect(await audit(page)).toEqual([]);
+});

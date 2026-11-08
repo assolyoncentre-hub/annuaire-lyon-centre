@@ -320,13 +320,13 @@ test("accessibilité : modération @mobile", async ({ open, page }) => {
   expect(await audit(page)).toEqual([]);
 });
 
-test("téléphone : quatre onglets (avec Entraide et Administration) visibles sans défilement @mobile", async ({ open, page }) => {
+test("téléphone : cinq onglets (Accueil, Propositions, Entraide, Leaders, Administration) visibles sans défilement @mobile", async ({ open, page }) => {
   await open({ user: ADMIN, hash: "#entraide", acces: [{ email: "admin@example.org", droit: "admin", prenom: "", nom: "", entraide_voir: true, entraide_moderer: true }] });
   await expect(page.locator("#sw-admin")).toBeVisible();
   await expect(page.locator("#sw-entr")).toBeVisible();
   const width = page.viewportSize().width;
   const rights = await page.locator("#switch a:not([hidden])").evaluateAll(as => as.map(a => a.getBoundingClientRect().right));
-  expect(rights).toHaveLength(4);
+  expect(rights).toHaveLength(5);
   for (const r of rights) expect(r).toBeLessThanOrEqual(width);
 });
 
