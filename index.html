@@ -460,10 +460,11 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 /* Onglets « Propositions / Leaders » (administrateurs), posés sur le bas du bandeau */
 .switch { display: flex; gap: 4px; margin-top: 22px; }
 .switch[hidden], .switch a[hidden] { display: none; }
-/* Téléphone : les onglets occupent toute la largeur ; chacun garde la taille de son texte, la place restante est partagée */
+/* Téléphone : les onglets occupent toute la largeur, à parts égales (y compris l'engrenage de l'administration) ;
+   un onglet dont le texte est plus long garde la largeur de son texte, les autres se partagent le reste */
 @media (max-width: 520px) {
   .switch { gap: 2px; }
-  .switch a { flex: 1 1 auto; min-width: 0; padding: 12px 6px; text-align: center; white-space: nowrap; font-size: 11.5px; letter-spacing: .03em; }
+  .switch a { flex: 1 1 0; min-width: max-content; padding: 12px 6px; text-align: center; white-space: nowrap; font-size: 11.5px; letter-spacing: .03em; }
   /* Titre sur une seule ligne : « Annuaire des propositions » fait ~12 fois la taille de la police */
   h1 { font-size: min(40px, calc((100vw - 32px) / 12.6)); }
 }
