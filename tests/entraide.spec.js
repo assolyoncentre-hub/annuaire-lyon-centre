@@ -430,6 +430,7 @@ test("messagerie : côté personne qui aide, réponse de l'auteur et pastille su
   await expect(marie.locator(".entr-moi")).toContainText("je peux porter vos courses");
   await expect(marie.locator(".entr-recue")).toContainText("Rendez-vous à 10 h");
   await expect(marie.locator(".entr-decliner")).toHaveCount(0); // seul l'auteur de la demande peut décliner
+  await expect(page.locator('#entr-list .entr-msg:has(+ .entr-reps[data-prenom="Marie"]) [data-aider]')).toHaveCount(0); // déjà écrit : plus de « Je peux aider ! »
   await marie.getByRole("button", { name: "Répondre à Marie" }).click();
   await page.fill("#entr-rep-txt", "Parfait, à samedi !");
   await page.keyboard.press("Enter");
@@ -439,6 +440,7 @@ test("messagerie : côté personne qui aide, réponse de l'auteur et pastille su
   await page.fill("#entr-rep-txt", "Je peux vous conduire.");
   await page.keyboard.press("Enter");
   await expect(page.locator('#entr-list .entr-reps[data-pour="e1"] .entr-moi')).toContainText("Je peux vous conduire.");
+  await expect(page.locator('#entr-list .entr-msg[data-id="e1"] [data-aider]')).toHaveCount(0);
   expect((await calls(page, "entraideEcrire")).at(-1).arg).toEqual({ texte: "Je peux vous conduire.", p_demande: "e1" });
   // Marie met fin à la conversation : je le vois, sans pouvoir écrire
   await page.evaluate(() => { window.__S.entraideConversations.find(c => c.id === "c4").declinee = true; window.__entraideSignal(); });

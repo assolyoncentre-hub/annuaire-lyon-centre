@@ -46,8 +46,10 @@ function renderEntraide(tout) {
     const neuve = entrLoaded && !entrVus.has(d.id);
     if (neuve) nouvelles++;
     jour = j;
-    entrFils.set(d.id, { ...(entrAidesListe.find(c => c.demande_id === d.id) || { messages: [] }), demande: d.id, auteur: false });
-    const pied = '<button type="button" class="btn btn-ghost btn-sm entr-aider" data-aider>Je peux aider !</button>';
+    const fil = { ...(entrAidesListe.find(c => c.demande_id === d.id) || { messages: [] }), demande: d.id, auteur: false };
+    entrFils.set(d.id, fil);
+    // Déjà écrit sur cette demande : plus de « Je peux aider ! », la conversation continue en dessous
+    const pied = fil.messages.length ? "" : '<button type="button" class="btn btn-ghost btn-sm entr-aider" data-aider>Je peux aider !</button>';
     return sep + '<article class="entr-msg' + (neuve ? " new" : "") + '" style="--c:' + entrCouleur(d.prenom) + '" data-id="' + esc(d.id) + '">' +
       '<div class="who">' + esc(d.prenom) + (d.quartier ? ' <span class="where">· ' + esc(d.quartier) + "</span>" : "") + "</div>" +
       '<p class="need">' + esc(d.besoin) + "</p>" + (d.quand ? '<div class="when">' + ENTR_CAL + "<span>" + esc(d.quand) + "</span></div>" : "") +
