@@ -548,8 +548,6 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .entr-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin: 0 0 20px; }
 .entr-bar .entr-tabs { margin: 0; }
 .entr-tabs .tab[hidden] { display: none; }
-/* Titre « Ils/elles ont besoin d'aide » avec « En direct » ferré à droite sur la même ligne */
-.entr-titre-l { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 /* Téléphone : les onglets deviennent une liste déroulante, suivie du bouton sur la même ligne */
 .accoles-sel { display: none; }
 @media (max-width: 520px) {
@@ -568,9 +566,6 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 }
 /* Textes seulement lus par les lecteurs d'écran (nombre de demandes, destinataire de la réponse) */
 .entr-count, .entr-cache { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
-.entr-live { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; font: 600 14px/1 Montserrat, sans-serif; color: #1d6b43; white-space: nowrap; }
-.entr-live[hidden] { display: none; }
-.entr-live i { width: 8px; height: 8px; border-radius: 50%; background: #2fae63; box-shadow: 0 0 0 3px rgba(47, 174, 99, .2); }
 .entr-thread { max-width: 840px; padding: 0 0 24px; }
 /* Titres des deux parties du fil (même style que les lettres de l'annuaire des leaders) */
 .entr-titre { display: flex; align-items: center; gap: 12px; max-width: 840px; margin: 16px 0 4px; font: 700 30px/1.05 Phudu, Montserrat, sans-serif; color: var(--brand); text-transform: uppercase; }
@@ -810,7 +805,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
     <div class="entr-thread" id="entr-mes-list"></div></section>
   <!-- Demandes publiées, présentées comme une conversation (les plus récentes en haut), mises à jour en direct -->
   <p class="count entr-count" id="entr-count" role="status" aria-live="polite"></p>
-  <div class="entr-titre-l"><h2 class="entr-titre">Ils/elles ont besoin d'aide</h2><span class="entr-live" id="entr-live" hidden><i></i>En direct</span></div>
+  <h2 class="entr-titre">Ils/elles ont besoin d'aide</h2>
   <div class="entr-thread" id="entr-list"></div>
   <section id="entr-aides-sec" aria-labelledby="entr-aides-t" hidden><h2 class="entr-titre" id="entr-aides-t">Ils/elles ont déjà été aidés</h2>
     <div class="entr-thread" id="entr-aides"></div></section>

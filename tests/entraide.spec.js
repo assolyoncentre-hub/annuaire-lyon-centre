@@ -51,7 +51,7 @@ test("demandes en conversation : les plus récentes en haut, nouvelles demandes 
   await open({ user: VOIR, hash: "#entraide", acces: ACCES });
   const bulles = page.locator("#entr-list .entr-msg");
   await expect(bulles).toHaveCount(5);
-  await expect(page.locator("#entr-live")).toBeVisible();
+  await expect(page.locator("#entr-pub")).not.toContainText("En direct"); // pas d'indicateur « En direct »
   const dates = await page.locator("#entr-list time").evaluateAll(ts => ts.map(t => t.getAttribute("datetime")));
   expect([...dates].sort().reverse()).toEqual(dates);
   await expect(page.locator("#entr-list .entr-day").first()).toBeVisible();

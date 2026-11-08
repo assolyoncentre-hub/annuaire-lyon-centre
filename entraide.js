@@ -271,7 +271,7 @@ async function loadEntraide() {
 }
 
 // --- En direct : un signal de la base à chaque changement, la vue affichée se recharge ---
-let entrArret = null;
+let entrArret = null, entrConnecte = false;
 function entrRafraichir() {
   const h = location.hash;
   if (h === "#entraide" && canEntraide) loadEntraide();
@@ -279,12 +279,12 @@ function entrRafraichir() {
   entrMajPastille();
 }
 async function entrEcouter(on) {
-  if (!on) { entrArret?.then(stop => stop?.()); entrArret = null; $("entr-live").hidden = true; return; }
+  if (!on) { entrArret?.then(stop => stop?.()); entrArret = null; entrConnecte = false; return; }
   if (entrArret || !api.entraideEnDirect) return;
   entrArret = api.entraideEnDirect(entrRafraichir, ok => {
     // Connexion rétablie : on recharge, au cas où un changement aurait eu lieu pendant la coupure
-    if (ok && $("entr-live").hidden && entrLoaded) entrRafraichir();
-    $("entr-live").hidden = !ok;
+    if (ok && !entrConnecte && entrLoaded) entrRafraichir();
+    entrConnecte = ok;
   }).catch(() => null);
 }
 // Retour sur l'onglet (téléphone en veille…) : on recharge
