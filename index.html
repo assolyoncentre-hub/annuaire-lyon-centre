@@ -745,6 +745,14 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .entr-msg, .entr-recue, .entr-moi { font-size: 18px; }
 #entr-pub .btn-sm, #entr-mes .btn-sm, #entr-mod .btn-sm { font-size: 15px; }
 #entr-pub button, #entr-mes button, #entr-mod button, #entr-pub .btn, #entr-mes .btn, #entr-mod .btn { min-height: 40px; box-sizing: border-box; }
+/* Grand écran : « Mes demandes » en colonne à droite du fil public (sur téléphone et tablette, elle reste en tête de page) */
+@media (min-width: 1024px) {
+  #entr-pub:has(> #entr-mes:not([hidden])) { display: grid; grid-template-columns: minmax(0, 1fr) 420px; column-gap: 32px; align-items: start; }
+  #entr-pub:has(> #entr-mes:not([hidden])) > :not(#entr-mes) { grid-column: 1; }
+  #entr-pub > #entr-mes { grid-column: 2; grid-row: 1 / span 12; margin: 16px 0 8px; padding: 2px 18px 4px; }
+  #entr-mes .entr-msg { width: auto; max-width: none; }
+  #entr-mes .entr-convs { width: auto; margin-left: 18px; }
+}
 .entr-moi-act button, .entr-reprendre { display: inline-flex; align-items: center; }
 .entr-rep-x, .entr-reps:has(.entr-moi) .entr-rep-x { width: 40px; height: 40px; } /* centrée sur le bouton d'envoi (44 px) */
 .entr-jump { min-height: 40px; }
@@ -829,7 +837,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
     <div class="list" id="entr-mod-list"></div>
   </div>
   <div id="entr-pub">
-  <!-- Mes demandes (en premier, seulement si j'en ai déposé) : chacune avec ses conversations, en direct -->
+  <!-- Mes demandes (seulement si j'en ai déposé ; à droite du fil sur grand écran, en tête sur téléphone) : chacune avec ses conversations, en direct -->
   <section id="entr-mes" aria-labelledby="entr-mes-t" hidden><h2 class="entr-titre" id="entr-mes-t">Mes demandes</h2>
     <div class="entr-thread" id="entr-mes-list"></div></section>
   <!-- Demandes publiées, présentées comme une conversation (les plus récentes en haut), mises à jour en direct -->
