@@ -310,7 +310,7 @@ test("Mes demandes : première section de la page, seulement mes demandes, avec 
   await expect(page.locator("#entr-list")).not.toContainText("escabeau"); // ma demande publiée n'est pas répétée dans le fil
   await expect(page.locator("[data-voir]")).toHaveCount(0); // plus de « Voir les réponses » : les messages sont affichés
   await expect(mes.filter({ hasText: "Réparer un robinet" })).toContainText("En attente de validation");
-  await expect(mes.filter({ hasText: "cartons de livres" })).toContainText("Aidé ✓");
+  await expect(mes.filter({ hasText: "cartons de livres" })).toContainText("C'est réglé ✓");
   const paul = mes.filter({ hasText: "escabeau" });
   await expect(paul).toContainText("Publiée");
   // Réponses reçues, juste sous la demande, dans l'ordre d'arrivée
@@ -485,17 +485,17 @@ test("Mes demandes : « C'est réglé » sur une demande en cours @mobile", asyn
   await expect(escabeau.locator("[data-regler]")).toHaveText("C'est réglé");
   await expect(robinet.locator("[data-regler]")).toBeVisible();
   await expect(mes.filter({ hasText: "cartons de livres" }).locator("[data-regler]")).toHaveCount(0);
-  // Demande publiée réglée : « Aidé ✓ », et elle rejoint « Ils/elles ont déjà été aidés »
+  // Demande publiée réglée : « C'est réglé ✓ », et elle rejoint « Ils/elles ont déjà été aidés »
   await escabeau.locator("[data-regler]").click();
   await expect(page.locator("#toast")).toContainText("votre demande est réglée");
-  await expect(escabeau).toContainText("Aidé ✓");
+  await expect(escabeau).toContainText("C'est réglé ✓");
   await expect(escabeau.locator("[data-regler]")).toHaveCount(0);
   await expect(escabeau).toBeFocused();
   await expect(page.locator("#entr-aides")).toContainText("Changer une ampoule");
   expect((await calls(page, "entraideRegler"))[0].arg).toBe("e2");
-  // Demande jamais publiée réglée : « Aidé ✓ », mais elle n'apparaît pas dans la liste publique des demandes aidées
+  // Demande jamais publiée réglée : « C'est réglé ✓ », mais elle n'apparaît pas dans la liste publique des demandes aidées
   await robinet.locator("[data-regler]").click();
-  await expect(robinet).toContainText("Aidé ✓");
+  await expect(robinet).toContainText("C'est réglé ✓");
   await expect(page.locator("#entr-aides")).not.toContainText("Réparer un robinet");
   // Règles du serveur : la demande d'une autre personne est refusée
   const essai = await page.evaluate(async () => { try { await window.__api.entraideRegler("e1"); return "ok"; } catch (e) { return e.message; } });

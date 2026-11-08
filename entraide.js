@@ -202,7 +202,7 @@ async function entrClicFil(e) {
   if (!b) return;
   const g = b.closest(".entr-reps"), m = b.closest(".entr-msg");
   if (b.matches("[data-aider]")) entrOuvrirReponse(m.dataset.id);
-  // « C'est réglé » (ma demande) : elle devient pourvue (badge « Aidé ✓ ») et sort du fil public
+  // « C'est réglé » (ma demande) : elle devient pourvue (badge « C'est réglé ✓ ») et sort du fil public
   else if (b.matches("[data-regler]")) {
     const id = m.dataset.demande;
     b.disabled = true;
@@ -490,7 +490,7 @@ $("entr-nav-sel").addEventListener("change", e => { location.hash = e.target.val
 // « Mes demandes » (première section de la page, seulement si j'en ai déposé) : mes demandes (reliées à mon compte
 // par la base) et, pour chacune, une conversation par personne qui a proposé son aide, que nous sommes seules à voir ;
 // les messages s'affichent directement et se mettent à jour en direct avec le reste de la page.
-const ENTR_MON_STATUT = { a_valider: ["En attente de validation", "wait"], publiee: ["Publiée", "lead"], pourvue: ["Aidé ✓", "ok"], refusee: ["Non publiée", "none"] };
+const ENTR_MON_STATUT = { a_valider: ["En attente de validation", "wait"], publiee: ["Publiée", "lead"], pourvue: ["C'est réglé ✓", "ok"], refusee: ["Non publiée", "none"] };
 function renderMesDemandes(list) {
   $("entr-mes").hidden = !list.length;
   $("entr-mes-list").innerHTML = [...list].sort((a, b) => b.created_at.localeCompare(a.created_at)).map(d => {
@@ -500,7 +500,7 @@ function renderMesDemandes(list) {
       '<div class="who">Ma demande' + (d.quartier ? ' <span class="where">· ' + esc(d.quartier) + "</span>" : "") + "</div>" +
       '<p class="need">' + esc(d.besoin) + "</p>" + (d.quand ? '<div class="when">' + ENTR_CAL + "<span>" + esc(d.quand) + "</span></div>" : "") +
       '<div class="entr-pied"><span class="entr-pied-g">' + (d.statut === "publiee" || d.statut === "a_valider"
-        ? '<button type="button" class="btn btn-ghost btn-sm" data-regler>C\'est réglé</button>' : "") +
+        ? '<button type="button" class="btn btn-ok btn-sm" data-regler>C\'est réglé</button>' : "") +
         '<span class="badge ' + cls + '">' + esc(label) + "</span></span>" +
       '<time class="time" datetime="' + esc(d.created_at) + '">' + esc(entrJour(d.created_at)) + ", " + entrHeure(d.created_at) + "</time></div></article>" +
       (convs.length ? '<div class="entr-convs"><p class="entr-rep-note">' + ENTR_CADENAS +
