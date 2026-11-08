@@ -5,7 +5,7 @@
 //   #entraide/moderation modération des demandes                                                    droit « modérer »
 // Utilise les outils d'app.js ($, esc, api, toast, setPageInert, openEditor, canEntraide, isReferent, telHref).
 
-const ENTR_STATUT = { a_valider: ["À valider", "wait"], publiee: ["Publiée", "lead"], pourvue: ["Pourvue", "ok"], refusee: ["Refusée", "none"] };
+const ENTR_STATUT = { a_valider: ["À valider", "wait"], publiee: ["Publiée", "lead"], pourvue: ["Pourvue", "ok"], refusee: ["Refusée", "refus"] };
 const entrDate = iso => new Date(iso).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 // +33612345678 → 06 12 34 56 78 (les numéros étrangers restent au format international)
 const entrTel = t => { const m = /^\+33(\d{9})$/.exec(t || ""); return m ? ("0" + m[1]).replace(/(\d{2})(?=\d)/g, "$1 ") : t || ""; };
