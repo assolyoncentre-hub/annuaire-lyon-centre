@@ -621,6 +621,18 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .entr-fin { margin: 4px 0 0; color: var(--muted); font-size: 15px; }
 .entr-reprendre { padding: 2px 4px; border: 0; background: none; color: var(--muted); font: 500 14px/1 Montserrat, sans-serif; text-decoration: underline; cursor: pointer; }
 @media (hover: hover) { .entr-reprendre:hover { color: var(--brand); } }
+/* Conversation déclinée sur ma demande : repliée dans « Proposition de X » (ligne grise), « Réactiver » discret à droite */
+.entr-repli { position: relative; margin: 0 0 14px; }
+.entr-repli details { border: 1px solid var(--border); border-radius: 10px; background: #eef2f6; }
+.entr-repli summary { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 104px 0 12px; cursor: pointer; list-style: none; color: var(--muted); font: 600 15px/1.2 Montserrat, sans-serif; }
+.entr-repli summary::-webkit-details-marker { display: none; }
+.entr-repli summary::before { content: ""; flex: none; width: 7px; height: 7px; margin-right: 2px; border: solid currentColor; border-width: 0 2px 2px 0; transform: rotate(-45deg); transition: transform .15s; }
+.entr-repli details[open] summary::before { transform: rotate(45deg); }
+.entr-repli summary:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 10px; }
+.entr-repli summary .etat { padding: 2px 8px; border-radius: 999px; background: #dfe6ee; font-weight: 500; font-size: 13px; }
+.entr-repli > .entr-reprendre { position: absolute; top: 2px; right: 8px; }
+.entr-repli .entr-reps { margin: 0 !important; padding: 0 12px 12px; border-top: 0 !important; }
+@media (max-width: 520px) { .entr-repli summary .etat { display: none; } }
 /* Conversation déclinée : grisée (ses messages restent lisibles), « Réactiver » discret en dessous */
 .entr-reps.declinee .entr-recue, .entr-reps.declinee .entr-moi { opacity: .55; filter: grayscale(1); }
 @media (hover: hover) { .entr-reps.declinee .entr-recue:hover, .entr-reps.declinee .entr-moi:hover { transform: none; box-shadow: 0 1px 1px rgba(0, 40, 80, .1); } }

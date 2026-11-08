@@ -72,7 +72,17 @@ const entrMotDecline = prenom => "Merci beaucoup pour votre proposition " + pren
 const ENTR_CADENAS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
 // Une conversation attend ma réponse si son dernier message vient de l'autre personne (et qu'elle n'est pas terminée)
 const entrAttend = c => !c.declinee && c.messages.length > 0 && !c.messages[c.messages.length - 1].moi;
+// Conversation que j'ai déclinée (sur ma demande) : repliée dans « Proposition de X », ouverte d'un clic ;
+// « Réactiver » reste visible à droite de la ligne, même repliée
+const entrRepliOuverts = new Set();
 function entrRepsHtml(id, prenom) {
+  const f = entrFils.get(id) || { messages: [] };
+  if (!(f.auteur && f.declinee)) return entrFilHtml(id, prenom);
+  return '<div class="entr-repli"><details' + (entrRepliOuverts.has(id) ? " open" : "") + ' data-repli="' + esc(id) + '"><summary>Proposition de ' + esc(prenom) +
+    ' <span class="etat">déclinée</span></summary>' + entrFilHtml(id, prenom) + "</details>" +
+    '<button type="button" class="entr-reprendre" data-reprendre data-pour="' + esc(id) + '" aria-label="Réactiver la conversation avec ' + esc(prenom) + '">Réactiver</button></div>';
+}
+function entrFilHtml(id, prenom) {
   const f = entrFils.get(id) || { messages: [] }, l = f.messages, recues = l.some(r => !r.moi), fini = f.declinee;
   return '<div class="entr-reps' + (fini ? " declinee" : "") + '" data-pour="' + esc(id) + '" data-prenom="' + esc(prenom) + '">' + (l.length ?
     (recues || f.auteur ? "" : '<p class="entr-rep-note">' + ENTR_CADENAS + "Vos messages ne sont visibles que par " + esc(prenom) + "</p>") +
@@ -82,8 +92,7 @@ function entrRepsHtml(id, prenom) {
       : '<div class="entr-moi" data-rep="' + esc(r.id) + '"><p class="txt">' + esc(r.texte) + "</p>" +
         '<div class="entr-moi-pied"><span class="entr-moi-act">' + (fini ? "" : '<button type="button" data-modifier>Modifier</button><button type="button" data-supprimer>Supprimer</button>') + "</span>" +
         '<time class="time" datetime="' + esc(r.le) + '">' + (r.modifie ? "Modifié · " : "") + (recues ? esc(entrJour(r.le)) + ", " : "") + entrHeure(r.le) + "</time></div></div>").join("") +
-    (fini ? '<p class="entr-fin">' + (f.auteur ? "Vous avez décliné l'aide de " + esc(prenom) + ". " +
-        '<button type="button" class="entr-reprendre" data-reprendre>Réactiver</button>' : esc(prenom) + " a mis fin à la conversation.") + "</p>"
+    (fini ? (f.auteur ? "" : '<p class="entr-fin">' + esc(prenom) + " a mis fin à la conversation.</p>")
       : f.auteur ? '<div class="entr-conv-act"><button type="button" class="entr-plus" data-plus>Répondre à ' + esc(prenom) + "</button>" +
         '<button type="button" class="entr-decliner" data-decliner>Décliner</button></div>'
       : '<button type="button" class="entr-plus" data-plus>' + (recues ? "Répondre à " + esc(prenom) : "+ Ajouter un message") + "</button>") : "") + "</div>";
@@ -166,14 +175,19 @@ function entrFermerReponse(rendreFocus = true) {
 async function entrApres(id, cible) {
   if (entrGroupe(id)?.contains($("entr-rep"))) entrFermerReponse(false);
   await loadEntraide();
-  const n = entrGroupe(id), b = n && entrBoutonAider(n);
-  ((n && cible && n.querySelector(cible)) || n?.querySelector(".entr-plus") || b || n)?.focus({ preventScroll: true });
+  const n = entrGroupe(id), b = n && entrBoutonAider(n), boite = n?.closest(".entr-repli") || n;
+  ((boite && cible && boite.querySelector(cible)) || n?.querySelector(".entr-plus") || b || n)?.focus({ preventScroll: true });
 }
 // Réaffichage en direct (nouveau message…) : le focus reste sur le même bouton ou message, retrouvé par ses attributs
 function entrMemoFocus(root) {
   const a = document.activeElement;
   if (!root.contains(a) || $("entr-rep").contains(a)) return () => {};
   const at = (el, k) => el && el.hasAttribute(k) ? "[" + k + '="' + CSS.escape(el.getAttribute(k)) + '"]' : "";
+  // « Réactiver » (à côté d'un repli) porte lui-même l'identifiant de la conversation
+  if (a.matches("[data-reprendre][data-pour]")) {
+    const sel = '[data-reprendre][data-pour="' + CSS.escape(a.dataset.pour) + '"]';
+    return () => { if (document.activeElement === document.body || !document.activeElement) root.querySelector(sel)?.focus({ preventScroll: true }); };
+  }
   const g = a.closest("[data-pour], [data-id], [data-demande]"), r = a.closest("[data-rep], [data-msg]");
   const sel = [g && (at(g, "data-pour") || at(g, "data-id") || at(g, "data-demande")), r && (at(r, "data-rep") || at(r, "data-msg")),
     ["data-plus", "data-decliner", "data-reprendre", "data-modifier", "data-supprimer", "data-aider"].filter(k => a.hasAttribute(k)).map(k => "[" + k + "]").join("")]
@@ -193,7 +207,8 @@ async function entrClicFil(e) {
   else if (b.matches("[data-decliner]")) entrOuvrirReponse(g.dataset.pour, null, true);
   // Réactiver : rouvre une conversation déclinée
   else if (b.matches("[data-reprendre]")) {
-    const id = g.dataset.pour;
+    const id = b.dataset.pour;
+    entrRepliOuverts.delete(id);
     b.disabled = true;
     try { await api.entraideDecliner(entrFils.get(id).conv, false); }
     catch (err) { b.disabled = false; return entrErreur(err); }
@@ -201,6 +216,11 @@ async function entrClicFil(e) {
   }
 }
 $("entr-list").addEventListener("click", entrClicFil);
+// Repli ouvert ou fermé : gardé lors des réaffichages en direct
+document.addEventListener("toggle", e => {
+  const d = e.target;
+  if (d.matches?.("details[data-repli]")) d.open ? entrRepliOuverts.add(d.dataset.repli) : entrRepliOuverts.delete(d.dataset.repli);
+}, true);
 $("entr-mes-list").addEventListener("click", entrClicFil);
 // Supprimer un de ses messages : sans confirmation, la bulle implose et ce qui suit remonte
 // (tout le fil s'il s'agissait du dernier message)

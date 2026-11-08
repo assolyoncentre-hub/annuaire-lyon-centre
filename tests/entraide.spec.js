@@ -343,18 +343,27 @@ test("Mes demandes d'aide : première section de la page, seulement mes demandes
   await expect(damien.getByRole("button", { name: "Décliner" })).toBeFocused();
   await expect(damien).not.toHaveClass(/declinee/);
   expect(await calls(page, "entraideDecliner")).toHaveLength(0);
-  // Décliner, modifier le message puis l'envoyer : il part, puis la conversation est grisée, avec « Réactiver »
+  // Décliner, modifier le message puis l'envoyer : il part, puis la conversation se replie dans « Proposition de Damien »
   await damien.getByRole("button", { name: "Décliner" }).click();
   await page.fill("#entr-rep-txt", "Merci Damien, mais un voisin s'en occupe !");
   await page.keyboard.press("Enter");
+  const repli = recues.locator(".entr-repli");
+  await expect(repli.locator("summary")).toHaveText(/Proposition de Damien/);
+  await expect(repli.locator("details")).not.toHaveAttribute("open", "");
+  await expect(damien).toBeHidden(); // messages repliés
   await expect(damien).toHaveClass(/declinee/);
+  const reactiver = repli.getByRole("button", { name: "Réactiver la conversation avec Damien" });
+  await expect(reactiver).toBeFocused();
+  // Déplié d'un clic : les messages grisés, remerciement compris, sans bouton pour écrire ; il reste ouvert en direct
+  await repli.locator("summary").click();
   await expect(damien.locator(".entr-moi").last()).toContainText("Merci Damien, mais un voisin s'en occupe !");
-  await expect(damien.locator(".entr-fin")).toHaveText("Vous avez décliné l'aide de Damien. Réactiver");
   await expect(damien.locator(".entr-plus, [data-decliner], [data-modifier]")).toHaveCount(0);
-  await expect(damien.getByRole("button", { name: "Réactiver" })).toBeFocused();
+  await page.evaluate(() => window.__entraideSignal());
+  await expect(damien).toBeVisible();
   await expect(recues.locator('.entr-reps[data-prenom="Claire"] .entr-plus')).toBeVisible();
-  // Réactiver : la conversation reprend
-  await damien.getByRole("button", { name: "Réactiver" }).click();
+  // Réactiver : la conversation reprend, dépliée
+  await reactiver.click();
+  await expect(recues.locator(".entr-repli")).toHaveCount(0);
   await expect(damien).not.toHaveClass(/declinee/);
   await expect(damien.locator(".entr-plus")).toBeFocused();
   await expect(page.locator("#entr-mes")).not.toContainText("39 98");
