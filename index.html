@@ -561,12 +561,12 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 }
 /* Textes seulement lus par les lecteurs d'écran (nombre de demandes, destinataire de la réponse) */
 .entr-count, .entr-cache { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
-.entr-live { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; font: 600 12px/1 Montserrat, sans-serif; color: #1d6b43; white-space: nowrap; }
+.entr-live { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; font: 600 14px/1 Montserrat, sans-serif; color: #1d6b43; white-space: nowrap; }
 .entr-live[hidden] { display: none; }
 .entr-live i { width: 8px; height: 8px; border-radius: 50%; background: #2fae63; box-shadow: 0 0 0 3px rgba(47, 174, 99, .2); }
 .entr-thread { max-width: 720px; padding: 0 0 24px; }
 /* Titres des deux parties du fil (même style que les lettres de l'annuaire des leaders) */
-.entr-titre { display: flex; align-items: center; gap: 12px; max-width: 720px; margin: 16px 0 4px; font: 700 26px/1.05 Phudu, Montserrat, sans-serif; color: var(--brand); text-transform: uppercase; }
+.entr-titre { display: flex; align-items: center; gap: 12px; max-width: 720px; margin: 16px 0 4px; font: 700 30px/1.05 Phudu, Montserrat, sans-serif; color: var(--brand); text-transform: uppercase; }
 .entr-titre::after { content: ""; flex: 1; border-top: 1px solid var(--border); }
 #entr-mes .entr-titre { margin-bottom: 20px; }
 /* Pastille rouge : des demandes attendent d'être modérées */
@@ -574,22 +574,22 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 /* Demandes pourvues : grisées, sans bouton */
 .entr-msg.aidee { --bulle: #eef2f6; box-shadow: none; }
 .entr-msg.aidee .who { color: var(--text); }
-.entr-msg .aide-ok { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px; background: #e3f4ea; color: #1d6b43; font: 600 11px/1.5 Montserrat, sans-serif; vertical-align: 1px; }
+.entr-msg .aide-ok { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px; background: #e3f4ea; color: #1d6b43; font: 600 13px/1.5 Montserrat, sans-serif; vertical-align: 1px; }
 .entr-day { display: flex; justify-content: center; margin: 12px 0 8px; }
-.entr-day span { padding: 5px 10px; border-radius: 8px; background: rgba(255, 255, 255, .92); color: var(--muted); font: 600 12px/1 Montserrat, sans-serif; box-shadow: 0 1px 1px rgba(0, 40, 80, .08); }
+.entr-day span { padding: 5px 10px; border-radius: 8px; background: rgba(255, 255, 255, .92); color: var(--muted); font: 600 14px/1 Montserrat, sans-serif; box-shadow: 0 1px 1px rgba(0, 40, 80, .08); }
 .entr-msg { position: relative; width: fit-content; max-width: min(84%, 560px); margin: 6px 0 16px; padding: 7px 10px 6px; border-radius: 2px 10px 10px 10px;
   background: var(--bulle, var(--surface)); box-shadow: 0 1px 1px rgba(0, 40, 80, .1); }
 .entr-msg::before { content: ""; position: absolute; top: 0; left: -7px; width: 8px; height: 10px; background: linear-gradient(to bottom left, var(--bulle, var(--surface)) 50%, transparent 50%); }
-.entr-msg .who { font: 700 14px/1.3 Montserrat, sans-serif; color: var(--c, var(--brand)); }
+.entr-msg .who { font: 700 16px/1.3 Montserrat, sans-serif; color: var(--c, var(--brand)); }
 .entr-msg .who .where { font-weight: 500; color: var(--muted); }
 .entr-msg .need { margin: 2px 0 0; white-space: pre-line; overflow-wrap: anywhere; }
 /* « Quand » : simple ligne d'information (icône calendrier), sans fond, pour ne pas ressembler au bouton */
-.entr-msg .when { display: flex; align-items: center; gap: 6px; margin-top: 4px; color: var(--text); font: 600 13px/1.3 Montserrat, sans-serif; }
+.entr-msg .when { display: flex; align-items: center; gap: 6px; margin-top: 4px; color: var(--text); font: 600 15px/1.3 Montserrat, sans-serif; }
 .entr-msg .when svg { flex: none; width: 15px; height: 15px; color: var(--muted); }
 /* « Je peux aider ! » : bouton blanc à contour noir du site (.btn .btn-ghost .btn-sm), largeur fixe */
 .entr-aider { display: flex; align-items: center; justify-content: center; width: 180px; margin-top: 8px; }
 /* Ma demande dans le fil : « Voir les réponses » (pastille si l'une attend ma réponse) ou « Pas encore de réponse » */
-.entr-sans-rep-pub { color: var(--muted); font-size: 13px; }
+.entr-sans-rep-pub { color: var(--muted); font-size: 15px; }
 /* Message mis en vue à l'arrivée depuis « Voir les réponses » : bref halo */
 .entr-repere { animation: entr-repere 1.6s ease-out; }
 @keyframes entr-repere { 0%, 30% { box-shadow: 0 0 0 3px var(--brand); } 100% { box-shadow: 0 0 0 3px transparent; } }
@@ -602,26 +602,26 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 @media (max-width: 520px) { .entr-msg { width: auto; max-width: none; } .entr-reps { width: auto; } }
 .entr-reps:empty { display: none; }
 .entr-reps::before { content: ""; position: absolute; left: -18px; top: -6px; width: 14px; height: 26px; border: solid #9db6cc; border-width: 0 0 2px 2px; border-bottom-left-radius: 10px; }
-.entr-reps > .entr-rep-note { margin: 0 0 6px; padding-top: 4px; color: var(--muted); font-size: 12.5px; }
+.entr-reps > .entr-rep-note { margin: 0 0 6px; padding-top: 4px; color: var(--muted); font-size: 14px; }
 /* Messages envoyés : bulles bleu clair, dans l'ordre d'envoi */
 .entr-moi { margin: 0 0 6px; padding: 7px 10px 5px; border-radius: 10px 2px 10px 10px; background: var(--moi); box-shadow: 0 1px 1px rgba(0, 40, 80, .1); }
 .entr-moi.edite { display: none; }
 .entr-moi .txt { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 .entr-moi-pied { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 4px; }
 .entr-moi-act { display: flex; gap: 4px; margin-left: -6px; }
-.entr-moi-act button { padding: 4px 6px; border: 0; border-radius: 6px; background: none; color: var(--brand); font: 600 12px/1 Montserrat, sans-serif; cursor: pointer; }
+.entr-moi-act button { padding: 4px 6px; border: 0; border-radius: 6px; background: none; color: var(--brand); font: 600 14px/1 Montserrat, sans-serif; cursor: pointer; }
 @media (hover: hover) { .entr-moi-act button:hover { background: rgba(0, 94, 168, .1); } }
-.entr-moi .time { color: #4d6378; font-size: 11px; white-space: nowrap; }
-.entr-plus { display: block; width: 100%; padding: 9px 12px; border: 1px dashed #8eaecb; border-radius: 10px; background: none; color: var(--brand); font: 600 13px/1 Montserrat, sans-serif; text-align: left; cursor: pointer; }
+.entr-moi .time { color: #4d6378; font-size: 13px; white-space: nowrap; }
+.entr-plus { display: block; width: 100%; padding: 9px 12px; border: 1px dashed #8eaecb; border-radius: 10px; background: none; color: var(--brand); font: 600 15px/1 Montserrat, sans-serif; text-align: left; cursor: pointer; }
 @media (hover: hover) { .entr-plus:hover { background: rgba(0, 94, 168, .06); } }
 .entr-reps.ecrit .entr-plus, .entr-reps.ecrit .entr-conv-act { display: none; }
 /* Mes demandes : « Répondre à X » et « Décliner » (fin de la conversation) sur la même ligne */
 .entr-conv-act { display: flex; gap: 8px; }
 .entr-conv-act .entr-plus { flex: 1; width: auto; }
-.entr-decliner { flex: none; padding: 9px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--muted); font: 600 13px/1 Montserrat, sans-serif; cursor: pointer; }
+.entr-decliner { flex: none; padding: 9px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--muted); font: 600 15px/1 Montserrat, sans-serif; cursor: pointer; }
 @media (hover: hover) { .entr-decliner:hover { color: #a3261b; border-color: #e3b4ae; } }
-.entr-fin { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
-.entr-reprendre { padding: 2px 4px; border: 0; background: none; color: var(--brand); font: 600 13px/1 Montserrat, sans-serif; text-decoration: underline; cursor: pointer; }
+.entr-fin { margin: 4px 0 0; color: var(--muted); font-size: 15px; }
+.entr-reprendre { padding: 2px 4px; border: 0; background: none; color: var(--brand); font: 600 15px/1 Montserrat, sans-serif; text-decoration: underline; cursor: pointer; }
 /* Le rappel « visibles seulement par… » est déjà en tête du fil : la zone de rédaction ne le répète pas,
    et sa croix devient une pastille dans le coin */
 .entr-reps:has(.entr-moi) .entr-rep { position: relative; padding-top: 10px; }
@@ -636,11 +636,11 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .entr-rep-tete { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; }
 .entr-rep-x { flex: none; width: 32px; height: 32px; margin: -4px -4px -4px auto; border: 0; border-radius: 50%; background: none; color: var(--muted); font-size: 22px; line-height: 1; cursor: pointer; }
 @media (hover: hover) { .entr-rep-x:hover { background: rgba(0, 40, 80, .08); } }
-.entr-rep-note { display: flex; align-items: center; gap: 6px; margin: 0; color: #1d4f7a; font-size: 13px; }
+.entr-rep-note { display: flex; align-items: center; gap: 6px; margin: 0; color: #1d4f7a; font-size: 15px; }
 .entr-rep-note svg { flex: none; width: 14px; height: 14px; }
 .entr-rep-row { display: flex; align-items: flex-end; gap: 8px; }
 .entr-rep-row textarea { flex: 1; min-width: 0; min-height: 44px; max-height: 140px; padding: 11px 14px; border: 0; border-radius: 22px; background: #fff; resize: none; overflow-y: auto;
-  color: var(--text); font: 16px/1.4 "DM Sans", system-ui, sans-serif; box-shadow: 0 1px 1px rgba(0, 40, 80, .08); }
+  color: var(--text); font: 17px/1.45 "DM Sans", system-ui, sans-serif; box-shadow: 0 1px 1px rgba(0, 40, 80, .08); }
 .entr-rep-row textarea:focus { outline: 2px solid var(--brand); outline-offset: 0; }
 .entr-rep-send { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 50%; background: var(--brand); color: #fff; cursor: pointer; }
 .entr-rep-send svg { width: 20px; height: 20px; }
@@ -648,7 +648,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 /* Demande à laquelle on répond : son bouton prend la couleur de la zone de réponse */
 .entr-msg.repond .entr-aider { background: var(--moi); }
 @media (max-width: 520px) { .entr-reps { width: auto; margin-left: 22px; } .entr-reps::before { left: -14px; width: 10px; } }
-.entr-msg .time { display: block; margin-top: 2px; text-align: right; color: var(--muted); font-size: 11px; }
+.entr-msg .time { display: block; margin-top: 2px; text-align: right; color: var(--muted); font-size: 13px; }
 /* « Je peux aider ! » et l'heure sur une même ligne, un peu détachée du texte */
 .entr-pied { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 14px; }
 .entr-pied .entr-aider { margin-top: 0; }
@@ -658,7 +658,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 @media (prefers-reduced-motion: reduce) { .entr-msg.new { animation: none; } }
 .entr-thread .empty { margin: 24px 0; text-align: center; color: var(--muted); }
 .entr-jump { position: fixed; z-index: 30; left: 50%; bottom: 24px; transform: translateX(-50%); padding: 8px 14px; border: 0; border-radius: 999px; background: var(--brand); color: #fff;
-  font: 700 12px/1 Montserrat, sans-serif; box-shadow: 0 6px 16px -6px rgba(0, 40, 80, .5); cursor: pointer; }
+  font: 700 14px/1 Montserrat, sans-serif; box-shadow: 0 6px 16px -6px rgba(0, 40, 80, .5); cursor: pointer; }
 .entr-jump[hidden] { display: none; }
 .entr-last { display: grid; gap: 14px; }
 [data-step]:not([hidden]) { animation: entr-in .3s ease-out; }
@@ -675,8 +675,8 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 /* Boutons accolés, comme un interrupteur à plusieurs positions : seule la page affichée est en bleu */
 .entr-tabs { gap: 0; }
 /* Onglets et « J'ai besoin d'aide » : même hauteur (44 px sur téléphone, comme la liste déroulante) */
-.entr-bar .tab, .entr-bar #entr-ask { box-sizing: border-box; height: 40px; display: inline-flex; align-items: center; }
-@media (max-width: 520px) { .entr-bar #entr-ask { height: 44px; } }
+.entr-bar .tab, .entr-bar #entr-ask { box-sizing: border-box; height: 40px; min-height: 0; margin: 0; display: inline-flex; align-items: center; }
+@media (max-width: 520px) { .entr-bar #entr-ask, .entr-bar .entr-nav-sel { box-sizing: border-box; height: 44px; min-height: 0; margin: 0; } .entr-bar .entr-nav-sel { line-height: 42px; padding-top: 0; padding-bottom: 0; font-size: 16px; } }
 .entr-tabs .tab { position: relative; display: inline-flex; align-items: center; margin-left: -1.5px; border-radius: 0; text-decoration: none; }
 .entr-tabs .tab:first-child { margin-left: 0; border-radius: 8px 0 0 8px; }
 .entr-tabs .tab:last-child, .entr-tabs .tab:has(+ .tab[hidden]) { border-radius: 0 8px 8px 0; }
@@ -685,20 +685,27 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .entr-tabs .tab[aria-current="page"] { z-index: 1; background: var(--brand); border-color: var(--brand); color: #fff; }
 .entr-tabs .tab[aria-current="page"] .entr-pastille { box-shadow: 0 0 0 1.5px #fff; }
 #entr-mod[hidden], #entr-pub[hidden], #entr-mes[hidden] { display: none; }
+/* Lisibilité : sous la barre, textes plus grands que sur le reste du site, et boutons d'au moins 40 px de haut */
+#entr-pub, #entr-mes, #entr-mod { font-size: 17px; }
+#entr-pub .btn-sm, #entr-mes .btn-sm, #entr-mod .btn-sm { font-size: 15px; }
+#entr-pub button, #entr-mes button, #entr-mod button, #entr-pub .btn, #entr-mes .btn, #entr-mod .btn { min-height: 40px; box-sizing: border-box; }
+.entr-moi-act button, .entr-reprendre { display: inline-flex; align-items: center; }
+.entr-rep-x, .entr-reps:has(.entr-moi) .entr-rep-x { width: 40px; height: 40px; }
+.entr-jump { min-height: 40px; }
 /* Mes demandes : mêmes bulles que le fil, avec l'état de la demande */
 /* Réponses reçues : bulles blanches au nom de la personne qui répond, dans le fil sous ma demande */
 .entr-recue { margin: 0 0 6px; padding: 7px 10px 5px; border-radius: 2px 10px 10px 10px; background: var(--surface); box-shadow: 0 1px 1px rgba(0, 40, 80, .1); }
-.entr-recue .who { font: 700 14px/1.3 Montserrat, sans-serif; color: var(--c, var(--brand)); }
+.entr-recue .who { font: 700 16px/1.3 Montserrat, sans-serif; color: var(--c, var(--brand)); }
 .entr-recue .txt { margin: 2px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
-.entr-recue .time { display: block; margin-top: 2px; text-align: right; color: var(--muted); font-size: 11px; }
+.entr-recue .time { display: block; margin-top: 2px; text-align: right; color: var(--muted); font-size: 13px; }
 /* Mes demandes : une conversation par personne qui a répondu (elle ne voit que la sienne) */
 .entr-convs { margin: -8px 0 18px 28px; width: min(84%, 560px); }
-.entr-convs > .entr-rep-note { margin: 0 0 8px; padding-top: 4px; color: var(--muted); font-size: 12.5px; }
+.entr-convs > .entr-rep-note { margin: 0 0 8px; padding-top: 4px; color: var(--muted); font-size: 14px; }
 .entr-convs .entr-reps { width: auto; margin: 0 0 14px; }
 .entr-convs .entr-reps::before { display: none; }
 .entr-convs .entr-reps + .entr-reps { padding-top: 12px; border-top: 1px dashed var(--border); }
 @media (max-width: 520px) { .entr-convs { width: auto; margin-left: 22px; } }
-.entr-sans-rep { margin: -6px 0 18px 28px; color: var(--muted); font-size: 13px; }
+.entr-sans-rep { margin: -6px 0 18px 28px; color: var(--muted); font-size: 15px; }
 /* Ma demande : même fond bleu que mes messages (tout ce que j'ai écrit) */
 .entr-mienne { --bulle: var(--moi); }
 .entr-mienne .who { color: var(--brand); }
@@ -708,11 +715,11 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .entr-mod-row { padding: 16px 18px; border-top: 1px solid var(--border); display: grid; gap: 8px; }
 .entr-mod-row:first-child { border-top: 0; }
 .entr-mod-row .head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
-.entr-mod-row .head strong { font-size: 17px; }
-.entr-mod-row .head .meta { color: var(--muted); font-size: 14px; }
+.entr-mod-row .head strong { font-size: 19px; }
+.entr-mod-row .head .meta { color: var(--muted); font-size: 16px; }
 .entr-mod-row .head a { color: var(--brand); font-weight: 600; text-decoration: none; }
 .entr-mod-row .need { margin: 0; white-space: pre-wrap; }
-.entr-mod-row .when { color: var(--brand); font: 600 13px/1.3 Montserrat, sans-serif; }
+.entr-mod-row .when { color: var(--brand); font: 600 15px/1.3 Montserrat, sans-serif; }
 .entr-mod-row .ops { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
 .entr-mod-row .ops a.btn { text-decoration: none; display: inline-block; }
 .badge.wait { background: #fff3e0; color: #9a4b00; }
