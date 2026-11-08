@@ -84,8 +84,9 @@ function entrRepsHtml(id, prenom) {
   if (!f.auteur) return '<div class="entr-repli entr-repli-aide"><details' + (entrRepliOuverts.has(id) ? " open" : "") + ' data-repli="' + esc(id) + '"><summary>' +
     esc(prenom) + " a mis fin à la conversation.</summary>" + entrFilHtml(id, prenom) + "</details></div>";
   return '<div class="entr-repli"><details' + (entrRepliOuverts.has(id) ? " open" : "") + ' data-repli="' + esc(id) + '"><summary>Proposition de ' + esc(prenom) +
-    ' <span class="etat">déclinée</span></summary>' + entrFilHtml(id, prenom) + "</details>" +
-    '<button type="button" class="entr-reprendre" data-reprendre data-pour="' + esc(id) + '" aria-label="Réactiver la conversation avec ' + esc(prenom) + '">Réactiver</button></div>';
+    ' <span class="etat">déclinée</span></summary>' + entrFilHtml(id, prenom) +
+    // « Réactiver » : seulement dans la conversation dépliée, en bas à droite
+    '<div class="entr-repli-pied"><button type="button" class="entr-reprendre" data-reprendre data-pour="' + esc(id) + '" aria-label="Réactiver la conversation avec ' + esc(prenom) + '">Réactiver</button></div></details></div>';
 }
 function entrFilHtml(id, prenom) {
   const f = entrFils.get(id) || { messages: [] }, l = f.messages, recues = l.some(r => !r.moi), fini = f.declinee;
@@ -196,9 +197,14 @@ function entrMemoFocus(root) {
   const a = document.activeElement;
   if (!root.contains(a) || $("entr-rep").contains(a)) return () => {};
   const at = (el, k) => el && el.hasAttribute(k) ? "[" + k + '="' + CSS.escape(el.getAttribute(k)) + '"]' : "";
-  // « Réactiver » (à côté d'un repli) porte lui-même l'identifiant de la conversation
+  // « Réactiver » (dans un repli) porte lui-même l'identifiant de la conversation
   if (a.matches("[data-reprendre][data-pour]")) {
     const sel = '[data-reprendre][data-pour="' + CSS.escape(a.dataset.pour) + '"]';
+    return () => { if (document.activeElement === document.body || !document.activeElement) root.querySelector(sel)?.focus({ preventScroll: true }); };
+  }
+  // Titre d'un repli (conversation déclinée) : retrouvé par l'identifiant de la conversation
+  if (a.matches("details[data-repli] > summary")) {
+    const sel = 'details[data-repli="' + CSS.escape(a.parentElement.dataset.repli) + '"] > summary';
     return () => { if (document.activeElement === document.body || !document.activeElement) root.querySelector(sel)?.focus({ preventScroll: true }); };
   }
   const g = a.closest("[data-pour], [data-id], [data-demande]"), r = a.closest("[data-rep], [data-msg]");
@@ -311,7 +317,7 @@ $("entr-rep").addEventListener("submit", async e => {
   } catch (err) { entrEnvoi = false; $("entr-rep-send").disabled = false; return entrErreur(err); }
   entrEnvoi = false;
   entrTexte(""); entrBrouillon = null; entrRepDecline = false;
-  await entrApres(id, editId != null ? '[data-rep="' + CSS.escape(editId) + '"] [data-modifier]' : decline ? "[data-reprendre]" : ".entr-plus");
+  await entrApres(id, editId != null ? '[data-rep="' + CSS.escape(editId) + '"] [data-modifier]' : decline ? "summary" : ".entr-plus");
 });
 $("entr-jump").addEventListener("click", () => { entrVersLeHaut(); $("entr-jump").hidden = true; });
 addEventListener("scroll", () => { if (!$("entr-jump").hidden && entrEnHaut()) $("entr-jump").hidden = true; }, { passive: true });

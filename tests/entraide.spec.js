@@ -368,7 +368,8 @@ test("Mes demandes : première section de la page, seulement mes demandes, avec 
   await expect(damien).toBeHidden(); // messages repliés
   await expect(damien).toHaveClass(/declinee/);
   const reactiver = repli.getByRole("button", { name: "Réactiver la conversation avec Damien" });
-  await expect(reactiver).toBeFocused();
+  await expect(reactiver).toBeHidden(); // replié : pas de Réactiver, le focus va sur le titre du repli
+  await expect(repli.locator("summary")).toBeFocused();
   // Déplié d'un clic : les messages grisés, remerciement compris, sans bouton pour écrire ; il reste ouvert en direct
   await repli.locator("summary").click();
   await expect(damien.locator(".entr-moi").last()).toContainText("Merci Damien, mais un voisin s'en occupe !");
