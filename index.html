@@ -660,6 +660,10 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .entr-repli details[open] summary::before { transform: rotate(45deg); }
 .entr-repli summary:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 10px; }
 .entr-repli summary .etat { padding: 2px 8px; border-radius: 999px; background: #dfe6ee; font-weight: 500; font-size: 13px; }
+/* proposition en cours : repli blanc, titre en couleur du texte */
+.entr-repli-encours details { background: var(--surface); }
+.entr-repli-encours summary { color: var(--text); }
+.entr-repli-encours summary .etat { background: #dbe9f8; color: var(--brand); }
 .entr-repli-pied { display: flex; justify-content: flex-end; padding: 0 12px 10px; }
 .entr-repli .entr-reps { margin: 0 !important; padding: 0 12px 12px; border-top: 0 !important; }
 /* Repli du côté de la personne qui aidait : à la place de la conversation, sous la demande (pas de bouton Réactiver) */

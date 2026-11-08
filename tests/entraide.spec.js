@@ -347,6 +347,16 @@ test("Mes demandes : première section de la page, seulement mes demandes, avec 
   const recues = page.locator(".entr-mienne:has-text('escabeau') + .entr-convs");
   await expect(recues).toContainText("3 réponses, qui ne sont visibles que par vous");
   await expect(recues.locator(".entr-recue .who")).toHaveText(["Damien", "Damien", "Claire"]);
+  // Une proposition par personne, dans un repli « Proposition de … » déplié (conversation en cours)
+  const enCours = recues.locator(".entr-repli-encours");
+  await expect(enCours.locator("summary")).toHaveText([/Proposition de Damien\s*en cours/, /Proposition de Claire\s*en cours/]);
+  await expect(enCours.locator("details[open]")).toHaveCount(2);
+  // replié d'un clic, il le reste en direct
+  await enCours.nth(1).locator("summary").click();
+  await page.evaluate(() => window.__entraideSignal());
+  await page.waitForTimeout(300);
+  await expect(recues.locator('.entr-reps[data-prenom="Claire"]')).toBeHidden();
+  await enCours.nth(1).locator("summary").click();
   // Une conversation par personne, chacune avec « Répondre à … »
   const damien = recues.locator('.entr-reps[data-prenom="Damien"]');
   await expect(recues.locator(".entr-plus")).toHaveText(["Répondre à Damien", "Répondre à Claire"]);
@@ -379,8 +389,8 @@ test("Mes demandes : première section de la page, seulement mes demandes, avec 
   await damien.getByRole("button", { name: "Décliner" }).click();
   await page.fill("#entr-rep-txt", "Merci Damien, mais un voisin s'en occupe !");
   await page.keyboard.press("Enter");
-  const repli = recues.locator(".entr-repli");
-  await expect(repli.locator("summary")).toHaveText(/Proposition de Damien/);
+  const repli = recues.locator(".entr-repli:not(.entr-repli-encours)");
+  await expect(repli.locator("summary")).toHaveText(/Proposition de Damien\s*déclinée/);
   await expect(repli.locator("details")).not.toHaveAttribute("open", "");
   await expect(damien).toBeHidden(); // messages repliés
   await expect(damien).toHaveClass(/declinee/);
@@ -396,7 +406,8 @@ test("Mes demandes : première section de la page, seulement mes demandes, avec 
   await expect(recues.locator('.entr-reps[data-prenom="Claire"] .entr-plus')).toBeVisible();
   // Réactiver : la conversation reprend, dépliée
   await reactiver.click();
-  await expect(recues.locator(".entr-repli")).toHaveCount(0);
+  await expect(repli).toHaveCount(0);
+  await expect(recues.locator('details:has(.entr-reps[data-prenom="Damien"])')).toHaveAttribute("open", ""); // en cours : dépliée
   await expect(damien).not.toHaveClass(/declinee/);
   await expect(damien.locator(".entr-plus")).toBeFocused();
   await expect(page.locator("#entr-mes")).not.toContainText("39 98");
@@ -639,4 +650,16 @@ test("textes de plus de 5 lignes : « … Voir + » à la suite de la 5e ligne d
   await expect(voir).toHaveText("Voir +");
   await expect(voir).toBeFocused();
   expect(await lignes()).toBe(5);
+});
+
+test("Mes demandes : propositions en cours dépliées, déclinées repliées, même après un changement reçu en direct @mobile", async ({ open, page }) => {
+  const MOI = [{ email: "admin@example.org", droit: "admin", prenom: "", nom: "", entraide_voir: true, entraide_moderer: false }];
+  await open({ user: ADMIN, hash: "#entraide", acces: MOI });
+  const r = page.locator(".entr-mienne:has-text('escabeau') + .entr-convs");
+  const damien = r.locator('details:has(.entr-reps[data-prenom="Damien"])');
+  await expect(damien).toHaveAttribute("open", "");
+  await page.evaluate(() => { window.__S.entraideConversations.find(c => c.id === "c1").declinee = true; window.__entraideSignal(); });
+  await expect(damien.locator("summary")).toHaveText(/déclinée/);
+  await expect(damien).not.toHaveAttribute("open", "");
+  await expect(r.locator('details:has(.entr-reps[data-prenom="Claire"])')).toHaveAttribute("open", "");
 });
