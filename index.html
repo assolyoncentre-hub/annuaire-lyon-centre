@@ -595,11 +595,6 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .entr-msg .when svg { flex: none; width: 18px; height: 18px; color: var(--muted); }
 /* « Je peux aider ! » : bouton blanc à contour noir du site (.btn .btn-ghost .btn-sm), largeur fixe */
 .entr-aider { display: flex; align-items: center; justify-content: center; width: auto; min-width: 180px; white-space: nowrap; margin-top: 8px; }
-/* Ma demande dans le fil : « Voir les réponses » (pastille si l'une attend ma réponse) ou « Pas encore de réponse » */
-.entr-sans-rep-pub { color: var(--muted); font-size: 15px; }
-/* Message mis en vue à l'arrivée depuis « Voir les réponses » : bref halo */
-.entr-repere { animation: entr-repere 1.6s ease-out; }
-@keyframes entr-repere { 0%, 30% { box-shadow: 0 0 0 3px var(--brand); } 100% { box-shadow: 0 0 0 3px transparent; } }
 .entr-recue:focus, .entr-mienne:focus { outline: none; }
 .entr-recue:focus-visible, .entr-mienne:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 .entr-aider:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
@@ -716,7 +711,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 /* Filtre « À valider » de la modération : pastille rouge s'il reste au moins une demande */
 #entr-filters .afilter { display: inline-flex; align-items: center; }
 #entr-filters .afilter[aria-pressed="true"] .entr-pastille { box-shadow: 0 0 0 1.5px #fff; }
-#entr-mod[hidden], #entr-pub[hidden], #entr-mes[hidden] { display: none; }
+#entr-mod[hidden], #entr-pub[hidden], #entr-mes[hidden], #entr-tabs[hidden], #entr-nav-sel[hidden] { display: none !important; }
 /* Lisibilité : sous la barre, textes plus grands que sur le reste du site, et boutons d'au moins 40 px de haut */
 #entr-pub, #entr-mes, #entr-mod { font-size: 17px; }
 /* Bulles : même survol que les cartes des propositions (légère montée et ombre) */
@@ -746,7 +741,6 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 /* Ma demande : même fond bleu que mes messages (tout ce que j'ai écrit) */
 .entr-mienne { --bulle: var(--moi); }
 .entr-mienne .who { color: var(--brand); }
-.entr-mes-vide { max-width: 560px; color: var(--muted); }
 #entr-mod .admin-tools { margin-top: 0; }
 .entr-filters { margin-left: 0; justify-content: flex-start; }
 .entr-mod-row { padding: 16px 18px; border-top: 1px solid var(--border); display: grid; gap: 8px; }
@@ -801,21 +795,19 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 </div>
 <div id="entr-view" class="view" hidden>
 <main class="wrap">
-  <!-- Navigation de l'entraide (Modération pour les modérateurs), suivie du bouton « J'ai besoin d'aide » -->
+  <!-- Navigation de l'entraide (seulement pour les modérateurs : Demandes d'aide / Modération), suivie du bouton « J'ai besoin d'aide » -->
   <div class="entr-bar" id="entr-bar">
     <nav class="tabs accoles entr-tabs" id="entr-tabs" aria-label="Entraide">
-      <a class="tab" href="#entraide" id="entr-tab-pub">Demandes d'aide</a><a class="tab" href="#entraide/mes-demandes" id="entr-tab-mes">Mes demandes</a><a class="tab" href="#entraide/moderation" id="entr-tab-mod" hidden>Modération</a>
+      <a class="tab" href="#entraide" id="entr-tab-pub">Demandes d'aide</a><a class="tab" href="#entraide/moderation" id="entr-tab-mod" hidden>Modération</a>
     </nav><select class="accoles-sel" id="entr-nav-sel" aria-label="Entraide : choisir la page"></select><button type="button" class="btn btn-primary" id="entr-ask">J'ai besoin d'aide</button></div>
-  <!-- Mes demandes (maquette : seulement celles envoyées depuis l'ouverture de la page) -->
-  <div id="entr-mes" hidden>
-    <h2 class="entr-titre">Mes demandes</h2>
-    <div class="entr-thread" id="entr-mes-list"></div>
-  </div>
   <div id="entr-mod" hidden>
     <div class="admin-tools"><div class="afilters entr-filters" id="entr-filters"></div></div>
     <div class="list" id="entr-mod-list"></div>
   </div>
   <div id="entr-pub">
+  <!-- Mes demandes d'aide (en premier, seulement si j'en ai déposé) : chacune avec ses conversations, en direct -->
+  <section id="entr-mes" aria-labelledby="entr-mes-t" hidden><h2 class="entr-titre" id="entr-mes-t">Mes demandes d'aide</h2>
+    <div class="entr-thread" id="entr-mes-list"></div></section>
   <!-- Demandes publiées, présentées comme une conversation (les plus récentes en haut), mises à jour en direct -->
   <p class="count entr-count" id="entr-count" role="status" aria-live="polite"></p>
   <div class="entr-titre-l"><h2 class="entr-titre">Ils/elles ont besoin d'aide</h2><span class="entr-live" id="entr-live" hidden><i></i>En direct</span></div>

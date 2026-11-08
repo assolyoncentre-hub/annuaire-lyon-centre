@@ -33,16 +33,16 @@ test("droit Voir : demandes publiées seulement, sans téléphone ni modération
   await expect(page.locator("#entr-list")).not.toContainText("Henri"); // à valider : pas encore publiée
   await expect(page.locator("#entr-view")).not.toContainText("39 98");
   await expect(page.locator("#entr-tab-mod")).toBeHidden();
-  // Mes demandes : pour tous (onglet, ou liste déroulante sur téléphone), vide tant qu'on n'a rien déposé
-  const sel = page.locator("#entr-nav-sel");
-  if (await sel.isVisible()) {
-    await expect(sel.locator("option")).toHaveText(["Demandes d'aide", "Mes demandes"]); // pas de Modération
-    await sel.selectOption("#entraide/mes-demandes");
-  } else await page.locator("#entr-tab-mes").click();
-  await expect(page.locator("#entr-tab-mes")).toHaveAttribute("aria-current", "page");
-  await expect(sel).toHaveValue("#entraide/mes-demandes");
-  await expect(page.locator("#entr-mes")).toContainText("Vous n'avez pas encore déposé de demande d'aide.");
-  await expect(page.locator("#entr-pub")).toBeHidden();
+  // Une seule page sans le droit de modérer : ni onglets ni liste déroulante, seulement « J'ai besoin d'aide »
+  await expect(page.locator("#entr-tabs")).toBeHidden();
+  await expect(page.locator("#entr-nav-sel")).toBeHidden();
+  await expect(page.locator("#entr-ask")).toBeVisible();
+  // « Mes demandes d'aide » : absente tant qu'on n'a rien déposé
+  await expect(page.locator("#entr-mes")).toBeHidden();
+  // Ancienne adresse de la page Mes demandes : ramène à la page des demandes
+  await page.evaluate(() => { location.hash = "#entraide/mes-demandes"; });
+  await expect(page).toHaveURL(/#entraide$/);
+  await expect(page.locator("#entr-pub")).toBeVisible();
   await page.evaluate(() => { location.hash = "#entraide/moderation"; });
   await expect(page.locator("#admin-denied")).toContainText("n'est pas modérateur de l'entraide.");
 });
@@ -60,7 +60,7 @@ test("demandes en conversation : les plus récentes en haut, nouvelles demandes 
   await expect(page.locator("#entr-ask")).toBeVisible();
 
   // Deux parties : en cours, puis déjà aidés (demandes pourvues, sans bouton ni téléphone)
-  await expect(page.locator("#entr-pub h2.entr-titre")).toHaveText(["Ils/elles ont besoin d'aide", "Ils/elles ont déjà été aidés"]);
+  await expect(page.locator("#entr-pub h2.entr-titre:visible")).toHaveText(["Ils/elles ont besoin d'aide", "Ils/elles ont déjà été aidés"]);
   await expect(page.locator("#entr-aides .entr-msg")).toHaveCount(1);
   await expect(page.locator("#entr-aides")).toContainText("Gérard");
   await expect(page.locator("#entr-aides .entr-aider")).toHaveCount(0);
@@ -300,12 +300,15 @@ test("téléphone : quatre onglets (avec Entraide et Administration) visibles sa
   for (const r of rights) expect(r).toBeLessThanOrEqual(width);
 });
 
-test("Mes demandes : seulement mes demandes, avec les réponses reçues @mobile", async ({ open, page }) => {
+test("Mes demandes d'aide : première section de la page, seulement mes demandes, avec les réponses reçues @mobile", async ({ open, page }) => {
   const MOI = [{ email: "admin@example.org", droit: "admin", prenom: "", nom: "", entraide_voir: true, entraide_moderer: false }];
-  await open({ user: ADMIN, hash: "#entraide/mes-demandes", acces: MOI });
+  await open({ user: ADMIN, hash: "#entraide", acces: MOI });
+  await expect(page.locator("#entr-pub h2.entr-titre:visible")).toHaveText(["Mes demandes d'aide", "Ils/elles ont besoin d'aide", "Ils/elles ont déjà été aidés"]);
   const mes = page.locator("#entr-mes-list .entr-mienne");
   await expect(mes).toHaveCount(3);
   await expect(page.locator("#entr-mes")).not.toContainText("Jeanne"); // demandes des autres : absentes
+  await expect(page.locator("#entr-list")).not.toContainText("escabeau"); // ma demande publiée n'est pas répétée dans le fil
+  await expect(page.locator("[data-voir]")).toHaveCount(0); // plus de « Voir les réponses » : les messages sont affichés
   await expect(mes.filter({ hasText: "Réparer un robinet" })).toContainText("En attente de validation");
   await expect(mes.filter({ hasText: "cartons de livres" })).toContainText("Aidé ✓");
   const paul = mes.filter({ hasText: "escabeau" });
@@ -342,65 +345,62 @@ test("Mes demandes : seulement mes demandes, avec les réponses reçues @mobile"
   await expect(page.locator("#entr-mes")).not.toContainText("39 98");
 });
 
-test("pastille rouge sur Mes demandes tant qu'un message attend ma réponse @mobile", async ({ open, page }) => {
-  const MOI = [{ email: "admin@example.org", droit: "admin", prenom: "", nom: "", entraide_voir: true, entraide_moderer: false }];
-  await open({ user: ADMIN, hash: "#entraide", acces: MOI });
-  // Vue « Demandes d'aide » : la pastille est sur Mes demandes (onglet, ou liste déroulante sur téléphone)
-  await expect(page.locator("#entr-tab-mes .entr-pastille")).toHaveCount(1);
+test("pastille rouge sur Demandes d'aide tant qu'un message attend ma réponse @mobile", async ({ open, page }) => {
+  // Modérateur : seule personne à avoir des onglets (Demandes d'aide / Modération)
+  const MOI = [{ email: "admin@example.org", droit: "admin", prenom: "", nom: "", entraide_voir: true, entraide_moderer: true }];
+  await open({ user: ADMIN, hash: "#entraide/moderation", acces: MOI });
+  // Depuis la modération : pastille sur Demandes d'aide (onglet, ou liste déroulante sur téléphone)
+  await expect(page.locator("#entr-tab-pub .entr-pastille")).toHaveCount(1);
   if (await page.locator("#entr-nav-sel").isVisible()) {
     await expect(page.locator("#entr-nav-sel")).toHaveClass(/alerte/);
-    await expect(page.locator("#entr-nav-sel option").nth(1)).toHaveText("Mes demandes 🔴");
+    await expect(page.locator("#entr-nav-sel option").first()).toHaveText("Demandes d'aide 🔴");
   }
-  await page.goto(page.url().replace(/#.*/, "") + "#entraide/mes-demandes");
+  await page.evaluate(() => { location.hash = "#entraide"; });
   const conv = p => page.locator('.entr-reps[data-prenom="' + p + '"]');
   await expect(conv("Damien")).toBeVisible();
-  // Répondre à Damien et à Thomas, décliner Claire : plus rien n'attend, la pastille s'éteint
-  for (const p of ["Damien", "Thomas"]) {
+  // Répondre à Damien, Thomas (mes demandes) et Marie (que j'aide), décliner Claire : plus rien n'attend, la pastille s'éteint
+  for (const p of ["Damien", "Thomas", "Marie"]) {
     await conv(p).getByRole("button", { name: "Répondre à " + p }).click();
     await page.fill("#entr-rep-txt", "Merci !");
     await page.keyboard.press("Enter");
-    await expect(conv(p).locator(".entr-moi")).toHaveCount(1);
+    await expect(conv(p).locator(".entr-moi").last()).toHaveText(/Merci !/);
   }
-  await expect(page.locator("#entr-tab-mes .entr-pastille")).toHaveCount(1);
+  await expect(page.locator("#entr-tab-pub .entr-pastille")).toHaveCount(1);
   await conv("Claire").getByRole("button", { name: "Décliner" }).click();
-  await expect(page.locator("#entr-tab-mes .entr-pastille")).toHaveCount(0);
-  await expect(page.locator("#entr-nav-sel option").nth(1)).toHaveText("Mes demandes");
+  await expect(page.locator("#entr-tab-pub .entr-pastille")).toHaveCount(0);
+  await expect(page.locator("#entr-nav-sel option").first()).toHaveText("Demandes d'aide");
 });
 
-test("messagerie : ma demande dans le fil mène à la réponse en attente, messages reçus en direct @mobile", async ({ open, page }) => {
+test("Mes demandes d'aide : les messages s'affichent directement et arrivent en direct @mobile", async ({ open, page }) => {
   const MOI = [{ email: "admin@example.org", droit: "admin", prenom: "", nom: "", entraide_voir: true, entraide_moderer: false }];
   await open({ user: ADMIN, hash: "#entraide", acces: MOI });
-  // Ma demande (Paul) : fond bleu, pas de « Je peux aider ! », lien vers les 2 conversations avec pastille
-  const mienne = page.locator("#entr-list .entr-msg.entr-mienne");
-  await expect(mienne).toHaveCount(1);
-  await expect(mienne).toContainText("Ma demande");
-  await expect(mienne.locator("[data-aider]")).toHaveCount(0);
-  await expect(mienne.locator("[data-voir]")).toHaveText("Voir les 2 réponses (en attente de votre réponse)");
-  await expect(mienne.locator("[data-voir] .entr-pastille")).toBeVisible();
-  await mienne.locator("[data-voir]").click();
-  await expect(page).toHaveURL(/#entraide\/mes-demandes$/);
-  // Focus et défilement sur le dernier message de Damien, qui attend ma réponse
-  await expect(page.locator(":focus")).toContainText("Vers 18 h, ça vous irait ?");
-  await expect(page.locator(":focus")).toBeInViewport();
+  const damien = page.locator('#entr-mes .entr-reps[data-prenom="Damien"]');
+  await expect(damien.locator(".entr-recue").last()).toContainText("Vers 18 h, ça vous irait ?");
   // Damien écrit depuis son compte : son message apparaît en direct, sans recharger
   await page.evaluate(() => {
     window.__S.entraideMessages.push({ id: "live-m", conversation: "c1", auteur: "damien@example.org", texte: "Je peux aussi venir vendredi.", le: new Date().toISOString() });
     window.__entraideSignal();
   });
-  await expect(page.locator('.entr-reps[data-prenom="Damien"] .entr-recue').last()).toContainText("Je peux aussi venir vendredi.");
+  await expect(damien.locator(".entr-recue").last()).toContainText("Je peux aussi venir vendredi.");
   // Ma réponse part dans la conversation (et non sur la demande)
-  await page.locator('.entr-reps[data-prenom="Damien"]').getByRole("button", { name: "Répondre à Damien" }).click();
+  await damien.getByRole("button", { name: "Répondre à Damien" }).click();
   await page.fill("#entr-rep-txt", "Vendredi c'est parfait.");
+  // Un nouveau message en direct pendant que j'écris : la zone de rédaction et mon texte restent
+  await page.evaluate(() => {
+    window.__S.entraideMessages.push({ id: "live-m2", conversation: "c2", auteur: "claire@example.org", texte: "Et samedi ?", le: new Date().toISOString() });
+    window.__entraideSignal();
+  });
+  await expect(page.locator('#entr-mes .entr-reps[data-prenom="Claire"] .entr-recue').last()).toContainText("Et samedi ?");
+  await expect(page.locator("#entr-rep-txt")).toHaveValue("Vendredi c'est parfait.");
+  await expect(page.locator("#entr-rep-txt")).toBeFocused();
   await page.keyboard.press("Enter");
-  await expect(page.locator('.entr-reps[data-prenom="Damien"] .entr-moi')).toContainText("Vendredi c'est parfait.");
+  await expect(damien.locator(".entr-moi")).toContainText("Vendredi c'est parfait.");
   expect((await calls(page, "entraideEcrire")).at(-1).arg).toEqual({ texte: "Vendredi c'est parfait.", p_conversation: "c1" });
 });
 
 test("messagerie : côté personne qui aide, réponse de l'auteur et pastille sur Demandes d'aide @mobile", async ({ open, page }) => {
-  const MOI = [{ email: "admin@example.org", droit: "admin", prenom: "", nom: "", entraide_voir: true, entraide_moderer: false }];
-  await open({ user: ADMIN, hash: "#entraide/mes-demandes", acces: MOI });
-  await expect(page.locator("#entr-tab-pub .entr-pastille")).toHaveCount(1); // Marie m'a répondu
-  await page.goto(page.url().replace(/#.*/, "") + "#entraide");
+  const MOI = [{ email: "admin@example.org", droit: "admin", prenom: "", nom: "", entraide_voir: true, entraide_moderer: true }];
+  await open({ user: ADMIN, hash: "#entraide", acces: MOI });
   const marie = page.locator('#entr-list .entr-reps[data-prenom="Marie"]');
   await expect(marie.locator(".entr-moi")).toContainText("je peux porter vos courses");
   await expect(marie.locator(".entr-recue")).toContainText("Rendez-vous à 10 h");
@@ -409,7 +409,6 @@ test("messagerie : côté personne qui aide, réponse de l'auteur et pastille su
   await page.fill("#entr-rep-txt", "Parfait, à samedi !");
   await page.keyboard.press("Enter");
   await expect(marie.locator(".entr-moi").last()).toContainText("Parfait, à samedi !");
-  await expect(page.locator("#entr-tab-pub .entr-pastille")).toHaveCount(0);
   // Première proposition sur une autre demande : la conversation s'ouvre sur la demande
   await page.locator('#entr-list .entr-msg[data-id="e1"] [data-aider]').click();
   await page.fill("#entr-rep-txt", "Je peux vous conduire.");

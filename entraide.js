@@ -1,7 +1,7 @@
 // ---------- Entraide ----------
 // Onglet « Entraide », réservé aux comptes qui en ont le droit (fiche contact : « Voir » / « Modérer » l'entraide) :
-//   #entraide            demandes publiées et formulaire « J'ai besoin d'aide » (progressif)       droit « voir »
-//   #entraide/mes-demandes  mes demandes et réponses                                                 droit « voir »
+//   #entraide            mes demandes d'aide (avec leurs conversations), demandes publiées, demandes pourvues,
+//                        et formulaire « J'ai besoin d'aide »                                        droit « voir »
 //   #entraide/moderation modération des demandes                                                    droit « modérer »
 // Utilise les outils d'app.js ($, esc, api, toast, setPageInert, openEditor, canEntraide, isReferent, telHref).
 
@@ -36,39 +36,25 @@ function renderAidees(list) {
     '<p class="need">' + esc(d.besoin) + "</p>" +
     '<time class="time" datetime="' + esc(d.close_le) + '">Aidé ' + esc(entrJour(d.close_le).toLowerCase()) + "</time></article>").join("");
 }
-function renderEntraide(list) {
+function renderEntraide(tout) {
   const t = $("entr-list"), enHaut = !entrLoaded || entrEnHaut();
+  const list = tout.filter(d => !entrMesListe.some(x => x.id === d.id)); // mes demandes sont dans « Mes demandes d'aide »
   $("entr-count").textContent = list.length ? list.length + (list.length > 1 ? " demandes en cours" : " demande en cours") : "Aucune demande en cours";
   let jour = null, nouvelles = 0;
-  const rep = $("entr-rep"), repFocus = rep.contains(document.activeElement);
-  if (!rep.hidden) $("entr-pub").append(rep); // la réponse en cours de rédaction survit au rafraîchissement
-  const refocus = entrMemoFocus(t);
   t.innerHTML = list.length ? [...list].sort((a, b) => b.publie_le.localeCompare(a.publie_le)).map(d => {
     const j = entrJour(d.publie_le), sep = j !== jour ? '<div class="entr-day"><span>' + esc(j) + "</span></div>" : "";
     const neuve = entrLoaded && !entrVus.has(d.id);
     if (neuve) nouvelles++;
     jour = j;
-    // Ma propre demande : fond bleu, et lien vers les réponses reçues (pastille rouge si l'une attend ma réponse)
-    const mienne = entrMesListe.find(x => x.id === d.id), convs = mienne?.conversations || [];
-    if (mienne) entrFils.delete(d.id);
-    else entrFils.set(d.id, { ...(entrAidesListe.find(c => c.demande_id === d.id) || { messages: [] }), demande: d.id, auteur: false });
-    const pied = mienne
-      ? (convs.length ? '<button type="button" class="btn btn-ghost btn-sm entr-aider entr-voir" data-voir>' + (convs.length > 1 ? "Voir les " + convs.length + " réponses" : "Voir la réponse") +
-          (convs.some(entrAttend) ? '<span class="entr-pastille" aria-hidden="true"></span><span class="entr-cache"> (en attente de votre réponse)</span>' : "") + "</button>"
-        : '<span class="entr-sans-rep-pub">Pas encore de réponse</span>')
-      : '<button type="button" class="btn btn-ghost btn-sm entr-aider" data-aider>Je peux aider !</button>';
-    return sep + '<article class="entr-msg' + (mienne ? " entr-mienne" : "") + (neuve ? " new" : "") + '" style="--c:' + entrCouleur(d.prenom) + '" data-id="' + esc(d.id) + '">' +
-      '<div class="who">' + (mienne ? "Ma demande" : esc(d.prenom)) + (d.quartier ? ' <span class="where">· ' + esc(d.quartier) + "</span>" : "") + "</div>" +
+    entrFils.set(d.id, { ...(entrAidesListe.find(c => c.demande_id === d.id) || { messages: [] }), demande: d.id, auteur: false });
+    const pied = '<button type="button" class="btn btn-ghost btn-sm entr-aider" data-aider>Je peux aider !</button>';
+    return sep + '<article class="entr-msg' + (neuve ? " new" : "") + '" style="--c:' + entrCouleur(d.prenom) + '" data-id="' + esc(d.id) + '">' +
+      '<div class="who">' + esc(d.prenom) + (d.quartier ? ' <span class="where">· ' + esc(d.quartier) + "</span>" : "") + "</div>" +
       '<p class="need">' + esc(d.besoin) + "</p>" + (d.quand ? '<div class="when">' + ENTR_CAL + "<span>" + esc(d.quand) + "</span></div>" : "") +
       '<div class="entr-pied">' + pied +
-      '<time class="time" datetime="' + esc(d.publie_le) + '">' + entrHeure(d.publie_le) + "</time></div></article>" + (mienne ? "" : entrRepsHtml(d.id, d.prenom));
+      '<time class="time" datetime="' + esc(d.publie_le) + '">' + entrHeure(d.publie_le) + "</time></div></article>" + entrRepsHtml(d.id, d.prenom);
   }).join("") : '<p class="empty">Aucune demande d\'aide en cours pour le moment.</p>';
   entrVus = new Set(list.map(d => d.id));
-  refocus();
-  if (!rep.hidden) {
-    if (entrPlacerReponse(entrRepId, entrRepEdit)) { if (repFocus) $("entr-rep-txt").focus({ preventScroll: true }); }
-    else { rep.hidden = true; entrRepId = null; } // demande retirée entre-temps
-  }
   // Nouvelle demande en haut du fil : si on lisait plus bas, un bouton la signale
   if (enHaut) $("entr-jump").hidden = true;
   else if (nouvelles) $("entr-jump").hidden = false;
@@ -170,7 +156,7 @@ function entrFermerReponse(rendreFocus = true) {
 // Après un envoi (ou une suppression, un déclin) : la vue affichée se recharge, puis le focus va sur l'élément choisi du fil
 async function entrApres(id, cible) {
   if (entrGroupe(id)?.contains($("entr-rep"))) entrFermerReponse(false);
-  await (location.hash === "#entraide/mes-demandes" ? renderMesDemandes() : loadEntraide());
+  await loadEntraide();
   const n = entrGroupe(id), b = n && entrBoutonAider(n);
   ((n && cible && n.querySelector(cible)) || n?.querySelector(".entr-plus") || b || n)?.focus({ preventScroll: true });
 }
@@ -181,7 +167,7 @@ function entrMemoFocus(root) {
   const at = (el, k) => el && el.hasAttribute(k) ? "[" + k + '="' + CSS.escape(el.getAttribute(k)) + '"]' : "";
   const g = a.closest("[data-pour], [data-id], [data-demande]"), r = a.closest("[data-rep], [data-msg]");
   const sel = [g && (at(g, "data-pour") || at(g, "data-id") || at(g, "data-demande")), r && (at(r, "data-rep") || at(r, "data-msg")),
-    ["data-plus", "data-decliner", "data-reprendre", "data-modifier", "data-supprimer", "data-aider", "data-voir"].filter(k => a.hasAttribute(k)).map(k => "[" + k + "]").join("")]
+    ["data-plus", "data-decliner", "data-reprendre", "data-modifier", "data-supprimer", "data-aider"].filter(k => a.hasAttribute(k)).map(k => "[" + k + "]").join("")]
     .filter(Boolean).join(" ");
   return () => { if (sel && (document.activeElement === document.body || !document.activeElement)) root.querySelector(sel)?.focus({ preventScroll: true }); };
 }
@@ -191,7 +177,6 @@ async function entrClicFil(e) {
   if (!b) return;
   const g = b.closest(".entr-reps"), m = b.closest(".entr-msg");
   if (b.matches("[data-aider]")) entrOuvrirReponse(m.dataset.id);
-  else if (b.matches("[data-voir]")) entrVoirReponses(m.dataset.id);
   else if (b.matches("[data-plus]")) entrOuvrirReponse(g.dataset.pour);
   else if (b.matches("[data-modifier]")) entrOuvrirReponse(g.dataset.pour, b.closest(".entr-moi").dataset.rep);
   else if (b.matches("[data-supprimer]")) entrSupprimerReponse(g, b.closest(".entr-moi"));
@@ -270,9 +255,17 @@ async function loadEntraide() {
     const [list, aidees, mes, aides] = await Promise.all([api.entraide(), api.entraidePourvues(),
       api.entraideMesDemandes().catch(() => null), api.entraideMesAides().catch(() => null)]);
     if (seq !== entrSeq) return;
-    if (mes) entrMajMes(mes);
     if (aides) entrMajAides(aides);
+    // La réponse en cours de rédaction survit au réaffichage : mise de côté, puis replacée dans son fil
+    const rep = $("entr-rep"), repFocus = rep.contains(document.activeElement), refocus = entrMemoFocus($("entr-pub"));
+    if (!rep.hidden) $("entr-pub").append(rep);
+    if (mes) { entrMajMes(mes); renderMesDemandes(mes); }
     renderEntraide(list); renderAidees(aidees); entrLoaded = true;
+    if (!rep.hidden) {
+      if (entrPlacerReponse(entrRepId, entrRepEdit)) { if (repFocus) $("entr-rep-txt").focus({ preventScroll: true }); }
+      else { rep.hidden = true; entrRepId = null; } // demande ou conversation retirée entre-temps
+    }
+    refocus();
   }
   catch { if (!entrLoaded) { $("entr-count").textContent = ""; $("entr-list").innerHTML = '<p class="empty">Impossible de charger les demandes pour le moment.</p>'; } }
 }
@@ -283,7 +276,6 @@ function entrRafraichir() {
   const h = location.hash;
   if (h === "#entraide" && canEntraide) loadEntraide();
   else if (h === "#entraide/moderation" && isReferent && entrModShown) loadModeration();
-  else if (h === "#entraide/mes-demandes" && canEntraide) renderMesDemandes();
   entrMajPastille();
 }
 async function entrEcouter(on) {
@@ -303,12 +295,11 @@ let entrDemandes = null, entrFiltre = "a_valider", entrBusy = false;
 const ENTR_FILTRES = [["a_valider", "À valider"], ["publiee", "Publiées"], ["terminees", "Terminées"]];
 const entrDans = (d, f) => f === "terminees" ? d.statut === "pourvue" || d.statut === "refusee" : d.statut === f;
 
-// Pastilles rouges (onglet et liste déroulante) pour attirer l'attention : « Modération » s'il y a des demandes à valider,
-// « Mes demandes » si une personne qui propose son aide attend ma réponse, « Demandes d'aide » si l'auteur d'une demande
-// m'a répondu (conversations non terminées dont le dernier message n'est pas de moi)
+// Pastilles rouges (onglet et liste déroulante, pour les modérateurs) : « Modération » s'il y a des demandes à valider,
+// « Demandes d'aide » si un message attend ma réponse : d'une personne qui propose son aide sur ma demande, ou de l'auteur
+// d'une demande que j'aide (conversations non terminées dont le dernier message n'est pas de moi)
 const ENTR_PASTILLES = {
   "#entraide": { tab: "entr-tab-pub", label: "Demandes d'aide", cache: " (réponses à lire)", on: false },
-  "#entraide/mes-demandes": { tab: "entr-tab-mes", label: "Mes demandes", cache: " (messages sans réponse)", on: false },
   "#entraide/moderation": { tab: "entr-tab-mod", label: "Modération", cache: " (demandes à modérer)", on: false },
 };
 function entrPastille(hash, on) {
@@ -324,16 +315,17 @@ const entrLibelle = hash => ENTR_PASTILLES[hash].label + (ENTR_PASTILLES[hash].o
 const entrAlerteSel = () => $("entr-nav-sel").classList.toggle("alerte",
   Object.entries(ENTR_PASTILLES).some(([h, p]) => p.on && location.hash !== h));
 let entrMesListe = [], entrAidesListe = [];
-function entrMajMes(list) { entrMesListe = list; entrPastille("#entraide/mes-demandes", list.some(d => d.conversations.some(entrAttend))); }
-function entrMajAides(list) { entrAidesListe = list; entrPastille("#entraide", list.some(entrAttend)); }
+const entrMajPub = () => entrPastille("#entraide", entrMesListe.some(d => d.conversations.some(entrAttend)) || entrAidesListe.some(entrAttend));
+function entrMajMes(list) { entrMesListe = list; entrMajPub(); }
+function entrMajAides(list) { entrAidesListe = list; entrMajPub(); }
 // Données des pastilles que la vue affichée ne recharge pas elle-même
 let entrPastilleSeq = 0;
 async function entrMajPastille() {
   const seq = ++entrPastilleSeq, h = location.hash, ok = f => l => { if (seq === entrPastilleSeq) f(l); };
   if (isReferent && h !== "#entraide/moderation")
     api.entraideModeration().then(ok(l => entrPastille("#entraide/moderation", l.some(d => d.statut === "a_valider")))).catch(() => {});
-  if (!canEntraide || h === "#entraide") return; // le fil public recharge déjà mes demandes et mes aides
-  if (h !== "#entraide/mes-demandes") api.entraideMesDemandes().then(ok(entrMajMes)).catch(() => {});
+  if (!canEntraide || h === "#entraide") return; // la page des demandes recharge déjà mes demandes et mes aides
+  api.entraideMesDemandes().then(ok(entrMajMes)).catch(() => {});
   api.entraideMesAides().then(ok(entrMajAides)).catch(() => {});
 }
 
@@ -428,45 +420,36 @@ $("entr-mod-list").addEventListener("click", e => {
 // Appelé par route() (app.js) à chaque changement de vue ou de connexion (rien à afficher sans le droit)
 let entrModShown = false;
 function onEntraideRoute() {
-  const h = location.hash, mod = h === "#entraide/moderation" && isReferent, mes = h === "#entraide/mes-demandes" && canEntraide;
+  const h = location.hash, mod = h === "#entraide/moderation" && isReferent;
   entrEcouter(canEntraide);
-  if (h !== "#entraide" && h !== "#entraide/mes-demandes") entrFermerReponse();
-  if (!(h === "#entraide" && canEntraide) && !mod && !mes) { entrModShown = false; return; }
+  if (h !== "#entraide") entrFermerReponse();
+  if (!(h === "#entraide" && canEntraide) && !mod) { entrModShown = false; return; }
+  // Une seule page sans le droit de modérer : pas de navigation, seulement « J'ai besoin d'aide »
+  $("entr-tabs").hidden = $("entr-nav-sel").hidden = !isReferent;
   $("entr-tab-mod").hidden = !isReferent;
-  $("entr-pub").hidden = mod || mes;
-  $("entr-mes").hidden = !mes;
+  $("entr-pub").hidden = mod;
   $("entr-mod").hidden = !mod;
-  for (const [id, on] of [["entr-tab-pub", !mod && !mes], ["entr-tab-mes", mes], ["entr-tab-mod", mod]]) {
+  for (const [id, on] of [["entr-tab-pub", !mod], ["entr-tab-mod", mod]]) {
     if (on) $(id).setAttribute("aria-current", "page"); else $(id).removeAttribute("aria-current");
   }
   // Téléphone : même navigation en liste déroulante
   const sel = $("entr-nav-sel");
-  sel.innerHTML = [["#entraide", "Demandes d'aide"], ["#entraide/mes-demandes", entrLibelle("#entraide/mes-demandes")], ...(isReferent ? [["#entraide/moderation", entrLibelle("#entraide/moderation")]] : [])]
+  sel.innerHTML = [["#entraide", entrLibelle("#entraide")], ...(isReferent ? [["#entraide/moderation", entrLibelle("#entraide/moderation")]] : [])]
     .map(([v, l]) => '<option value="' + v + '">' + esc(l) + "</option>").join("");
-  sel.value = mod ? "#entraide/moderation" : mes ? "#entraide/mes-demandes" : "#entraide";
+  sel.value = mod ? "#entraide/moderation" : "#entraide";
   entrAlerteSel();
-  if (mes) renderMesDemandes();
   entrMajPastille();
-  if (!mod) { entrModShown = false; if (!mes) loadEntraide(); }
+  if (!mod) { entrModShown = false; loadEntraide(); }
   else if (!entrModShown) { entrModShown = true; entrDemandes = null; renderModeration(); loadModeration(); }
 }
 $("entr-nav-sel").addEventListener("change", e => { location.hash = e.target.value; });
-// Mes demandes : mes demandes d'aide (reliées à mon compte par la base) et, pour chacune, une conversation par personne
-// qui a proposé son aide ; elle et moi sommes seuls à la voir.
+// « Mes demandes d'aide » (première section de la page, seulement si j'en ai déposé) : mes demandes (reliées à mon compte
+// par la base) et, pour chacune, une conversation par personne qui a proposé son aide, que nous sommes seules à voir ;
+// les messages s'affichent directement et se mettent à jour en direct avec le reste de la page.
 const ENTR_MON_STATUT = { a_valider: ["En attente de validation", "wait"], publiee: ["Publiée", "lead"], pourvue: ["Aidé ✓", "ok"], refusee: ["Non publiée", "none"] };
-let entrMesSeq = 0, entrCibleMes = null;
-async function renderMesDemandes() {
-  const seq = ++entrMesSeq, el = $("entr-mes-list");
-  if (!el.childElementCount) el.innerHTML = '<p class="empty">Chargement…</p>';
-  let list;
-  try { list = await api.entraideMesDemandes(); }
-  catch { if (seq === entrMesSeq) el.innerHTML = '<p class="empty">Impossible de charger vos demandes pour le moment.</p>'; return; }
-  if (seq !== entrMesSeq) return;
-  entrMajMes(list);
-  const rep = $("entr-rep"), repFocus = rep.contains(document.activeElement), garder = !rep.hidden && el.contains(rep);
-  if (garder) $("entr-pub").append(rep); // la réponse en cours de rédaction survit au rafraîchissement
-  const refocus = entrMemoFocus(el);
-  el.innerHTML = list.length ? [...list].sort((a, b) => b.created_at.localeCompare(a.created_at)).map(d => {
+function renderMesDemandes(list) {
+  $("entr-mes").hidden = !list.length;
+  $("entr-mes-list").innerHTML = [...list].sort((a, b) => b.created_at.localeCompare(a.created_at)).map(d => {
     const [label, cls] = ENTR_MON_STATUT[d.statut] || ENTR_MON_STATUT.a_valider;
     const convs = d.conversations.filter(c => c.messages.length), n = convs.reduce((t, c) => t + c.messages.filter(m => !m.moi).length, 0);
     return '<article class="entr-msg entr-mienne" data-demande="' + esc(d.id) + '" tabindex="-1">' +
@@ -483,23 +466,8 @@ async function renderMesDemandes() {
           return entrRepsHtml(k, c.prenom);
         }).join("") + "</div>"
         : d.statut === "publiee" ? '<p class="entr-sans-rep">Aucune réponse pour l\'instant.</p>' : "");
-  }).join("")
-    : '<p class="entr-mes-vide">Vous n\'avez pas encore déposé de demande d\'aide. Utilisez « J\'ai besoin d\'aide » : vous retrouverez ici vos demandes et les réponses reçues.</p>';
-  if (garder) {
-    if (entrPlacerReponse(entrRepId, entrRepEdit)) { if (repFocus) $("entr-rep-txt").focus({ preventScroll: true }); }
-    else { rep.hidden = true; entrRepId = null; }
-  }
-  refocus();
-  // Arrivée depuis « Voir les réponses » : le message qui attend ma réponse (sinon la demande) est mis en vue et reçoit le focus
-  if (entrCibleMes) {
-    const id = entrCibleMes, d = list.find(x => x.id === id), c = d?.conversations.find(entrAttend);
-    entrCibleMes = null;
-    const g = c && entrGroupe("mes:" + c.id), cible = g ? [...g.querySelectorAll(".entr-recue")].pop() : el.querySelector('[data-demande="' + CSS.escape(id) + '"]');
-    if (cible) { cible.scrollIntoView({ block: "center" }); cible.focus({ preventScroll: true }); cible.classList.add("entr-repere"); }
-  }
+  }).join("");
 }
-// Depuis le fil public, sur ma demande : aller aux réponses dans Mes demandes
-function entrVoirReponses(id) { entrCibleMes = id; location.hash = "#entraide/mes-demandes"; }
 onEntraideRoute(); // premier affichage : route() a pu s'exécuter avant le chargement de ce fichier
 
 // --- Demande d'aide en trois écrans qui se remplacent (« Suivant » ou Entrée) : le besoin ; quand et où ;
@@ -556,7 +524,7 @@ eForm.addEventListener("submit", async e => {
   try {
     await api.entraideDemander({ p_besoin: f.besoin.value, p_quand: f.quand.value, p_quartier: f.quartier.value,
       p_prenom: f.prenom.value, p_telephone: f.tel.value, p_accord: f.accord.checked, p_site: f.site.value });
-    if (location.hash === "#entraide/mes-demandes") renderMesDemandes();
+    if (location.hash === "#entraide") loadEntraide(); // ma nouvelle demande apparaît dans « Mes demandes d'aide »
     $("e-done-title").textContent = "Merci " + f.prenom.value.trim() + " !";
     eForm.hidden = $("e-head").hidden = true;
     $("entr-modal").querySelector("[role=dialog]").setAttribute("aria-labelledby", "e-done-title");
