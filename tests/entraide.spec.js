@@ -175,8 +175,14 @@ test("demander de l'aide : trois écrans qui se remplacent, puis remerciement @m
 
   await page.fill("#e-prenom", "Zoé");
   await page.fill("#e-tel", "06 39 98 00 42");
-  await page.click("#e-next");
-  await expect(page.locator("#e-error")).toHaveText("Votre accord est nécessaire pour publier la demande.");
+  // Sans la case d'accord, « Envoyer ma demande » est grisé (Entrée n'envoie rien non plus)
+  await expect(page.locator("#e-next")).toBeDisabled();
+  await page.press("#e-tel", "Enter");
+  await expect(page.locator("#e-done")).toBeHidden();
+  await page.check("#e-accord");
+  await expect(page.locator("#e-next")).toBeEnabled();
+  await page.uncheck("#e-accord");
+  await expect(page.locator("#e-next")).toBeDisabled();
   await page.check("#e-accord");
   await page.click("#e-next");
   await expect(page.locator("#e-done-title")).toHaveText("Merci Zoé !");
@@ -286,7 +292,8 @@ test("accessibilité : liste et formulaire @mobile", async ({ open, page }) => {
   expect(await audit(page)).toEqual([]);
   await page.click("#entr-ask");
   await page.fill("#e-besoin", "Un trajet");
-  for (let i = 0; i < 3; i++) await page.click("#e-next");
+  for (let i = 0; i < 2; i++) await page.click("#e-next");
+  await expect(page.locator("#e-next")).toBeDisabled(); // dernier écran : grisé sans l'accord
   expect(await audit(page)).toEqual([]);
 });
 

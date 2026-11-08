@@ -542,7 +542,11 @@ function eShow(step) {
   const last = step === E_STEPS - 1;
   $("e-next").textContent = last ? "Envoyer ma demande" : "Suivant";
   $("e-note").hidden = !last;
+  eMajEnvoi();
 }
+// « Envoyer ma demande » reste grisé tant que la case d'accord n'est pas cochée
+function eMajEnvoi() { $("e-next").disabled = eStep === E_STEPS - 1 && !eForm.accord.checked; }
+eForm.accord.addEventListener("change", eMajEnvoi);
 function openEntraide() {
   eLastFocus = document.activeElement;
   eForm.reset();
@@ -603,7 +607,7 @@ eForm.addEventListener("submit", async e => {
     if (isReferent) entrModShown = false; // la modération se rechargera avec la nouvelle demande
   } catch (err) {
     eError(err?.message || "La demande n'a pas pu être envoyée. Merci de réessayer plus tard.");
-  } finally { btn.disabled = false; }
+  } finally { btn.disabled = false; eMajEnvoi(); }
 });
 $("entr-ask").addEventListener("click", openEntraide);
 $("e-cancel").addEventListener("click", closeEntraide);
