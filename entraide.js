@@ -84,8 +84,12 @@ const entrRepliAttr = (id, declinee, defaut) => {
   const cle = id + (declinee ? "|declinee" : "|en-cours");
   return ((entrRepliEtat.get(cle) ?? defaut) ? " open" : "") + ' data-repli="' + esc(id) + '" data-cle="' + esc(cle) + '"';
 };
+// Côté aidant : conversations affichées en cours depuis l'ouverture de la page ; déclinée sous mes yeux, elle reste
+// dépliée pour que je puisse lire le dernier message (repliée si elle l'était déjà au chargement)
+const entrAideVues = new Set();
 function entrRepsHtml(id, prenom) {
   const f = entrFils.get(id) || { messages: [] };
+  if (!f.auteur && !f.declinee && f.messages.length) entrAideVues.add(id);
   // Mes demandes : chaque proposition dans un repli « Proposition de X », ouvert tant que la conversation est en cours
   if (!f.declinee) return !f.auteur ? entrFilHtml(id, prenom)
     : '<div class="entr-repli entr-repli-encours"><details' + entrRepliAttr(id, false, true) + "><summary>Proposition de " + esc(prenom) +
@@ -93,7 +97,7 @@ function entrRepsHtml(id, prenom) {
       (entrAttend(f) ? '<span class="entr-pastille" role="img" aria-label="message en attente de réponse"></span>' : "") +
       ' <span class="etat">en cours</span></summary>' + entrFilHtml(id, prenom) + "</details></div>";
   // Côté de la personne qui a proposé son aide : repliée sous « X a mis fin à la conversation. », sans Réactiver
-  if (!f.auteur) return '<div class="entr-repli entr-repli-aide"><details' + entrRepliAttr(id, true, false) + "><summary>" +
+  if (!f.auteur) return '<div class="entr-repli entr-repli-aide"><details' + entrRepliAttr(id, true, entrAideVues.has(id)) + "><summary>" +
     esc(prenom) + " a mis fin à la conversation.</summary>" + entrFilHtml(id, prenom) + "</details></div>";
   return '<div class="entr-repli"><details' + entrRepliAttr(id, true, false) + "><summary>Proposition de " + esc(prenom) +
     ' <span class="etat">déclinée</span></summary>' + entrFilHtml(id, prenom) +
