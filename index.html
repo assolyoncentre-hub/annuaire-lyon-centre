@@ -851,11 +851,11 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .aff:focus-visible { outline: 3px solid var(--brand); outline-offset: 3px; }
 .aff-visuel { position: relative; aspect-ratio: 16 / 9; overflow: hidden; container-type: inline-size;
   /* comme sur les affiches de l'église : anneaux, dégradé en diagonale (plus soutenu en bas à gauche, plus lumineux
-     en haut à droite) et grain sur toute l'image (::after) */
+     en haut à droite) et grain sur le fond seulement, sous l'étiquette et la porte (::after) */
   background: radial-gradient(80% 100% at 100% 0%, rgba(255, 255, 255, .2), transparent 70%),
     linear-gradient(30deg, color-mix(in srgb, var(--c2) 35%, transparent), transparent 65%),
     repeating-radial-gradient(circle at 76% 50%, color-mix(in srgb, var(--c1) 88%, var(--c2)) 0 6.5cqw, color-mix(in srgb, var(--c1) 80%, #fff) 6.5cqw 13cqw); }
-.aff-visuel::after { content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none; opacity: .75; mix-blend-mode: overlay;
+.aff-visuel::after { content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none; opacity: .75; mix-blend-mode: overlay;
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncR type='linear' slope='2' intercept='-.5'/%3E%3CfeFuncG type='linear' slope='2' intercept='-.5'/%3E%3CfeFuncB type='linear' slope='2' intercept='-.5'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E"); }
 .aff-label { position: absolute; left: 9%; right: 40%; top: 57%; transform: translateY(-50%); z-index: 1; display: grid; gap: 2px; padding: 2.6cqw 4cqw 2.8cqw 7.5cqw;
   border: 1.5px solid color-mix(in srgb, #fff 40%, transparent); border-radius: 12px; background: var(--c2); color: #fff; }
