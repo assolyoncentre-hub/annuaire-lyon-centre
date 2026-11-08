@@ -339,7 +339,7 @@ function entrTronquer(root = document) {
     p.classList.add("entr-clamp");
     if (!p.offsetParent) return; // masqué (repli fermé) : mesuré à l'ouverture
     const coupe = p.scrollHeight > p.clientHeight + 1;
-    if (coupe && !b) p.insertAdjacentHTML("afterend", '<button type="button" class="entr-voir-plus" aria-label="Voir plus : afficher tout le texte">Voir plus</button>');
+    if (coupe && !b) p.insertAdjacentHTML("afterend", '<button type="button" class="entr-voir-plus" aria-label="Voir plus : afficher tout le texte">Voir +</button>');
     else if (!coupe) b?.remove();
   });
 }

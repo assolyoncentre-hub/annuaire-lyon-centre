@@ -572,7 +572,7 @@ test("textes de plus de 10 lignes : coupés, « Voir plus » à droite déplie t
   const long = Array.from({ length: 15 }, (_, i) => "Ligne " + (i + 1)).join("\n");
   await page.evaluate(t => { window.__S.entraide.find(d => d.id === "e1").besoin = t; window.__entraideSignal(); }, long);
   const bulle = page.locator('#entr-list .entr-msg[data-id="e1"]'), need = bulle.locator(".need"), plus = bulle.locator(".entr-voir-plus");
-  await expect(plus).toHaveText("Voir plus");
+  await expect(plus).toHaveText("Voir +");
   await expect(need).toContainText("Ligne 15"); // tout le texte est là (lecteurs d'écran), seulement coupé à l'écran
   const h = await need.evaluate(p => [p.clientHeight, p.scrollHeight, parseFloat(getComputedStyle(p).lineHeight)]);
   expect(h[0]).toBeLessThan(h[1]);
