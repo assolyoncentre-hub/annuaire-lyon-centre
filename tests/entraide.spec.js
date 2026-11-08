@@ -210,6 +210,7 @@ test("modération : publier, modifier, pourvue, refuser, supprimer", async ({ op
   await page.click("#ed-form [type=submit]");
   await expect(henri.locator(".need")).toHaveText("M'accompagner à la messe du dimanche");
   await expect(henri.locator("[data-act=publier]")).toHaveText("Publier");
+  await expect(henri.locator("[data-act=supprimer]")).toHaveText("Supprimer"); // à valider : supprimable aussi
   await henri.locator("[data-act=publier]").click();
   await expect(page.locator("#toast")).toContainText("Demande publiée.");
   await expect(page.locator("#entr-filters")).toContainText("Publiées (6)");
@@ -232,10 +233,23 @@ test("modération : publier, modifier, pourvue, refuser, supprimer", async ({ op
   await page.click("#ed-form [type=submit]");
   await expect(page.locator(".entr-mod-row")).toHaveCount(2);
   expect(await calls(page, "entraideSupprimer")).toHaveLength(1);
+  // Supprimer aussi une demande publiée, après confirmation (Annuler ne supprime rien)
+  await page.click("[data-filter=publiee]");
+  const bernard = row(page, "Bernard");
+  await bernard.locator("[data-act=supprimer]").click();
+  await expect(page.locator("#ed-title")).toHaveText("Supprimer la demande de Bernard ?");
+  await expect(page.locator("#editor")).toContainText("ses conversations");
+  await page.locator("#editor [data-close]").first().click();
+  await expect(bernard).toBeVisible();
+  await bernard.locator("[data-act=supprimer]").click();
+  await page.click("#ed-form [type=submit]");
+  await expect(bernard).toHaveCount(0);
+  await expect(page.locator("#toast")).toContainText("Demande supprimée.");
 
   await page.click("#entr-tab-pub");
-  await expect(page.locator("#entr-count")).toHaveText("5 demandes en cours");
+  await expect(page.locator("#entr-count")).toHaveText("4 demandes en cours");
   await expect(page.locator("#entr-list")).toContainText("Henri");
+  await expect(page.locator("#entr-list")).not.toContainText("Bernard");
   await expect(page.locator("#entr-list")).not.toContainText("Jeanne");
 });
 
@@ -592,7 +606,7 @@ test("téléphone : la zone de rédaction se place au-dessus du clavier @mobile"
   await expect.poll(() => page.evaluate(() => document.getElementById("entr-rep").getBoundingClientRect().bottom - (innerHeight - 300))).toBeLessThanOrEqual(0);
 });
 
-test("textes de plus de 10 lignes : « … Voir + » à la suite de la 10e ligne déplie tout, « Voir − » replie @mobile", async ({ open, page }) => {
+test("textes de plus de 5 lignes : « … Voir + » à la suite de la 5e ligne déplie tout, « Voir − » replie @mobile", async ({ open, page }) => {
   const MOI = [{ email: "admin@example.org", droit: "admin", prenom: "", nom: "", entraide_voir: true, entraide_moderer: false }];
   await open({ user: ADMIN, hash: "#entraide", acces: MOI });
   await expect(page.locator(".entr-voir-plus")).toHaveCount(0); // textes courts : rien
@@ -603,8 +617,8 @@ test("textes de plus de 10 lignes : « … Voir + » à la suite de la 10e ligne
   // dans le texte, sur sa 10e ligne, juste après « … »
   await expect(voir).toHaveText("Voir +");
   await expect(voir).toHaveAttribute("aria-expanded", "false");
-  expect(await lignes()).toBe(10);
-  await expect(need.locator('[aria-hidden="true"]')).toHaveText(/Ligne 10…$/);
+  expect(await lignes()).toBe(5);
+  await expect(need.locator('[aria-hidden="true"]')).toHaveText(/Ligne 5…$/);
   const [nb, vb] = [await need.boundingBox(), await voir.boundingBox()];
   expect(vb.y + vb.height).toBeGreaterThan(nb.y + nb.height - 30); // dernière ligne
   await expect(need).toContainText("Ligne 15"); // texte complet pour les lecteurs d'écran
@@ -617,9 +631,9 @@ test("textes de plus de 10 lignes : « … Voir + » à la suite de la 10e ligne
   await page.evaluate(() => window.__entraideSignal());
   await page.waitForTimeout(300);
   await expect(voir).toHaveText("Voir −");
-  // « Voir − » replie à 10 lignes
+  // « Voir − » replie à 5 lignes
   await voir.click();
   await expect(voir).toHaveText("Voir +");
   await expect(voir).toBeFocused();
-  expect(await lignes()).toBe(10);
+  expect(await lignes()).toBe(5);
 });

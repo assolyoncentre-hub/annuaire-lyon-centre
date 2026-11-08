@@ -23,12 +23,12 @@ test("leaders : préchargés au survol, affichés au clic avec particules et civ
   await card(page, "Baptême bébé").hover();
   await expect.poll(async () => (await calls(page, "contacts")).map(c => c.arg)).toContain("bapteme");
   const c = await openLeaders(page, "Baptême bébé");
-  await expect(c.locator("summary")).toHaveText("Leaders");
+  await expect(c.locator("summary")).toHaveText("Qui contacter ?");
   await expect(c.locator(".contact li")).toHaveText(["Damien de LAFORÊT", "Magali de LAFORÊT", "Message"]);
   expect((await calls(page, "contacts")).filter(x => x.arg === "bapteme")).toHaveLength(1); // une seule requête
   await expect((await openLeaders(page, "Forever")).locator(".contact li").first()).toHaveText("Cyril DELORME");
   const spot = await openLeaders(page, "Spot");
-  await expect(spot.locator("summary")).toHaveText("Leader");
+  await expect(spot.locator("summary")).toHaveText("Qui contacter ?");
   await expect(spot.locator(".contact li").first()).toHaveText("Père Jean DUPUIS");
 });
 

@@ -78,7 +78,7 @@ const contactList = s => (contactsOf[s._id] ? peopleOf(s).map(p => "<li>" + esc(
   '<li><button type="button" class="msg">' + MAIL_ICON + "Message" + "</button></li>";
 function contact(s) {
   if (!nbContacts(s)) return "";
-  return '<details class="contact"><summary><span>' + (nbContacts(s) > 1 ? "Leaders" : "Leader") + '</span></summary><ul>' + contactList(s) + "</ul></details>";
+  return '<details class="contact"><summary><span>Qui contacter ?</span></summary><ul>' + contactList(s) + "</ul></details>";
 }
 
 // Icône « œil barré » du badge « Masqué »

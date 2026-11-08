@@ -322,11 +322,11 @@ $("entr-rep").addEventListener("submit", async e => {
 $("entr-jump").addEventListener("click", () => { entrVersLeHaut(); $("entr-jump").hidden = true; });
 addEventListener("scroll", () => { if (!$("entr-jump").hidden && entrEnHaut()) $("entr-jump").hidden = true; }, { passive: true });
 let entrSeq = 0;
-// Textes longs (demandes et messages) : 10 lignes au plus, terminées par « … Voir + » sur la dernière ligne, qui déplie
+// Textes longs (demandes et messages) : 5 lignes au plus, terminées par « … Voir + » sur la dernière ligne, qui déplie
 // tout le texte ; déplié, « Voir − » suit sa dernière ligne et le replie. Le texte complet reste lu par les lecteurs
 // d'écran. Les textes dépliés le restent lors des réaffichages en direct.
 const ENTR_TEXTES = ".entr-msg .need, .entr-recue .txt, .entr-moi .txt, .entr-mod-row .need";
-const ENTR_LIGNES = 10;
+const ENTR_LIGNES = 5;
 const entrDeplies = new Set();
 function entrCleTexte(p) {
   const e = p.closest("[data-msg], [data-rep], .entr-mod-row[data-id], [data-demande], [data-id]");
@@ -345,7 +345,7 @@ function entrTronquer(root = document) {
     if (!(p.offsetHeight > max)) return; // court : rien à couper
     const k = entrCleTexte(p);
     if (k && entrDeplies.has(k)) { p.innerHTML = esc(plein) + "\u00a0" + entrVoir(true); return; }
-    // plus long début qui tient en 10 lignes avec « … Voir + »
+    // plus long début qui tient en 5 lignes avec « … Voir + »
     const court = n => '<span aria-hidden="true">' + esc(plein.slice(0, n).trimEnd()) + "…</span>\u00a0" + entrVoir(false);
     let lo = 0, hi = plein.length;
     while (lo < hi) {
@@ -474,8 +474,8 @@ function renderModeration() {
   const list = all.filter(d => entrDans(d, entrFiltre));
   const btn = (act, label, cls = "btn-ghost") => '<button type="button" class="btn ' + cls + ' btn-sm" data-act="' + act + '"' + (entrBusy ? " disabled" : "") + ">" + label + "</button>";
   const ops = d => ({
-    a_valider: btn("publier", "Publier", "btn-primary") + btn("modifier", "Modifier") + btn("refuser", "Refuser"),
-    publiee: btn("pourvue", "C'est pourvu", "btn-primary") + btn("modifier", "Modifier"),
+    a_valider: btn("publier", "Publier", "btn-primary") + btn("modifier", "Modifier") + btn("refuser", "Refuser") + btn("supprimer", "Supprimer"),
+    publiee: btn("pourvue", "C'est pourvu", "btn-primary") + btn("modifier", "Modifier") + btn("supprimer", "Supprimer"),
     pourvue: btn("rouvrir", "Rouvrir") + btn("supprimer", "Supprimer"),
     refusee: btn("rouvrir", "Rouvrir") + btn("supprimer", "Supprimer"),
   })[d.statut];
@@ -538,7 +538,7 @@ $("entr-mod-list").addEventListener("click", e => {
   else if (act === "pourvue") entrModifier(d, { p_statut: "pourvue" }, "Demande marquée pourvue : elle n'apparaît plus publiquement.");
   else if (act === "rouvrir") entrModifier(d, { p_statut: d.publiee_le ? "publiee" : "a_valider" }, "Demande rouverte.");
   else if (act === "supprimer") openEditor("Entraide", "Supprimer la demande de " + d.prenom + " ?",
-    '<p style="margin:0">La demande et le numéro de téléphone seront effacés définitivement.</p>', async () => {
+    '<p style="margin:0">La demande' + (d.statut === "a_valider" ? "" : ", ses conversations") + " et le numéro de téléphone seront effacés définitivement.</p>", async () => {
       await api.entraideSupprimer(d.id);
       entrDemandes = entrDemandes.filter(x => x.id !== d.id);
       renderModeration(); toast("Demande supprimée.");

@@ -195,7 +195,7 @@ module.exports = function installFakeApi({ data, user, acces }) {
       signal();
       return entrRow(d);
     },
-    async entraideSupprimer(id) { guardRef(); log("entraideSupprimer", id); const i = S.entraide.findIndex(x => x.id === id); if (i < 0) throw new Error("Demande introuvable."); S.entraide.splice(i, 1); signal(); },
+    async entraideSupprimer(id) { guardRef(); log("entraideSupprimer", id); const i = S.entraide.findIndex(x => x.id === id); if (i < 0) throw new Error("Demande introuvable."); S.entraide.splice(i, 1); S.entraideConversations = S.entraideConversations.filter(c => c.demande !== id); signal(); }, // conversations effacées avec (on delete cascade)
     // En direct : comme le canal privé « entraide » de la base (écoute réservée aux comptes avec un droit Entraide)
     async entraideEnDirect(onMaj, onEtat) {
       log("entraideEnDirect");
