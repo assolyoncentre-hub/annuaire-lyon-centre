@@ -24,7 +24,7 @@
 body { margin: 0; background: var(--bg); color: var(--text);
   font: 16px/1.55 "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif; }
 /* Anneau décoratif dessiné en fond (le bandeau ne masque plus ce qui dépasse : le menu du compte peut en sortir) */
-.hero { background: var(--hero, var(--brand)) radial-gradient(circle at calc(100% - 90px) 50px, transparent 154px, rgba(255, 255, 255, .07) 154.5px 210px, transparent 210.5px) no-repeat;
+.hero { background: var(--brand) radial-gradient(circle at calc(100% - 90px) 50px, transparent 154px, rgba(255, 255, 255, .07) 154.5px 210px, transparent 210.5px) no-repeat;
   color: var(--brand-ink); position: relative; }
 .hero::after { display: none; }
 .hero::after { content: ""; position: absolute; right: -120px; top: -160px; width: 420px; height: 420px;
@@ -486,7 +486,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .switch a { padding: 12px 18px; border-radius: 10px 10px 0 0; color: var(--brand-ink); text-decoration: none;
   font: 600 13px/1 Montserrat, sans-serif; letter-spacing: .08em; text-transform: uppercase; opacity: .8; }
 .switch a:hover { opacity: 1; background: rgba(255, 255, 255, .1); }
-.switch a[aria-current="page"] { background: var(--bg); color: var(--hero, var(--brand)); opacity: 1; }
+.switch a[aria-current="page"] { background: var(--bg); color: var(--brand); opacity: 1; }
 /* Téléphone (après le style général, qui l'écrasait sinon) : onglets à parts égales sur toute la largeur,
    à 8 px des deux bords de l'écran ; un onglet au texte plus long garde la largeur de son texte */
 @media (max-width: 520px) {
@@ -835,8 +835,8 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 }
 #m-title:focus { outline: none; } /* focus posé à l'ouverture de la fenêtre, pour les lecteurs d'écran */
 
-/* Bandeau : couleur de la page affichée (celle de son affiche sur l'accueil), bleu du site sur l'accueil */
-.hero { transition: background-color .25s; }
+/* Titres de la page : couleur de son affiche sur l'accueil (--page, posée par route() ; bleu du site sinon) */
+.card h2, .letter, .entr-titre, .login h2 { color: var(--page, var(--brand)); }
 /* Onglet Accueil : une maison, tout à gauche */
 .switch a.sw-home { display: inline-flex; align-items: center; justify-content: center; padding: 10px 14px; }
 .switch a.sw-home svg { width: 18px; height: 18px; }
@@ -868,7 +868,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .aff-infos span { display: inline-flex; align-items: center; gap: 8px; }
 .aff-infos svg { width: 20px; height: 20px; flex: none; }
 @media (max-width: 520px) { .aff-rond { width: 36px; height: 36px; left: -12px; top: -12px; } .aff-bas { padding: 16px 18px 18px; } .aff-bas h2 { font-size: 22px; } .aff-infos { font-size: 15px; } }
-@media (prefers-reduced-motion: reduce) { .aff, .hero { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .aff { transition: none; } }
 </style>
 </head>
 <body>

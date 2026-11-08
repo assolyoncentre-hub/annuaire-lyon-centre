@@ -141,7 +141,7 @@ function toast(msg) {
 // La fenêtre s'adresse soit aux contacts d'un staff, soit aux responsables d'un pôle
 let lastFocus = null, modalTarget = null;
 // Pendant qu'une fenêtre est ouverte, le reste de la page est inactif : Tab reste dans la fenêtre
-const setPageInert = on => [document.querySelector(".hero"), $("dir-view"), $("entr-view"), $("admin-view"), document.querySelector(".site-footer")]
+const setPageInert = on => [document.querySelector(".hero"), $("home-view"), $("dir-view"), $("entr-view"), $("admin-view"), document.querySelector(".site-footer")]
   .forEach(el => { if (el) el.inert = on; });
 function openModal(t) {
   modalTarget = t;
@@ -316,9 +316,9 @@ function route() {
   $("admin-body").hidden = !adminHash || !isAdmin;
   const email = session?.user?.email || "";
   $("denied-email").textContent = email;
-  // Bandeau : couleur de la page (celle de son affiche sur l'accueil)
+  // Titres de la page : couleur de son affiche sur l'accueil (le bandeau du haut reste bleu)
   const page = home ? null : entrMod ? "mod" : entrHash ? "entr" : serv ? "lead" : adminHash ? "admin" : admin ? null : "prop";
-  document.querySelector(".hero").style.setProperty("--hero", page ? PAGES[page].c2 : "");
+  document.body.style.setProperty("--page", page ? PAGES[page].c2 : "");
   if (home) renderHome();
   if (admin) renderAdmin();
   if (showServ) renderServ();
@@ -330,7 +330,7 @@ function route() {
 }
 window.addEventListener("hashchange", route);
 
-// --- Accueil : une affiche par page accessible, dans l'ordre des onglets (couleurs reprises par le bandeau de la page)
+// --- Accueil : une affiche par page accessible, dans l'ordre des onglets (couleurs reprises par les titres de la page)
 const ICO = {
   prop: '<path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/>',
   entr: '<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21l7.8-7.5 1-1.1a5.5 5.5 0 0 0 0-7.8z"/>',
@@ -341,7 +341,7 @@ const ICO = {
   lock: '<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
 };
 const ico = k => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICO[k] + "</svg>";
-// c1 : fond de l'affiche ; c2 : bandeau du titre, cadre de la porte et bandeau du haut de la page
+// c1 : fond de l'affiche ; c2 : bandeau du titre, cadre de la porte et titres de la page
 const PAGES = {
   prop: { href: "#", titre: "Propositions", sous: "Trouver sa place", nom: "Annuaire des propositions", c1: "#33b5a4", c2: "#0d6b62" },
   entr: { href: "#entraide", titre: "Entraide", sous: "Demander, aider", nom: "Entraide entre paroissiens", c1: "#ff7a6b", c2: "#b2332a" },
