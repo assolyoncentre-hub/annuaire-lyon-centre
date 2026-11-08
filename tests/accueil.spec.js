@@ -13,7 +13,7 @@ test("accueil sans connexion : onglet maison, Propositions puis Entraide (connex
   await expect(page.locator("#h1")).toHaveText("Bienvenue");
   await expect(page.locator("#dir-view")).toBeHidden();
   await expect(titres(page)).toHaveText(["Annuaire des propositions", "Entraide entre paroissiens"]);
-  await expect(page.locator("#home-grid .aff").first()).toContainText(/\d+ staffs · \d+ pôles/);
+  await expect(page.locator("#home-grid .aff").first()).toContainText("Il existe forcément une proposition faite pour vous !");
   await expect(page.locator("#home-grid .aff").nth(1)).toContainText("Connexion requise");
   expect(await bandeau(page)).toBe("rgb(0, 96, 170)"); // accueil : bleu du site
   // l'affiche mène à sa page, dont les titres prennent la couleur de l'affiche ; le bandeau reste bleu

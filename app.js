@@ -337,8 +337,6 @@ const ICO = {
   lead: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.2a5 5 0 0 1 5.5 4.8"/>',
   mod: '<path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6z"/><path d="m9 12 2 2 4-4"/>',
   admin: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
-  ok: '<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>',
-  lock: '<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
 };
 const ico = k => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICO[k] + "</svg>";
 // c1 : fond de l'affiche ; c2 : bandeau du titre, cadre de la porte et titres de la page
@@ -361,10 +359,10 @@ function afficheHtml(k, infos, pastille) {
     '<path d="' + OGIVE + '" fill="' + p.c2 + '"/><path d="' + OGIVE + '" fill="url(#aff-g-' + k + ')" transform="translate(3.7 4.6) scale(.926)"/></svg><span>' + ico(k) + "</span></div>" +
     (pastille ? '<span class="aff-pastille' + (pastille.n ? " aff-nombre" : "") + '">' + (pastille.n ? esc(pastille.n > 99 ? "99+" : String(pastille.n)) : "") + "</span>" : "") + "</div>" +
     '<div class="aff-bas"><h2>' + esc(p.nom) + (pastille ? '<span class="entr-cache"> (' + esc(pastille.texte) + ")</span>" : "") + '</h2><div class="aff-infos">' +
-    infos.filter(([, t]) => t).map(([i, t]) => "<span>" + ico(i) + esc(t) + "</span>").join("") + "</div></div></a>";
+    infos.map(t => "<span>" + esc(t) + "</span>").join("") + "</div></div></a>";
 }
 function renderHome() {
-  const nPoles = new Set(services.map(s => s.pole).filter(Boolean)).size, n = (k, un, plus) => k + " " + (k > 1 ? plus : un);
+  const n = (k, un, plus) => k + " " + (k > 1 ? plus : un);
   // pastille rouge (texte lu par les lecteurs d'écran) : comme celle de l'onglet de l'entraide
   // (avec le nombre de demandes à valider pour la modération)
   const pastille = h => {
@@ -374,12 +372,12 @@ function renderHome() {
   };
   $("home-intro").innerHTML = session ? "Bonjour <strong>" + esc(firstName()) + "</strong>, où voulez-vous aller ?" : "Que cherchez-vous aujourd'hui ?";
   $("home-grid").innerHTML = [
-    afficheHtml("prop", [["prop", services.length ? n(services.length, "staff", "staffs") + " · " + n(nPoles, "pôle", "pôles") : ""], ["ok", "Ouvert à tous"]]),
+    afficheHtml("prop", ["Il existe forcément une proposition faite pour vous !"]),
     // Entraide : proposée aussi sans connexion (elle mène à la connexion), pas à une personne connectée sans ce droit
-    !session || canEntraide ? afficheHtml("entr", [canEntraide ? ["ok", "Demander ou proposer son aide"] : ["lock", "Connexion requise"]], pastille("#entraide")) : "",
-    canLeaders ? afficheHtml("lead", [["lock", "Réservé aux leaders"]]) : "",
-    isReferent ? afficheHtml("mod", [["lock", "Réservé aux modérateurs"]], pastille("#entraide/moderation")) : "",
-    isAdmin ? afficheHtml("admin", [["admin", "Staffs, pôles, contacts, droits"], ["lock", "Réservé aux administrateurs"]]) : "",
+    !session || canEntraide ? afficheHtml("entr", [canEntraide ? "Demander ou proposer son aide" : "Connexion requise"], pastille("#entraide")) : "",
+    canLeaders ? afficheHtml("lead", ["Réservé aux leaders"]) : "",
+    isReferent ? afficheHtml("mod", ["Réservé aux modérateurs"], pastille("#entraide/moderation")) : "",
+    isAdmin ? afficheHtml("admin", ["Staffs, pôles, contacts, droits · Réservé aux administrateurs"]) : "",
   ].join("");
 }
 $("year").textContent = new Date().getFullYear();
