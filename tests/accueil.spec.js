@@ -31,10 +31,12 @@ test("accueil d'un administrateur : toutes les pages dans l'ordre des onglets, t
   await expect(titres(page)).toHaveText([/^Annuaire des propositions$/, /^Entraide entre paroissiens/, /^Annuaire des leaders$/, /^Modération de l'entraide/, /^Administration$/]);
   // onglets dans le même ordre : Accueil, Propositions, Entraide, Leaders, Administration
   expect(await page.locator("#switch a:not([hidden])").evaluateAll(as => as.map(a => a.id))).toEqual(["sw-home", "sw-prop", "sw-entr", "sw-serv", "sw-admin"]);
-  // pastille rouge sur Modération : des demandes attendent d'être validées
+  // pastille rouge sur Modération, avec le nombre de demandes qui attendent d'être validées
   const mod = page.locator('#home-grid .aff[href="#entraide/moderation"]');
-  await expect(mod.locator(".aff-pastille")).toBeVisible();
-  await expect(mod.locator("h2")).toHaveText("Modération de l'entraide (demandes à modérer)"); // pastille annoncée aux lecteurs d'écran
+  const nb = await page.evaluate(() => window.__S.entraide.filter(d => d.statut === "a_valider").length);
+  expect(nb).toBeGreaterThan(1);
+  await expect(mod.locator(".aff-pastille")).toHaveText(String(nb));
+  await expect(mod.locator("h2")).toHaveText("Modération de l'entraide (" + nb + " demandes à valider)"); // nombre annoncé aux lecteurs d'écran
   for (const [hash, sel, couleur] of [["#entraide", "#entr-mes-t", "rgb(178, 51, 42)"], ["#leaders", ".letter", "rgb(75, 42, 156)"]]) {
     await page.evaluate(h => { location.hash = h; }, hash);
     await expect.poll(() => titre(page, sel)).toBe(couleur);

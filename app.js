@@ -359,14 +359,19 @@ function afficheHtml(k, infos, pastille) {
     '<div class="aff-arche"><svg viewBox="0 0 100 124"><defs><radialGradient id="aff-g-' + k + '" cx="50%" cy="62%" r="70%"><stop offset="0" stop-color="#fff" stop-opacity=".55"/>' +
     '<stop offset=".4" stop-color="' + p.c1 + '"/><stop offset="1" style="stop-color:color-mix(in srgb, ' + p.c1 + " 70%, " + p.c2 + ')"/></radialGradient></defs>' +
     '<path d="' + OGIVE + '" fill="' + p.c2 + '"/><path d="' + OGIVE + '" fill="url(#aff-g-' + k + ')" transform="translate(3.7 4.6) scale(.926)"/></svg><span>' + ico(k) + "</span></div>" +
-    (pastille ? '<span class="aff-pastille"></span>' : "") + "</div>" +
-    '<div class="aff-bas"><h2>' + esc(p.nom) + (pastille ? '<span class="entr-cache"> ' + esc(pastille.trim()) + "</span>" : "") + '</h2><div class="aff-infos">' +
+    (pastille ? '<span class="aff-pastille' + (pastille.n ? " aff-nombre" : "") + '">' + (pastille.n ? esc(pastille.n > 99 ? "99+" : String(pastille.n)) : "") + "</span>" : "") + "</div>" +
+    '<div class="aff-bas"><h2>' + esc(p.nom) + (pastille ? '<span class="entr-cache"> (' + esc(pastille.texte) + ")</span>" : "") + '</h2><div class="aff-infos">' +
     infos.filter(([, t]) => t).map(([i, t]) => "<span>" + ico(i) + esc(t) + "</span>").join("") + "</div></div></a>";
 }
 function renderHome() {
-  // pastille rouge (texte lu par les lecteurs d'écran) : comme celle de l'onglet de l'entraide
-  const pastille = h => typeof ENTR_PASTILLES !== "undefined" && ENTR_PASTILLES[h]?.on ? ENTR_PASTILLES[h].cache : "";
   const nPoles = new Set(services.map(s => s.pole).filter(Boolean)).size, n = (k, un, plus) => k + " " + (k > 1 ? plus : un);
+  // pastille rouge (texte lu par les lecteurs d'écran) : comme celle de l'onglet de l'entraide
+  // (avec le nombre de demandes à valider pour la modération)
+  const pastille = h => {
+    const p = typeof ENTR_PASTILLES !== "undefined" && ENTR_PASTILLES[h];
+    if (!p?.on) return null;
+    return p.n ? { n: p.n, texte: n(p.n, "demande à valider", "demandes à valider") } : { texte: p.cache.trim().replace(/^\(|\)$/g, "") };
+  };
   $("home-intro").innerHTML = session ? "Bonjour <strong>" + esc(firstName()) + "</strong>, où voulez-vous aller ?" : "Que cherchez-vous aujourd'hui ?";
   $("home-grid").innerHTML = [
     afficheHtml("prop", [["prop", services.length ? n(services.length, "staff", "staffs") + " · " + n(nPoles, "pôle", "pôles") : ""], ["ok", "Ouvert à tous"]]),

@@ -440,9 +440,11 @@ const ENTR_PASTILLES = {
   "#entraide": { tab: "entr-tab-pub", label: "Demandes d'aide", cache: " (réponses à lire)", on: false },
   "#entraide/moderation": { tab: "entr-tab-mod", label: "Modération", cache: " (demandes à modérer)", on: false },
 };
+// on : vrai/faux, ou le nombre de demandes à valider (écrit dans la pastille de l'affiche de l'accueil)
 function entrPastille(hash, on) {
   const p = ENTR_PASTILLES[hash];
-  p.on = on;
+  p.on = !!on;
+  p.n = typeof on === "number" ? on : 0;
   $(p.tab).innerHTML = esc(p.label) + (on ? '<span class="entr-pastille" aria-hidden="true"></span><span class="entr-cache">' + esc(p.cache) + "</span>" : "");
   const opt = $("entr-nav-sel").querySelector('option[value="' + hash + '"]');
   if (opt) opt.textContent = entrLibelle(hash);
@@ -462,7 +464,7 @@ let entrPastilleSeq = 0;
 async function entrMajPastille() {
   const seq = ++entrPastilleSeq, h = location.hash, ok = f => l => { if (seq === entrPastilleSeq) f(l); };
   if (isReferent && h !== "#entraide/moderation")
-    api.entraideModeration().then(ok(l => entrPastille("#entraide/moderation", l.some(d => d.statut === "a_valider")))).catch(() => {});
+    api.entraideModeration().then(ok(l => entrPastille("#entraide/moderation", l.filter(d => d.statut === "a_valider").length))).catch(() => {});
   if (!canEntraide || h === "#entraide") return; // la page des demandes recharge déjà mes demandes et mes aides
   api.entraideMesDemandes().then(ok(entrMajMes)).catch(() => {});
   api.entraideMesAides().then(ok(entrMajAides)).catch(() => {});
@@ -481,7 +483,7 @@ function renderModeration() {
   $("entr-filters").innerHTML = ENTR_FILTRES.map(([k, label]) =>
     '<button type="button" class="afilter" data-filter="' + k + '" aria-pressed="' + (entrFiltre === k) + '">' + label + " (" + n(k) + ")" +
     (k === "a_valider" && n(k) ? '<span class="entr-pastille" aria-hidden="true"></span>' : "") + "</button>").join("");
-  if (entrDemandes !== null) entrPastille("#entraide/moderation", n("a_valider") > 0);
+  if (entrDemandes !== null) entrPastille("#entraide/moderation", n("a_valider"));
   if (entrDemandes === null) { $("entr-mod-list").innerHTML = '<div class="empty">Chargement…</div>'; return; }
 
   const list = all.filter(d => entrDans(d, entrFiltre));
