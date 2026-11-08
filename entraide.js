@@ -144,6 +144,27 @@ function entrOuvrirReponse(id, editId = null) {
   if (!entrPlacerReponse(id, r ? editId : null)) return;
   $("entr-rep").scrollIntoView({ block: "nearest", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
   $("entr-rep-txt").focus({ preventScroll: true });
+  entrSuivreClavier();
+}
+// Téléphone (iPhone surtout) : le clavier ne réduit que la partie visible de l'écran (visualViewport), pas la page ;
+// la zone de rédaction peut donc rester cachée dessous. Quand le clavier s'ouvre (ou que le texte s'allonge),
+// on fait défiler la page pour la placer juste au-dessus du clavier.
+function entrAuDessusDuClavier() {
+  const vv = window.visualViewport, f = $("entr-rep");
+  if (!vv || f.hidden) return;
+  const r = f.getBoundingClientRect(), bas = vv.offsetTop + vv.height - 12, haut = vv.offsetTop + 12;
+  if (r.bottom > bas) window.scrollBy(0, Math.min(r.bottom - bas, r.top - haut));
+}
+let entrClavierFin = null;
+function entrSuivreClavier() {
+  const vv = window.visualViewport;
+  if (!vv) return;
+  entrClavierFin?.();
+  const suivre = () => entrAuDessusDuClavier();
+  vv.addEventListener("resize", suivre);
+  const t = setTimeout(() => entrClavierFin?.(), 1500); // le clavier est ouvert : on arrête d'écouter
+  entrClavierFin = () => { vv.removeEventListener("resize", suivre); clearTimeout(t); entrClavierFin = null; };
+  setTimeout(suivre, 350); // clavier déjà ouvert (passage d'une demande à l'autre) : pas de « resize »
 }
 // Ferme la zone de rédaction ; le focus revient sur ce qui l'a ouverte (Modifier, ou Je peux aider !)
 function entrFermerReponse(rendreFocus = true) {
@@ -231,6 +252,7 @@ $("entr-rep-txt").addEventListener("input", e => {
   const t = e.target;
   $("entr-rep-send").disabled = !t.value.trim();
   t.style.height = "auto"; t.style.height = t.scrollHeight + "px";
+  entrAuDessusDuClavier(); // le texte s'allonge : la zone reste au-dessus du clavier
 });
 // Entrée envoie, Maj+Entrée va à la ligne (comme dans une messagerie)
 $("entr-rep-txt").addEventListener("keydown", e => {

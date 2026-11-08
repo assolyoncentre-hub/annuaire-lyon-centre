@@ -437,3 +437,20 @@ test("messagerie : règles du serveur (mêmes que la base)", async ({ open, page
   expect(await essai("entraideDecliner", "c4", true)).toBe("Conversation introuvable."); // pas ma demande
   expect(await essai("entraideEcrire", "Sur une demande à valider", { p_demande: "e6" })).toBe("Cette demande n'est plus en cours.");
 });
+
+test("téléphone : la zone de rédaction se place au-dessus du clavier @mobile", async ({ open, page }) => {
+  // Clavier simulé : comme sur iPhone, il ne réduit que la partie visible de l'écran (visualViewport), pas la page
+  await page.addInitScript(() => {
+    const vv = new EventTarget();
+    Object.assign(vv, { offsetTop: 0, height: innerHeight, width: innerWidth });
+    Object.defineProperty(window, "visualViewport", { value: vv });
+    window.__clavier = () => { vv.height = innerHeight - 300; vv.dispatchEvent(new Event("resize")); };
+  });
+  await open({ user: VOIR, hash: "#entraide", acces: ACCES });
+  const bouton = page.locator("[data-aider]").last();
+  await bouton.evaluate(b => b.scrollIntoView({ block: "end" })); // bouton en bas de l'écran, là où le clavier va s'ouvrir
+  await bouton.click();
+  await expect(page.locator("#entr-rep-txt")).toBeFocused();
+  await page.evaluate(() => window.__clavier());
+  await expect.poll(() => page.evaluate(() => document.getElementById("entr-rep").getBoundingClientRect().bottom - (innerHeight - 300))).toBeLessThanOrEqual(0);
+});
