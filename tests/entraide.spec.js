@@ -459,7 +459,13 @@ test("messagerie : côté personne qui aide, réponse de l'auteur et pastille su
   expect((await calls(page, "entraideEcrire")).at(-1).arg).toEqual({ texte: "Je peux vous conduire.", p_demande: "e1" });
   // Marie met fin à la conversation : je le vois, sans pouvoir écrire
   await page.evaluate(() => { window.__S.entraideConversations.find(c => c.id === "c4").declinee = true; window.__entraideSignal(); });
-  await expect(marie.locator(".entr-fin")).toHaveText("Marie a mis fin à la conversation.");
+  // la conversation se replie sous « Marie a mis fin à la conversation. » ; dépliée, on relit les messages sans pouvoir écrire
+  const repli = page.locator('#entr-list .entr-repli-aide');
+  await expect(repli.locator("summary")).toHaveText("Marie a mis fin à la conversation.");
+  await expect(marie).toBeHidden();
+  await expect(repli.locator(".entr-reprendre")).toHaveCount(0);
+  await repli.locator("summary").click();
+  await expect(marie.locator(".entr-moi").last()).toBeVisible();
   await expect(marie.locator(".entr-plus, [data-modifier]")).toHaveCount(0);
 });
 

@@ -79,7 +79,10 @@ const entrAttend = c => !c.declinee && c.messages.length > 0 && !c.messages[c.me
 const entrRepliOuverts = new Set();
 function entrRepsHtml(id, prenom) {
   const f = entrFils.get(id) || { messages: [] };
-  if (!(f.auteur && f.declinee)) return entrFilHtml(id, prenom);
+  if (!f.declinee) return entrFilHtml(id, prenom);
+  // Côté de la personne qui a proposé son aide : repliée sous « X a mis fin à la conversation. », sans Réactiver
+  if (!f.auteur) return '<div class="entr-repli entr-repli-aide"><details' + (entrRepliOuverts.has(id) ? " open" : "") + ' data-repli="' + esc(id) + '"><summary>' +
+    esc(prenom) + " a mis fin à la conversation.</summary>" + entrFilHtml(id, prenom) + "</details></div>";
   return '<div class="entr-repli"><details' + (entrRepliOuverts.has(id) ? " open" : "") + ' data-repli="' + esc(id) + '"><summary>Proposition de ' + esc(prenom) +
     ' <span class="etat">déclinée</span></summary>' + entrFilHtml(id, prenom) + "</details>" +
     '<button type="button" class="entr-reprendre" data-reprendre data-pour="' + esc(id) + '" aria-label="Réactiver la conversation avec ' + esc(prenom) + '">Réactiver</button></div>';
@@ -94,7 +97,7 @@ function entrFilHtml(id, prenom) {
       : '<div class="entr-moi" data-rep="' + esc(r.id) + '"><p class="txt">' + esc(r.texte) + "</p>" +
         '<div class="entr-moi-pied"><span class="entr-moi-act">' + (fini ? "" : '<button type="button" data-modifier>Modifier</button><button type="button" data-supprimer>Supprimer</button>') + "</span>" +
         '<time class="time" datetime="' + esc(r.le) + '">' + (r.modifie ? "Modifié · " : "") + (recues ? esc(entrJour(r.le)) + ", " : "") + entrHeure(r.le) + "</time></div></div>").join("") +
-    (fini ? (f.auteur ? "" : '<p class="entr-fin">' + esc(prenom) + " a mis fin à la conversation.</p>")
+    (fini ? "" // « X a mis fin à la conversation » : titre du repli
       : f.auteur ? '<div class="entr-conv-act"><button type="button" class="entr-plus" data-plus>Répondre à ' + esc(prenom) + "</button>" +
         '<button type="button" class="entr-decliner" data-decliner>Décliner</button></div>'
       : '<button type="button" class="entr-plus" data-plus>' + (recues ? "Répondre à " + esc(prenom) : "+ Ajouter un message") + "</button>") : "") + "</div>";

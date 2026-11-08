@@ -637,7 +637,6 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .entr-conv-act .entr-plus { flex: 1; width: auto; }
 .entr-decliner { flex: none; padding: 9px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--muted); font: 600 15px/1 Montserrat, sans-serif; cursor: pointer; }
 @media (hover: hover) { .entr-decliner:hover { color: #a3261b; border-color: #e3b4ae; } }
-.entr-fin { margin: 4px 0 0; color: var(--muted); font-size: 15px; }
 .entr-reprendre { padding: 2px 4px; border: 0; background: none; color: var(--muted); font: 500 14px/1 Montserrat, sans-serif; text-decoration: underline; cursor: pointer; }
 @media (hover: hover) { .entr-reprendre:hover { color: var(--brand); } }
 /* Conversation déclinée sur ma demande : repliée dans « Proposition de X » (ligne grise), « Réactiver » discret à droite */
@@ -651,6 +650,12 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .entr-repli summary .etat { padding: 2px 8px; border-radius: 999px; background: #dfe6ee; font-weight: 500; font-size: 13px; }
 .entr-repli > .entr-reprendre { position: absolute; top: 2px; right: 8px; }
 .entr-repli .entr-reps { margin: 0 !important; padding: 0 12px 12px; border-top: 0 !important; }
+/* Repli du côté de la personne qui aidait : à la place de la conversation, sous la demande (pas de bouton Réactiver) */
+.entr-repli-aide { width: min(84%, 660px); margin: -8px 0 18px 28px; }
+.entr-repli-aide summary { padding-right: 12px; font-weight: 500; }
+.entr-repli-aide .entr-reps { width: auto; }
+.entr-repli-aide .entr-reps::before { display: none; }
+@media (max-width: 520px) { .entr-repli-aide { width: auto; margin-left: 22px; } }
 @media (max-width: 520px) { .entr-repli summary .etat { display: none; } }
 /* Conversation déclinée : grisée (ses messages restent lisibles), « Réactiver » discret en dessous */
 .entr-reps.declinee .entr-recue, .entr-reps.declinee .entr-moi { opacity: .55; filter: grayscale(1); }
