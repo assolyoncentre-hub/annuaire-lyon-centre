@@ -38,7 +38,7 @@ function renderAidees(list) {
 }
 function renderEntraide(tout) {
   const t = $("entr-list"), enHaut = !entrLoaded || entrEnHaut();
-  const list = tout.filter(d => !entrMesListe.some(x => x.id === d.id)); // mes demandes sont dans « Mes demandes d'aide »
+  const list = tout.filter(d => !entrMesListe.some(x => x.id === d.id)); // mes demandes sont dans « Mes demandes »
   $("entr-count").textContent = list.length ? list.length + (list.length > 1 ? " demandes en cours" : " demande en cours") : "Aucune demande en cours";
   let jour = null, nouvelles = 0;
   t.innerHTML = list.length ? [...list].sort((a, b) => b.publie_le.localeCompare(a.publie_le)).map(d => {
@@ -477,7 +477,7 @@ function onEntraideRoute() {
   else if (!entrModShown) { entrModShown = true; entrDemandes = null; renderModeration(); loadModeration(); }
 }
 $("entr-nav-sel").addEventListener("change", e => { location.hash = e.target.value; });
-// « Mes demandes d'aide » (première section de la page, seulement si j'en ai déposé) : mes demandes (reliées à mon compte
+// « Mes demandes » (première section de la page, seulement si j'en ai déposé) : mes demandes (reliées à mon compte
 // par la base) et, pour chacune, une conversation par personne qui a proposé son aide, que nous sommes seules à voir ;
 // les messages s'affichent directement et se mettent à jour en direct avec le reste de la page.
 const ENTR_MON_STATUT = { a_valider: ["En attente de validation", "wait"], publiee: ["Publiée", "lead"], pourvue: ["Aidé ✓", "ok"], refusee: ["Non publiée", "none"] };
@@ -528,6 +528,16 @@ function openEntraide() {
   document.body.classList.add("locked");
   setPageInert(true);
   $("e-besoin").focus();
+  ePreremplir();
+}
+// Personne connectée : prénom et téléphone de sa fiche, préremplis à l'écran 3 (modifiables ; un champ déjà saisi n'est pas touché)
+async function ePreremplir() {
+  let f;
+  try { f = await api.entraideMaFiche(); } catch { return; }
+  if (!f || $("entr-modal").hidden) return;
+  const tel = String(f.telephone || "").replace(/[\s.]/g, "");
+  if (f.prenom && !eForm.prenom.value) eForm.prenom.value = f.prenom;
+  if (tel && !eForm.tel.value) eForm.tel.value = /^\+33\d{9}$/.test(tel) ? entrTel(tel) : f.telephone.trim();
 }
 function closeEntraide() {
   setPageInert(false);
@@ -558,7 +568,7 @@ eForm.addEventListener("submit", async e => {
   try {
     await api.entraideDemander({ p_besoin: f.besoin.value, p_quand: f.quand.value, p_quartier: f.quartier.value,
       p_prenom: f.prenom.value, p_telephone: f.tel.value, p_accord: f.accord.checked, p_site: f.site.value });
-    if (location.hash === "#entraide") loadEntraide(); // ma nouvelle demande apparaît dans « Mes demandes d'aide »
+    if (location.hash === "#entraide") loadEntraide(); // ma nouvelle demande apparaît dans « Mes demandes »
     $("e-done-title").textContent = "Merci " + f.prenom.value.trim() + " !";
     eForm.hidden = $("e-head").hidden = true;
     $("entr-modal").querySelector("[role=dialog]").setAttribute("aria-labelledby", "e-done-title");

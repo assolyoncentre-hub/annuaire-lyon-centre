@@ -90,6 +90,15 @@ module.exports = function installFakeApi({ data, user, acces }) {
       return id;
     },
     async droitEntraide() { return entrMoi(); },
+    // Comme entraide_ma_fiche : mes prénom, nom et téléphone (fiche d'accès, sinon contact d'un staff, sinon responsable de pôle)
+    async entraideMaFiche() {
+      if (!session) throw new Error("refusé (règles d'accès)");
+      log("entraideMaFiche");
+      const e = entrEmail(), mien = r => (r.email || "").toLowerCase() === e, a = S.acces.find(mien) || {};
+      const autres = [...S.contacts, ...S.responsables].filter(mien);
+      const champ = k => (a[k] || "").trim() || autres.map(r => (r[k] || "").trim()).find(Boolean) || null;
+      return { prenom: champ("prenom"), nom: champ("nom"), telephone: champ("telephone") };
+    },
     // Messagerie : mêmes règles que entraide_mes_demandes, entraide_mes_aides, entraide_ecrire… de la base
     async entraideMesDemandes() {
       guardVoir(); log("entraideMesDemandes");

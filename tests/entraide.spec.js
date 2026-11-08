@@ -37,7 +37,7 @@ test("droit Voir : demandes publiées seulement, sans téléphone ni modération
   await expect(page.locator("#entr-tabs")).toBeHidden();
   await expect(page.locator("#entr-nav-sel")).toBeHidden();
   await expect(page.locator("#entr-ask")).toBeVisible();
-  // « Mes demandes d'aide » : absente tant qu'on n'a rien déposé
+  // « Mes demandes » : absente tant qu'on n'a rien déposé
   await expect(page.locator("#entr-mes")).toBeHidden();
   // Ancienne adresse de la page Mes demandes : ramène à la page des demandes
   await page.evaluate(() => { location.hash = "#entraide/mes-demandes"; });
@@ -300,10 +300,10 @@ test("téléphone : quatre onglets (avec Entraide et Administration) visibles sa
   for (const r of rights) expect(r).toBeLessThanOrEqual(width);
 });
 
-test("Mes demandes d'aide : première section de la page, seulement mes demandes, avec les réponses reçues @mobile", async ({ open, page }) => {
+test("Mes demandes : première section de la page, seulement mes demandes, avec les réponses reçues @mobile", async ({ open, page }) => {
   const MOI = [{ email: "admin@example.org", droit: "admin", prenom: "", nom: "", entraide_voir: true, entraide_moderer: false }];
   await open({ user: ADMIN, hash: "#entraide", acces: MOI });
-  await expect(page.locator("#entr-pub h2.entr-titre:visible")).toHaveText(["Mes demandes d'aide", "Ils/elles ont besoin d'aide", "Ils/elles ont déjà été aidés"]);
+  await expect(page.locator("#entr-pub h2.entr-titre:visible")).toHaveText(["Mes demandes", "Ils/elles ont besoin d'aide", "Ils/elles ont déjà été aidés"]);
   const mes = page.locator("#entr-mes-list .entr-mienne");
   await expect(mes).toHaveCount(3);
   await expect(page.locator("#entr-mes")).not.toContainText("Jeanne"); // demandes des autres : absentes
@@ -396,7 +396,7 @@ test("pastille rouge sur Demandes d'aide tant qu'un message attend ma réponse @
   await expect(page.locator("#entr-nav-sel option").first()).toHaveText("Demandes d'aide");
 });
 
-test("Mes demandes d'aide : les messages s'affichent directement et arrivent en direct @mobile", async ({ open, page }) => {
+test("Mes demandes : les messages s'affichent directement et arrivent en direct @mobile", async ({ open, page }) => {
   const MOI = [{ email: "admin@example.org", droit: "admin", prenom: "", nom: "", entraide_voir: true, entraide_moderer: false }];
   await open({ user: ADMIN, hash: "#entraide", acces: MOI });
   const damien = page.locator('#entr-mes .entr-reps[data-prenom="Damien"]');
@@ -446,6 +446,22 @@ test("messagerie : côté personne qui aide, réponse de l'auteur et pastille su
   await page.evaluate(() => { window.__S.entraideConversations.find(c => c.id === "c4").declinee = true; window.__entraideSignal(); });
   await expect(marie.locator(".entr-fin")).toHaveText("Marie a mis fin à la conversation.");
   await expect(marie.locator(".entr-plus, [data-modifier]")).toHaveCount(0);
+});
+
+test("demander de l'aide connecté : prénom et téléphone de ma fiche préremplis, modifiables @mobile", async ({ open, page }) => {
+  // Damien : leader avec le droit Voir l'entraide ; son prénom et son téléphone viennent de sa fiche de contact
+  await open({ user: { email: "damien@example.org" }, hash: "#entraide", acces: [{ email: "damien@example.org", droit: "leaders", prenom: "", nom: "", entraide_voir: true, entraide_moderer: false }] });
+  await page.click("#entr-ask");
+  await page.fill("#e-besoin", "Monter une étagère");
+  await page.click("#e-next");
+  await page.click("#e-next");
+  await expect(page.locator("#e-prenom")).toHaveValue("Damien");
+  await expect(page.locator("#e-tel")).toHaveValue("06 39 98 10 21");
+  await page.fill("#e-prenom", "Dam"); // modifiable
+  await page.check("#e-accord");
+  await page.click("#e-next");
+  await expect(page.locator("#e-done-title")).toHaveText("Merci Dam !");
+  expect((await calls(page, "entraideDemander"))[0].arg).toMatchObject({ p_prenom: "Dam", p_telephone: "06 39 98 10 21" });
 });
 
 test("messagerie : règles du serveur (mêmes que la base)", async ({ open, page }) => {

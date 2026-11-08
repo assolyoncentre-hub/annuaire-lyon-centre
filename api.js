@@ -59,6 +59,8 @@ window.makeApi = function () {
     // Messagerie : mes demandes avec une conversation par personne qui a proposé son aide, et les conversations que
     // j'ai ouvertes en proposant la mienne (messages : { id, texte, le, moi, modifie }). Seuls les deux comptes concernés les voient.
     entraideMesDemandes: () => sbRpc("entraide_mes_demandes"),
+    // Formulaire « J'ai besoin d'aide » : mes prénom, nom et téléphone (ma fiche seulement), pour préremplir
+    entraideMaFiche: () => sbRpc("entraide_ma_fiche"),
     entraideMesAides: () => sbRpc("entraide_mes_aides"),
     // Écrire sur une demande publiée ({ p_demande }) ou dans une conversation ({ p_conversation })
     entraideEcrire: (texte, cible) => sbRpc("entraide_ecrire", { p_texte: texte, ...cible }),
