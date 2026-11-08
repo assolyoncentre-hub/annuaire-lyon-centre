@@ -23,13 +23,25 @@ async function reconnaitre(email) {
   const e = String(email || "").trim().toLowerCase();
   if (!e || !crypto.subtle || window.__S.acces?.some(a => a.email === e)) return;
   const h = [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(e)))].map(b => b.toString(16).padStart(2, "0")).join("");
-  if (h in RESPONSABLES) window.__S.acces.push({ email: e, droit: "admin", civilite: "", prenom: RESPONSABLES[h], nom: "", telephone: "", entraide_voir: true, entraide_moderer: true });
+  if (h in RESPONSABLES) reconnus.set(e, { email: e, droit: "admin", civilite: "", prenom: RESPONSABLES[h], nom: "", telephone: "", entraide_voir: true, entraide_moderer: true });
+  ajouterReconnus();
+}
+const reconnus = new Map();
+function ajouterReconnus() {
+  for (const [e, a] of reconnus) if (!window.__S.acces.some(x => x.email === e)) window.__S.acces.push({ ...a });
 }
 for (const name of ["canSignIn", "verifyCode"]) {
   const fn = window.__api[name];
   window.__api[name] = async (email, ...rest) => { await reconnaitre(email); return fn(email, ...rest); };
 }
-const save = () => { try { localStorage.setItem(KEY, JSON.stringify(window.__S)); } catch { /* stockage indisponible */ } };
+// Enregistré seulement si quelque chose a changé : sinon chaque lecture préviendrait les autres onglets, qui
+// rechargeraient et enregistreraient à leur tour, sans fin (la page clignotait)
+const save = () => {
+  try {
+    const json = JSON.stringify(window.__S);
+    if (json !== localStorage.getItem(KEY)) localStorage.setItem(KEY, json);
+  } catch { /* stockage indisponible */ }
+};
 for (const [name, fn] of Object.entries(window.__api)) {
   if (typeof fn === "function") window.__api[name] = async (...args) => { try { return await fn(...args); } finally { save(); } };
 }
@@ -38,8 +50,11 @@ for (const [name, fn] of Object.entries(window.__api)) {
 addEventListener("storage", e => {
   if (e.key !== KEY || !e.newValue) return;
   try {
+    // Toutes les données sont reprises (et pas seulement l'entraide) : les onglets restent identiques, et leurs
+    // enregistrements ne se renvoient plus la balle ; les responsables reconnus dans cet onglet y restent
     const d = JSON.parse(e.newValue);
-    for (const k of ["entraide", "entraideConversations", "entraideMessages"]) window.__S[k] = d[k] || [];
+    Object.assign(window.__S, d);
+    ajouterReconnus();
     window.__entraideSignal();
   } catch { /* données illisibles */ }
 });
