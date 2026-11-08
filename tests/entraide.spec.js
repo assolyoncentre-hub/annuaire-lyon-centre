@@ -33,12 +33,14 @@ test("droit Voir : demandes publiées seulement, sans téléphone ni modération
   await expect(page.locator("#entr-list")).not.toContainText("Henri"); // à valider : pas encore publiée
   await expect(page.locator("#entr-view")).not.toContainText("39 98");
   await expect(page.locator("#entr-tab-mod")).toBeHidden();
-  // Une seule page sans le droit de modérer : ni onglets ni liste déroulante, seulement « J'ai besoin d'aide »
+  // Une seule page sans le droit de modérer : ni onglets ni liste déroulante
   await expect(page.locator("#entr-tabs")).toBeHidden();
   await expect(page.locator("#entr-nav-sel")).toBeHidden();
   await expect(page.locator("#entr-ask")).toBeVisible();
-  // « Mes demandes » : absente tant qu'on n'a rien déposé
-  await expect(page.locator("#entr-mes")).toBeHidden();
+  // « Mes demandes » : toujours là, avec « J'ai besoin d'aide » en haut, et une phrase tant qu'on n'a rien déposé
+  await expect(page.locator("#entr-bar")).toBeHidden();
+  await expect(page.locator("#entr-mes #entr-ask")).toBeVisible();
+  await expect(page.locator("#entr-mes-vide")).toBeVisible();
   // Ancienne adresse de la page Mes demandes : ramène à la page des demandes
   await page.evaluate(() => { location.hash = "#entraide/mes-demandes"; });
   await expect(page).toHaveURL(/#entraide$/);
@@ -60,7 +62,7 @@ test("demandes en conversation : les plus récentes en haut, nouvelles demandes 
   await expect(page.locator("#entr-ask")).toBeVisible();
 
   // Deux parties : en cours, puis déjà aidés (demandes pourvues, sans bouton ni téléphone)
-  await expect(page.locator("#entr-pub h2.entr-titre:visible")).toHaveText(["Ils/elles ont besoin d'aide", "Ils/elles ont déjà été aidés"]);
+  await expect(page.locator("#entr-pub h2.entr-titre:visible")).toHaveText(["Mes demandes", "Ils/elles ont besoin d'aide", "Ils/elles ont déjà été aidés"]);
   await expect(page.locator("#entr-aides .entr-msg")).toHaveCount(1);
   await expect(page.locator("#entr-aides")).toContainText("Gérard");
   await expect(page.locator("#entr-aides .entr-aider")).toHaveCount(0);

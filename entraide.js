@@ -468,8 +468,8 @@ function onEntraideRoute() {
   entrEcouter(canEntraide);
   if (h !== "#entraide") entrFermerReponse();
   if (!(h === "#entraide" && canEntraide) && !mod) { entrModShown = false; return; }
-  // Une seule page sans le droit de modérer : pas de navigation, seulement « J'ai besoin d'aide »
-  $("entr-tabs").hidden = $("entr-nav-sel").hidden = !isReferent;
+  // Une seule page sans le droit de modérer : pas de barre de navigation (« J'ai besoin d'aide » est dans Mes demandes)
+  $("entr-bar").hidden = $("entr-tabs").hidden = $("entr-nav-sel").hidden = !isReferent;
   $("entr-tab-mod").hidden = !isReferent;
   $("entr-pub").hidden = mod;
   $("entr-mod").hidden = !mod;
@@ -492,7 +492,8 @@ $("entr-nav-sel").addEventListener("change", e => { location.hash = e.target.val
 // les messages s'affichent directement et se mettent à jour en direct avec le reste de la page.
 const ENTR_MON_STATUT = { a_valider: ["En attente de validation", "wait"], publiee: ["Publiée", "lead"], pourvue: ["C'est réglé ✓", "ok"], refusee: ["Non publiée", "none"] };
 function renderMesDemandes(list) {
-  $("entr-mes").hidden = !list.length;
+  $("entr-mes").hidden = false; // toujours là : elle porte le bouton « J'ai besoin d'aide »
+  $("entr-mes-vide").hidden = !!list.length;
   $("entr-mes-list").innerHTML = [...list].sort((a, b) => b.created_at.localeCompare(a.created_at)).map(d => {
     const [label, cls] = ENTR_MON_STATUT[d.statut] || ENTR_MON_STATUT.a_valider;
     const convs = d.conversations.filter(c => c.messages.length), n = convs.reduce((t, c) => t + c.messages.filter(m => !m.moi).length, 0);
