@@ -565,7 +565,7 @@ test("téléphone : la zone de rédaction se place au-dessus du clavier @mobile"
   await expect.poll(() => page.evaluate(() => document.getElementById("entr-rep").getBoundingClientRect().bottom - (innerHeight - 300))).toBeLessThanOrEqual(0);
 });
 
-test("textes de plus de 10 lignes : coupés, « Voir plus » à droite déplie tout @mobile", async ({ open, page }) => {
+test("textes de plus de 10 lignes : coupés, « Voir + » à droite déplie tout, « Voir − » replie @mobile", async ({ open, page }) => {
   const MOI = [{ email: "admin@example.org", droit: "admin", prenom: "", nom: "", entraide_voir: true, entraide_moderer: false }];
   await open({ user: ADMIN, hash: "#entraide", acces: MOI });
   await expect(page.locator(".entr-voir-plus")).toHaveCount(0); // textes courts : rien
@@ -580,12 +580,21 @@ test("textes de plus de 10 lignes : coupés, « Voir plus » à droite déplie t
   // calé à droite de la bulle
   const [bb, pb] = [await bulle.boundingBox(), await plus.boundingBox()];
   expect(bb.x + bb.width - (pb.x + pb.width)).toBeLessThan(20);
+  await expect(plus).toHaveAttribute("aria-expanded", "false");
   await plus.click();
-  await expect(plus).toHaveCount(0);
   expect(await need.evaluate(p => p.scrollHeight <= p.clientHeight)).toBe(true);
+  // « Voir − » en bas du texte déplié, toujours à droite
+  await expect(plus).toHaveText("Voir −");
+  await expect(plus).toHaveAttribute("aria-expanded", "true");
+  const [nb, mb] = [await need.boundingBox(), await plus.boundingBox()];
+  expect(mb.y).toBeGreaterThanOrEqual(nb.y + nb.height - 1);
   // déplié, il le reste après une mise à jour en direct
   await page.evaluate(() => window.__entraideSignal());
   await page.waitForTimeout(300);
-  await expect(bulle.locator(".entr-voir-plus")).toHaveCount(0);
+  await expect(bulle.locator(".entr-voir-plus")).toHaveText("Voir −");
   expect(await bulle.locator(".need").evaluate(p => p.scrollHeight <= p.clientHeight)).toBe(true);
+  // « Voir − » replie à 10 lignes
+  await bulle.locator(".entr-voir-plus").click();
+  await expect(bulle.locator(".entr-voir-plus")).toHaveText("Voir +");
+  expect(await bulle.locator(".need").evaluate(p => p.scrollHeight > p.clientHeight)).toBe(true);
 });

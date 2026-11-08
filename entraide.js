@@ -322,8 +322,8 @@ $("entr-rep").addEventListener("submit", async e => {
 $("entr-jump").addEventListener("click", () => { entrVersLeHaut(); $("entr-jump").hidden = true; });
 addEventListener("scroll", () => { if (!$("entr-jump").hidden && entrEnHaut()) $("entr-jump").hidden = true; }, { passive: true });
 let entrSeq = 0;
-// Textes longs (demandes et messages) : 10 lignes au plus, puis « Voir plus » (calé à droite) déplie tout le texte.
-// Les textes dépliés le restent lors des réaffichages en direct.
+// Textes longs (demandes et messages) : 10 lignes au plus, puis « Voir + » (calé à droite) déplie tout le texte ;
+// une fois déplié, « Voir − » en bas le replie. Les textes dépliés le restent lors des réaffichages en direct.
 const ENTR_TEXTES = ".entr-msg .need, .entr-recue .txt, .entr-moi .txt, .entr-mod-row .need";
 const entrDeplies = new Set();
 function entrCleTexte(p) {
@@ -334,22 +334,29 @@ function entrCleTexte(p) {
 }
 function entrTronquer(root = document) {
   root.querySelectorAll(ENTR_TEXTES).forEach(p => {
-    const k = entrCleTexte(p), b = p.nextElementSibling?.matches(".entr-voir-plus") ? p.nextElementSibling : null;
-    if (k && entrDeplies.has(k)) { p.classList.remove("entr-clamp"); b?.remove(); return; }
+    const k = entrCleTexte(p), deplie = !!k && entrDeplies.has(k);
+    let b = p.nextElementSibling?.matches(".entr-voir-plus") ? p.nextElementSibling : null;
     p.classList.add("entr-clamp");
-    if (!p.offsetParent) return; // masqué (repli fermé) : mesuré à l'ouverture
-    const coupe = p.scrollHeight > p.clientHeight + 1;
-    if (coupe && !b) p.insertAdjacentHTML("afterend", '<button type="button" class="entr-voir-plus" aria-label="Voir plus : afficher tout le texte">Voir +</button>');
-    else if (!coupe) b?.remove();
+    if (!p.offsetParent) { p.classList.toggle("entr-clamp", !deplie); return; } // masqué (repli fermé) : mesuré à l'ouverture
+    const coupe = p.scrollHeight > p.clientHeight + 1; // mesuré coupé, même s'il est déplié
+    p.classList.toggle("entr-clamp", !deplie);
+    if (!coupe) { b?.remove(); return; }
+    if (!b) { p.insertAdjacentHTML("afterend", '<button type="button" class="entr-voir-plus"></button>'); b = p.nextElementSibling; }
+    b.textContent = deplie ? "Voir −" : "Voir +";
+    b.setAttribute("aria-label", deplie ? "Voir moins : réduire le texte" : "Voir plus : afficher tout le texte");
+    b.setAttribute("aria-expanded", deplie);
   });
 }
 document.addEventListener("click", e => {
   const b = e.target.closest(".entr-voir-plus");
   if (!b) return;
   const p = b.previousElementSibling, k = entrCleTexte(p);
-  if (k) entrDeplies.add(k);
-  p.classList.remove("entr-clamp");
-  p.tabIndex = -1; b.remove(); p.focus({ preventScroll: true });
+  if (!k) return;
+  const deplier = !entrDeplies.has(k);
+  if (deplier) entrDeplies.add(k); else entrDeplies.delete(k);
+  entrTronquer(p.parentElement);
+  if (deplier) { p.tabIndex = -1; p.focus({ preventScroll: true }); } // lecture du texte complet
+  else if (p.getBoundingClientRect().top < 0) p.scrollIntoView({ block: "start" }); // replié : revenir au début du texte
 });
 addEventListener("resize", () => { clearTimeout(entrTronquer.t); entrTronquer.t = setTimeout(() => entrTronquer(), 150); });
 
