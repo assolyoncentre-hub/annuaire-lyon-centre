@@ -476,6 +476,32 @@ test("zone de rédaction : la croix et le bouton d'envoi sont alignés sur le m�
   expect(x).toBe(envoi);
 });
 
+test("Mes demandes : « C'est réglé » sur une demande en cours @mobile", async ({ open, page }) => {
+  const MOI = [{ email: "admin@example.org", droit: "admin", prenom: "", nom: "", entraide_voir: true, entraide_moderer: false }];
+  await open({ user: ADMIN, hash: "#entraide", acces: MOI });
+  const mes = page.locator("#entr-mes-list .entr-mienne");
+  const escabeau = mes.filter({ hasText: "escabeau" }), robinet = mes.filter({ hasText: "Réparer un robinet" });
+  // Seulement sur les demandes en cours (publiée ou à valider), pas sur celle déjà aidée
+  await expect(escabeau.locator("[data-regler]")).toHaveText("C'est réglé");
+  await expect(robinet.locator("[data-regler]")).toBeVisible();
+  await expect(mes.filter({ hasText: "cartons de livres" }).locator("[data-regler]")).toHaveCount(0);
+  // Demande publiée réglée : « Aidé ✓ », et elle rejoint « Ils/elles ont déjà été aidés »
+  await escabeau.locator("[data-regler]").click();
+  await expect(page.locator("#toast")).toContainText("votre demande est réglée");
+  await expect(escabeau).toContainText("Aidé ✓");
+  await expect(escabeau.locator("[data-regler]")).toHaveCount(0);
+  await expect(escabeau).toBeFocused();
+  await expect(page.locator("#entr-aides")).toContainText("Changer une ampoule");
+  expect((await calls(page, "entraideRegler"))[0].arg).toBe("e2");
+  // Demande jamais publiée réglée : « Aidé ✓ », mais elle n'apparaît pas dans la liste publique des demandes aidées
+  await robinet.locator("[data-regler]").click();
+  await expect(robinet).toContainText("Aidé ✓");
+  await expect(page.locator("#entr-aides")).not.toContainText("Réparer un robinet");
+  // Règles du serveur : la demande d'une autre personne est refusée
+  const essai = await page.evaluate(async () => { try { await window.__api.entraideRegler("e1"); return "ok"; } catch (e) { return e.message; } });
+  expect(essai).toBe("Demande introuvable.");
+});
+
 test("messagerie : règles du serveur (mêmes que la base)", async ({ open, page }) => {
   const MOI = [{ email: "admin@example.org", droit: "admin", prenom: "", nom: "", entraide_voir: true, entraide_moderer: false }];
   await open({ user: ADMIN, hash: "#entraide", acces: MOI });

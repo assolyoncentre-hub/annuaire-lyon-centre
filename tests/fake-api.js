@@ -51,7 +51,7 @@ module.exports = function installFakeApi({ data, user, acces }) {
   };
   const ago = j => new Date(Date.now() - j * 86400000).toISOString();
   const entrRow = d => ({ id: d.id, created_at: d.cree ? new Date(d.cree).toISOString() : ago(d.jours), prenom: d.prenom, telephone: d.telephone, besoin: d.besoin,
-    quand: d.quand, quartier: d.quartier, statut: d.statut, publiee_le: d.publieAt ? new Date(d.publieAt).toISOString() : d.statut !== "a_valider" && d.statut !== "refusee" ? ago(d.publie ?? d.jours) : null,
+    quand: d.quand, quartier: d.quartier, statut: d.statut, publiee_le: d.jamaisPubliee ? null : d.publieAt ? new Date(d.publieAt).toISOString() : d.statut !== "a_valider" && d.statut !== "refusee" ? ago(d.publie ?? d.jours) : null,
     close_le: d.close ? new Date(d.close).toISOString() : d.statut === "pourvue" ? ago(d.jours - 1) : null });
   const norm = s => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
   // Annuaire public : seule la civilité « Père » apparaît, devant le prénom
@@ -70,7 +70,7 @@ module.exports = function installFakeApi({ data, user, acces }) {
     },
     async entraidePourvues() {
       guardVoir(); log("entraidePourvues");
-      return S.entraide.filter(d => d.statut === "pourvue").map(entrRow).filter(d => Date.now() - new Date(d.close_le) < 30 * 86400000)
+      return S.entraide.filter(d => d.statut === "pourvue").map(entrRow).filter(d => d.publiee_le && Date.now() - new Date(d.close_le) < 30 * 86400000)
         .map(d => ({ id: d.id, prenom: d.prenom, quartier: d.quartier, besoin: d.besoin, quand: d.quand, publie_le: d.publiee_le, close_le: d.close_le }))
         .sort((a, b) => b.close_le.localeCompare(a.close_le));
     },
@@ -90,6 +90,17 @@ module.exports = function installFakeApi({ data, user, acces }) {
       return id;
     },
     async droitEntraide() { return entrMoi(); },
+    // Comme entraide_regler : « C'est réglé », par l'auteur d'une demande publiée ou à valider (elle devient pourvue)
+    async entraideRegler(id) {
+      guardVoir(); log("entraideRegler", id);
+      const d = S.entraide.find(x => x.id === id);
+      if (!d || d.auteur !== entrEmail()) throw new Error("Demande introuvable.");
+      if (d.statut !== "publiee" && d.statut !== "a_valider") throw new Error("Cette demande n'est plus en cours.");
+      if (d.statut === "a_valider") d.jamaisPubliee = true;
+      else d.publieAt = new Date(entrRow(d).publiee_le).getTime(); // garde sa date de publication
+      d.statut = "pourvue"; d.close = Date.now();
+      signal();
+    },
     // Comme entraide_ma_fiche : mes prénom, nom et téléphone (fiche d'accès, sinon contact d'un staff, sinon responsable de pôle)
     async entraideMaFiche() {
       if (!session) throw new Error("refusé (règles d'accès)");

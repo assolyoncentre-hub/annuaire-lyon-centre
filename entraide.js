@@ -202,6 +202,16 @@ async function entrClicFil(e) {
   if (!b) return;
   const g = b.closest(".entr-reps"), m = b.closest(".entr-msg");
   if (b.matches("[data-aider]")) entrOuvrirReponse(m.dataset.id);
+  // « C'est réglé » (ma demande) : elle devient pourvue (badge « Aidé ✓ ») et sort du fil public
+  else if (b.matches("[data-regler]")) {
+    const id = m.dataset.demande;
+    b.disabled = true;
+    try { await api.entraideRegler(id); }
+    catch (err) { b.disabled = false; return entrErreur(err); }
+    toast("C'est noté : votre demande est réglée.");
+    await loadEntraide();
+    $("entr-mes-list").querySelector('[data-demande="' + CSS.escape(id) + '"]')?.focus({ preventScroll: true });
+  }
   else if (b.matches("[data-plus]")) entrOuvrirReponse(g.dataset.pour);
   else if (b.matches("[data-modifier]")) entrOuvrirReponse(g.dataset.pour, b.closest(".entr-moi").dataset.rep);
   else if (b.matches("[data-supprimer]")) entrSupprimerReponse(g, b.closest(".entr-moi"));
@@ -489,7 +499,9 @@ function renderMesDemandes(list) {
     return '<article class="entr-msg entr-mienne" data-demande="' + esc(d.id) + '" tabindex="-1">' +
       '<div class="who">Ma demande' + (d.quartier ? ' <span class="where">· ' + esc(d.quartier) + "</span>" : "") + "</div>" +
       '<p class="need">' + esc(d.besoin) + "</p>" + (d.quand ? '<div class="when">' + ENTR_CAL + "<span>" + esc(d.quand) + "</span></div>" : "") +
-      '<div class="entr-pied"><span class="badge ' + cls + '">' + esc(label) + "</span>" +
+      '<div class="entr-pied"><span class="entr-pied-g">' + (d.statut === "publiee" || d.statut === "a_valider"
+        ? '<button type="button" class="btn btn-ghost btn-sm" data-regler>C\'est réglé</button>' : "") +
+        '<span class="badge ' + cls + '">' + esc(label) + "</span></span>" +
       '<time class="time" datetime="' + esc(d.created_at) + '">' + esc(entrJour(d.created_at)) + ", " + entrHeure(d.created_at) + "</time></div></article>" +
       (convs.length ? '<div class="entr-convs"><p class="entr-rep-note">' + ENTR_CADENAS +
         (n > 1 ? n + " réponses, qui ne sont visibles que par vous" : n + " réponse, qui n'est visible que par vous") + "</p>" +
