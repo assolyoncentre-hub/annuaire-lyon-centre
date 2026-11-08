@@ -588,7 +588,8 @@ $("ed-form").addEventListener("input", e => {
   else if (["pe-civ", "pe-prenom", "pe-nom"].includes(e.target.id))
     $("ed-title").textContent = fullName({ civilite: $("pe-civ").value, prenom: $("pe-prenom").value.trim(), nom: $("pe-nom").value.trim() }) || "Nouveau contact";
 });
-document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("editor").hidden) closeEditor(); });
+// Échap ne ferme que les simples confirmations : une fenêtre de saisie (contact, staff, pôle…) reste ouverte pour ne rien perdre
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("editor").hidden && !$("ed-form").querySelector("input, textarea, select")) closeEditor(); });
 
 // Liste de personnes : contacts existants (affichés, non modifiables ici) ou nouveaux (prénom, nom, e-mail à saisir),
 // avec une poignée pour changer l'ordre et une poubelle pour retirer. Un contact existant se choisit dans la liste déroulante.
