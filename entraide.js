@@ -107,7 +107,7 @@ function entrFilHtml(id, prenom) {
     l.map(r => !r.moi
       ? '<div class="entr-recue" tabindex="-1" data-msg="' + esc(r.id) + '" style="--c:' + entrCouleur(prenom) + '"><div class="who">' + esc(prenom) + "</div>" +
         '<p class="txt">' + esc(r.texte) + '</p><time class="time" datetime="' + esc(r.le) + '">' + (r.modifie ? "Modifié · " : "") + esc(entrJour(r.le)) + ", " + entrHeure(r.le) + "</time></div>"
-      : '<div class="entr-moi" data-rep="' + esc(r.id) + '"><p class="txt">' + esc(r.texte) + "</p>" +
+      : '<div class="entr-moi" data-rep="' + esc(r.id) + '"><div class="who">Moi</div><p class="txt">' + esc(r.texte) + "</p>" +
         '<div class="entr-moi-pied"><span class="entr-moi-act">' + (fini ? "" : '<button type="button" data-modifier>Modifier</button><button type="button" data-supprimer>Supprimer</button>') + "</span>" +
         '<time class="time" datetime="' + esc(r.le) + '">' + (r.modifie ? "Modifié · " : "") + (recues ? esc(entrJour(r.le)) + ", " : "") + entrHeure(r.le) + "</time></div></div>").join("") +
     (fini ? "" // « X a mis fin à la conversation » : titre du repli
