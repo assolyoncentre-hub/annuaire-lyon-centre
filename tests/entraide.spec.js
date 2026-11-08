@@ -174,6 +174,7 @@ test("modération : publier sur WhatsApp, modifier, pourvue, refuser, supprimer"
   await expect(page.locator("#entr-tab-mod")).toHaveText("Modération (demandes à modérer)");
   await expect(page.locator("#entr-tab-mod")).toHaveAttribute("aria-current", "page");
   await expect(page.locator("#entr-filters [aria-pressed=true]")).toHaveText("À valider (2)");
+  await expect(page.locator("[data-filter=a_valider] .entr-pastille")).toBeVisible();
   const henri = row(page, "Henri");
   await expect(henri).toContainText("06 39 98 00 06");
 
@@ -195,6 +196,7 @@ test("modération : publier sur WhatsApp, modifier, pourvue, refuser, supprimer"
   await expect(colette.locator("a", { hasText: "Contacter" })).toHaveAttribute("href", /^https:\/\/wa\.me\/33639980007\?text=Bonjour%20Colette/);
   await colette.locator("[data-act=refuser]").click();
   await expect(page.locator("#entr-filters")).toContainText("À valider (0)");
+  await expect(page.locator("[data-filter=a_valider] .entr-pastille")).toHaveCount(0); // plus rien à valider : pas de pastille
 
   // Publiée → pourvue : elle disparaît des demandes publiées
   await page.click("[data-filter=publiee]");

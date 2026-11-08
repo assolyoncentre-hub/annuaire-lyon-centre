@@ -339,7 +339,8 @@ function renderModeration() {
   const all = entrDemandes || [];
   const n = f => all.filter(d => entrDans(d, f)).length;
   $("entr-filters").innerHTML = ENTR_FILTRES.map(([k, label]) =>
-    '<button type="button" class="afilter" data-filter="' + k + '" aria-pressed="' + (entrFiltre === k) + '">' + label + " (" + n(k) + ")</button>").join("");
+    '<button type="button" class="afilter" data-filter="' + k + '" aria-pressed="' + (entrFiltre === k) + '">' + label + " (" + n(k) + ")" +
+    (k === "a_valider" && n(k) ? '<span class="entr-pastille" aria-hidden="true"></span>' : "") + "</button>").join("");
   if (entrDemandes !== null) entrPastille("#entraide/moderation", n("a_valider") > 0);
   if (entrDemandes === null) { $("entr-mod-list").innerHTML = '<div class="empty">Chargement…</div>'; return; }
 
