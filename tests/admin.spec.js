@@ -96,6 +96,7 @@ test("contacts : personne regroupée sur ses staffs, civilité « Père » affic
   await page.selectOption("#pe-civ", "Père");
   await expect(page.locator("#ed-title")).toHaveText("Père Jean BRUNET");
   await page.keyboard.press("Escape"); // fenêtre de saisie : Échap ne la ferme pas
+  await page.mouse.click(4, 4); // ni un clic sur le fond
   await expect(page.locator("#editor")).toBeVisible();
   await save(page);
   await expect(page.locator("#admin-list .title")).toHaveText("BRUNET Jean (Père)");
@@ -265,6 +266,7 @@ test("photo d'un contact : envoyée depuis la fiche, en noir et blanc dans l'ann
   await expect(zoom).toHaveAttribute("src", sent.grand);
   await expect(page.locator(".ph-zoom figcaption")).toHaveText("Jean BRUNET");
   await page.keyboard.press("Escape"); // Échap ne ferme pas la photo
+  await page.mouse.click(4, 4); // ni un clic sur le fond
   await expect(page.locator(".ph-zoom")).toHaveCount(1);
   await page.click(".ph-zoom-x");
   await expect(page.locator(".ph-zoom")).toHaveCount(0);

@@ -595,4 +595,3 @@ eForm.addEventListener("submit", async e => {
 $("entr-ask").addEventListener("click", openEntraide);
 $("e-cancel").addEventListener("click", closeEntraide);
 $("e-close").addEventListener("click", closeEntraide);
-$("entr-modal").addEventListener("click", e => { if (e.target === $("entr-modal")) closeEntraide(); });

@@ -149,6 +149,7 @@ test("demander de l'aide : trois écrans qui se remplacent, puis remerciement @m
   await expect(page.locator("label[for=e-besoin]")).toHaveText("De quoi avez-vous besoin ?");
   await expect(page.locator("#e-head")).not.toContainText("référent"); // la note est sous « Envoyer ma demande »
   await page.keyboard.press("Escape"); // Échap ne ferme pas la fenêtre
+  await page.mouse.click(4, 4); // ni un clic sur le fond
   await expect(page.locator("#entr-modal")).toBeVisible();
   await expect(page.locator("#e-quand")).toBeHidden();
   await expect(page.locator("#e-next")).toHaveText("Suivant");

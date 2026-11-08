@@ -205,7 +205,6 @@ $("grid").addEventListener("focusout", e => {
   if (d) d.open = false;
 });
 $("m-cancel").addEventListener("click", closeModal);
-$("modal").addEventListener("click", e => { if (e.target === $("modal")) closeModal(); });
 $("m-form").addEventListener("submit", async e => {
   e.preventDefault();
   const f = e.target, btn = $("m-send");
@@ -584,14 +583,13 @@ function openEditor(kicker, title, html, onSave, saveLabel = "Enregistrer", dang
   setPageInert(true);
 }
 function closeEditor() { setPageInert(false); $("editor").hidden = true; document.body.classList.remove("locked"); }
-$("editor").addEventListener("click", e => { if (e.target === $("editor")) closeEditor(); });
 // Le titre de la fenêtre suit le nom saisi (service, pôle ou contact)
 $("ed-form").addEventListener("input", e => {
   if (e.target.id === "ed-name") $("ed-title").textContent = e.target.value.trim() || e.target.dataset.empty;
   else if (["pe-civ", "pe-prenom", "pe-nom"].includes(e.target.id))
     $("ed-title").textContent = fullName({ civilite: $("pe-civ").value, prenom: $("pe-prenom").value.trim(), nom: $("pe-nom").value.trim() }) || "Nouveau contact";
 });
-// Échap ne ferme aucune fenêtre (message, saisie, confirmation, photo) : on ferme avec Annuler, × ou un clic à côté
+// Ni Échap ni un clic sur le fond ne ferment une fenêtre (message, saisie, confirmation, photo) : on ferme avec Annuler ou ×
 
 // Liste de personnes : contacts existants (affichés, non modifiables ici) ou nouveaux (prénom, nom, e-mail à saisir),
 // avec une poignée pour changer l'ordre et une poubelle pour retirer. Un contact existant se choisit dans la liste déroulante.
@@ -1078,7 +1076,7 @@ async function copyServ(b, text, msg) {
 }
 // Coordonnées d'un leader : nom, staffs, téléphone, e-mail, une ligne chacun
 const servBlock = x => [servName(x.p), servRoles(x), x.p.telephone, x.p.email].filter(Boolean).join("\n");
-// Clic sur une photo : agrandie en rond et en couleur au milieu de l'écran (clic ou × pour fermer ; Échap sans effet).
+// Clic sur une photo : agrandie en rond et en couleur au milieu de l'écran (× pour fermer ; ni clic sur le fond ni Échap ne la ferment).
 // La miniature s'affiche tout de suite, remplacée par la version 600 px une fois chargée.
 function zoomPhoto(x, from) {
   const z = document.createElement("div");
@@ -1086,7 +1084,7 @@ function zoomPhoto(x, from) {
   z.innerHTML = '<figure><img src="' + esc(photoFor(x.p)) + '" alt="Photo de ' + esc(fullName(x.p)) + '"><figcaption>' + esc(servName(x.p)) + "</figcaption></figure>" +
     '<button type="button" class="ph-zoom-x" aria-label="Fermer">×</button>';
   const close = () => { z.remove(); from.focus(); };
-  z.addEventListener("click", close);
+  z.querySelector(".ph-zoom-x").addEventListener("click", close);
   document.body.append(z);
   z.querySelector(".ph-zoom-x").focus();
   api.photoGrande(x.p.email).then(src => {

@@ -125,6 +125,7 @@ test("téléphone : le bouton Message d'une section dépliée ouvre le formulair
   await carte.locator(".msg").tap();
   await expect(page.locator("#modal")).toBeVisible();
   await page.keyboard.press("Escape"); // Échap ne ferme pas la fenêtre
+  await page.mouse.click(4, 4); // ni un clic sur le fond
   await expect(page.locator("#modal")).toBeVisible();
 });
 
