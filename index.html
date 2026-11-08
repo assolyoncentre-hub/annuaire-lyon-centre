@@ -573,18 +573,21 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 /* Titres des deux parties du fil (même style que les lettres de l'annuaire des leaders) */
 .entr-titre { display: flex; align-items: center; gap: 12px; max-width: 840px; margin: 16px 0 4px; font: 700 30px/1.05 Phudu, Montserrat, sans-serif; color: var(--brand); text-transform: uppercase; }
 .entr-titre::after { content: ""; flex: 1; border-top: 1px solid var(--border); }
-#entr-mes .entr-titre { margin-bottom: 20px; }
-/* « Mes demandes » : section sur fond blanc, encadrée, détachée du fil public ; le contenu est en retrait dans le cadre */
-#entr-mes { max-width: 840px; margin: 20px 0 8px; padding: 4px 24px 6px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); box-shadow: 0 1px 2px rgba(0, 40, 80, .06); }
-#entr-mes .entr-titre { margin-top: 18px; }
-#entr-mes .entr-thread { padding-bottom: 12px; }
+/* Les trois sections (Mes demandes, Ils/elles ont besoin d'aide, déjà aidés) : sur fond blanc, encadrées ; le contenu est en retrait dans le cadre */
+.entr-cadre { max-width: 840px; margin: 16px 0; padding: 4px 24px 6px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); box-shadow: 0 1px 2px rgba(0, 40, 80, .06); }
+.entr-cadre .entr-titre { margin: 18px 0 20px; }
+.entr-cadre .entr-thread { padding-bottom: 12px; }
+/* sur fond blanc, les bulles blanches des autres gardent un contour (sans la pointe), et les dates aussi */
+.entr-cadre .entr-msg:not(.entr-mienne):not(.aidee) { border: 1px solid var(--border); box-shadow: none; }
+.entr-cadre .entr-msg:not(.entr-mienne):not(.aidee)::before { display: none; }
+.entr-cadre .entr-day span { border: 1px solid var(--border); box-shadow: none; }
 /* « J'ai besoin d'aide » en haut de la section, sous le titre */
 #entr-mes #entr-ask { margin: 0 0 18px; }
 .entr-mes-vide { margin: -6px 0 20px; color: var(--muted); font-size: 16px; }
 #entr-mes-list:empty { display: none; }
 /* sur fond blanc, les messages reçus (blancs) gardent un contour pour rester lisibles */
-#entr-mes .entr-recue { border: 1px solid var(--border); box-shadow: none; }
-@media (max-width: 520px) { #entr-mes { padding: 2px 14px 4px; } }
+.entr-cadre .entr-recue { border: 1px solid var(--border); box-shadow: none; }
+@media (max-width: 520px) { .entr-cadre { padding: 2px 14px 4px; } }
 /* Pastille rouge : des demandes attendent d'être modérées */
 .entr-pastille { display: inline-block; width: 8px; height: 8px; margin-left: 6px; border-radius: 50%; background: #d92d20; flex: none; }
 /* Demandes pourvues : grisées, sans bouton */
@@ -757,7 +760,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 @media (min-width: 1024px) {
   #entr-pub:has(> #entr-mes:not([hidden])) { display: grid; grid-template-columns: minmax(0, 1fr) 420px; column-gap: 32px; align-items: start; }
   #entr-pub:has(> #entr-mes:not([hidden])) > :not(#entr-mes) { grid-column: 1; }
-  #entr-pub > #entr-mes { grid-column: 2; grid-row: 1 / span 12; margin: 16px 0 8px; padding: 2px 18px 4px; }
+  #entr-pub > #entr-mes { grid-column: 2; grid-row: 1 / span 12; padding: 2px 18px 4px; }
   #entr-mes .entr-msg { width: auto; max-width: none; }
   #entr-mes .entr-convs { width: auto; margin-left: 18px; }
 }
@@ -846,15 +849,16 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
   </div>
   <div id="entr-pub">
   <!-- Mes demandes (avec « J'ai besoin d'aide » ; à droite du fil sur grand écran, en tête sur téléphone) : chacune avec ses conversations, en direct -->
-  <section id="entr-mes" aria-labelledby="entr-mes-t" hidden><h2 class="entr-titre" id="entr-mes-t">Mes demandes</h2>
+  <section class="entr-cadre" id="entr-mes" aria-labelledby="entr-mes-t" hidden><h2 class="entr-titre" id="entr-mes-t">Mes demandes</h2>
     <button type="button" class="btn btn-primary" id="entr-ask">J'ai besoin d'aide</button>
     <p class="entr-mes-vide" id="entr-mes-vide" hidden>Vous n'avez pas encore formulé de demande d'aide.</p>
     <div class="entr-thread" id="entr-mes-list"></div></section>
   <!-- Demandes publiées, présentées comme une conversation (les plus récentes en haut), mises à jour en direct -->
-  <p class="count entr-count" id="entr-count" role="status" aria-live="polite"></p>
-  <h2 class="entr-titre">Ils/elles ont besoin d'aide</h2>
-  <div class="entr-thread" id="entr-list"></div>
-  <section id="entr-aides-sec" aria-labelledby="entr-aides-t" hidden><h2 class="entr-titre" id="entr-aides-t">Ils/elles ont déjà été aidés</h2>
+  <section class="entr-cadre" id="entr-besoin-sec" aria-labelledby="entr-besoin-t">
+    <p class="count entr-count" id="entr-count" role="status" aria-live="polite"></p>
+    <h2 class="entr-titre" id="entr-besoin-t">Ils/elles ont besoin d'aide</h2>
+    <div class="entr-thread" id="entr-list"></div></section>
+  <section class="entr-cadre" id="entr-aides-sec" aria-labelledby="entr-aides-t" hidden><h2 class="entr-titre" id="entr-aides-t">Ils/elles ont déjà été aidés</h2>
     <div class="entr-thread" id="entr-aides"></div></section>
   <button type="button" class="entr-jump" id="entr-jump" hidden>↑ Nouvelle demande</button>
   <!-- « Je peux aider ! » : zone de réponse glissée juste sous la demande, comme une réponse dans le fil -->
