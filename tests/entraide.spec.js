@@ -345,7 +345,7 @@ test("Mes demandes : première section de la page, seulement mes demandes, avec 
   await expect(paul).toContainText("Publiée");
   // Réponses reçues, juste sous la demande, dans l'ordre d'arrivée
   const recues = page.locator(".entr-mienne:has-text('escabeau') + .entr-convs");
-  await expect(recues).toContainText("3 réponses, qui ne sont visibles que par vous");
+  await expect(recues).toContainText("2 propositions, qui ne sont visibles que par vous") // une par personne (Damien, Claire);
   await expect(recues.locator(".entr-recue .who")).toHaveText(["Damien", "Damien", "Claire"]);
   // Une proposition par personne, dans un repli « Proposition de … » déplié (conversation en cours)
   const enCours = recues.locator(".entr-repli-encours");

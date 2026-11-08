@@ -589,7 +589,7 @@ function renderMesDemandes(list) {
   $("entr-mes-vide").hidden = !!list.length;
   $("entr-mes-list").innerHTML = [...list].sort((a, b) => b.created_at.localeCompare(a.created_at)).map(d => {
     const [label, cls] = ENTR_MON_STATUT[d.statut] || ENTR_MON_STATUT.a_valider;
-    const convs = d.conversations.filter(c => c.messages.length), echanges = convs.length > 0, n = convs.reduce((t, c) => t + c.messages.filter(m => !m.moi).length, 0);
+    const convs = d.conversations.filter(c => c.messages.length), echanges = convs.length > 0;
     return '<article class="entr-msg entr-mienne" data-demande="' + esc(d.id) + '" tabindex="-1">' +
       '<div class="who">Moi' + (d.quartier ? ' <span class="where">· ' + esc(d.quartier) + "</span>" : "") + "</div>" +
       '<p class="need">' + esc(d.besoin) + "</p>" + (d.quand ? '<div class="when">' + ENTR_CAL + "<span>" + esc(d.quand) + "</span></div>" : "") +
@@ -600,7 +600,7 @@ function renderMesDemandes(list) {
         '<span class="badge ' + cls + '">' + esc(label) + "</span></span>" +
       '<time class="time" datetime="' + esc(d.created_at) + '">' + esc(entrJour(d.created_at)) + ", " + entrHeure(d.created_at) + "</time></div></article>" +
       (convs.length ? '<div class="entr-convs"><p class="entr-rep-note">' + ENTR_CADENAS +
-        (n > 1 ? n + " réponses, qui ne sont visibles que par vous" : n + " réponse, qui n'est visible que par vous") + "</p>" +
+        (convs.length > 1 ? convs.length + " propositions, qui ne sont visibles que par vous" : "1 proposition, qui n'est visible que par vous") + "</p>" +
         // une conversation par personne : ses messages et les miens, que je suis seul(e) à voir avec elle
         convs.map(c => {
           const k = "mes:" + c.id;
