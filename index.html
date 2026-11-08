@@ -654,13 +654,13 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 /* Conversation déclinée sur ma demande : repliée dans « Proposition de X » (ligne grise), « Réactiver » discret à droite */
 .entr-repli { position: relative; margin: 0 0 14px; }
 .entr-repli details { border: 1px solid var(--border); border-radius: 10px; background: #eef2f6; }
-.entr-repli summary { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; cursor: pointer; list-style: none; color: var(--muted); font: 600 15px/1.2 Montserrat, sans-serif; }
+.entr-repli summary { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 6px 12px; box-sizing: border-box; cursor: pointer; list-style: none; color: var(--muted); font: 600 15px/1.2 Montserrat, sans-serif; }
 .entr-repli summary::-webkit-details-marker { display: none; }
 .entr-repli summary::before { content: ""; flex: none; width: 7px; height: 7px; margin-right: 2px; border: solid currentColor; border-width: 0 2px 2px 0; transform: rotate(-45deg); transition: transform .15s; }
 .entr-repli details[open] summary::before { transform: translateY(-2px) rotate(45deg); } /* pointe vers le bas : remontée pour être centrée sur le texte */
 .entr-repli details[open] summary { margin-bottom: 4px; } /* un peu d'air entre le titre (parfois sur deux lignes) et le premier message */
 .entr-repli summary:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 10px; }
-.entr-repli summary .etat { padding: 2px 8px; border-radius: 999px; background: #dfe6ee; font-weight: 500; font-size: 13px; }
+.entr-repli summary .etat { flex: none; white-space: nowrap; padding: 2px 8px; border-radius: 999px; background: #dfe6ee; font-weight: 500; font-size: 13px; }
 /* proposition en cours : repli blanc, titre en couleur du texte */
 .entr-repli-encours details { background: var(--surface); }
 .entr-repli-encours summary { color: var(--text); }

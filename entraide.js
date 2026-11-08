@@ -589,7 +589,7 @@ $("entr-nav-sel").addEventListener("change", e => { location.hash = e.target.val
 // « Mes demandes » (première section de la page, seulement si j'en ai déposé) : mes demandes (reliées à mon compte
 // par la base) et, pour chacune, une conversation par personne qui a proposé son aide, que nous sommes seules à voir ;
 // les messages s'affichent directement et se mettent à jour en direct avec le reste de la page.
-const ENTR_MON_STATUT = { a_valider: ["En attente de validation", "wait"], publiee: ["Publiée", "lead"], pourvue: ["C'est réglé ✓", "ok"], refusee: ["Non publiée", "none"] };
+const ENTR_MON_STATUT = { a_valider: ["En attente de validation", "wait"], publiee: ["Publiée", "lead"], pourvue: ["C'est réglé ✓", "ok"], refusee: ["Non publiée", "refus"] };
 function renderMesDemandes(list) {
   $("entr-mes").hidden = false; // toujours là : elle porte le bouton « Faire une demande »
   $("entr-mes-vide").hidden = !!list.length;
