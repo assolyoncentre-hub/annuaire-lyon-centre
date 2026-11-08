@@ -668,3 +668,14 @@ test("Mes demandes : propositions en cours dépliées, déclinées repliées, m�
   await expect(damien).not.toHaveAttribute("open", "");
   await expect(r.locator('details:has(.entr-reps[data-prenom="Claire"])')).toHaveAttribute("open", "");
 });
+
+test("l'heure d'une demande publiée ne bouge pas quand le fil se recharge", async ({ open, page }) => {
+  await open({ user: VOIR, hash: "#entraide", acces: ACCES });
+  const heures = () => page.locator("#entr-list time, #entr-aides time").evaluateAll(ts => ts.map(t => t.getAttribute("datetime")));
+  const avant = await heures();
+  expect(avant.length).toBeGreaterThan(1);
+  await page.waitForTimeout(1100);
+  await page.evaluate(() => window.__entraideSignal());
+  await page.waitForTimeout(300);
+  expect(await heures()).toEqual(avant);
+});

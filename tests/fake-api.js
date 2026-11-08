@@ -50,7 +50,14 @@ module.exports = function installFakeApi({ data, user, acces }) {
     return m;
   };
   const ago = j => new Date(Date.now() - j * 86400000).toISOString();
-  const entrRow = d => ({ id: d.id, created_at: d.cree ? new Date(d.cree).toISOString() : ago(d.jours), prenom: d.prenom, telephone: d.telephone, besoin: d.besoin,
+  // Dates des demandes fixées une fois pour toutes (et gardées par la version de test) : sinon, recalculées à chaque
+  // lecture, elles avançaient avec l'heure du dernier rechargement
+  for (const d of S.entraide) {
+    d.cree ??= Date.now() - (d.jours || 0) * 86400000;
+    if (d.close == null && d.statut === "pourvue") d.close = Date.now() - ((d.jours || 0) - 1) * 86400000;
+    if (d.publieAt == null && !d.jamaisPubliee && d.statut !== "a_valider" && d.statut !== "refusee") d.publieAt = Date.now() - (d.publie ?? d.jours ?? 0) * 86400000;
+  }
+  const entrRow = d => ({ id: d.id, created_at: d.cree ? new Date(d.cree).toISOString() : ago(d.jours || 0), prenom: d.prenom, telephone: d.telephone, besoin: d.besoin,
     quand: d.quand, quartier: d.quartier, statut: d.statut, publiee_le: d.jamaisPubliee ? null : d.publieAt ? new Date(d.publieAt).toISOString() : d.statut !== "a_valider" && d.statut !== "refusee" ? ago(d.publie ?? d.jours) : null,
     close_le: d.close ? new Date(d.close).toISOString() : d.statut === "pourvue" ? ago(d.jours - 1) : null });
   const norm = s => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
@@ -65,7 +72,7 @@ module.exports = function installFakeApi({ data, user, acces }) {
     // Entraide : mêmes règles que les fonctions entraide_* de la base
     async entraide() {
       guardVoir(); log("entraide");
-      return S.entraide.filter(d => d.statut === "publiee").map(d => ({ id: d.id, prenom: d.prenom, quartier: d.quartier, besoin: d.besoin, quand: d.quand, publie_le: ago(d.publie ?? d.jours) }))
+      return S.entraide.filter(d => d.statut === "publiee").map(d => ({ id: d.id, prenom: d.prenom, quartier: d.quartier, besoin: d.besoin, quand: d.quand, publie_le: entrRow(d).publiee_le }))
         .sort((a, b) => b.publie_le.localeCompare(a.publie_le));
     },
     async entraidePourvues() {
