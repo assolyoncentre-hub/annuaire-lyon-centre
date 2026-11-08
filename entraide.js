@@ -89,6 +89,8 @@ function entrRepsHtml(id, prenom) {
   // Mes demandes : chaque proposition dans un repli « Proposition de X », ouvert tant que la conversation est en cours
   if (!f.declinee) return !f.auteur ? entrFilHtml(id, prenom)
     : '<div class="entr-repli entr-repli-encours"><details' + entrRepliAttr(id, false, true) + "><summary>Proposition de " + esc(prenom) +
+      // pastille rouge : le dernier message vient de cette personne, il attend ma réponse
+      (entrAttend(f) ? '<span class="entr-pastille" role="img" aria-label="message en attente de réponse"></span>' : "") +
       ' <span class="etat">en cours</span></summary>' + entrFilHtml(id, prenom) + "</details></div>";
   // Côté de la personne qui a proposé son aide : repliée sous « X a mis fin à la conversation. », sans Réactiver
   if (!f.auteur) return '<div class="entr-repli entr-repli-aide"><details' + entrRepliAttr(id, true, false) + "><summary>" +

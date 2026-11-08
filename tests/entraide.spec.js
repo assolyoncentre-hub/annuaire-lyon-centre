@@ -351,6 +351,9 @@ test("Mes demandes : première section de la page, seulement mes demandes, avec 
   const enCours = recues.locator(".entr-repli-encours");
   await expect(enCours.locator("summary")).toHaveText([/Proposition de Damien\s*en cours/, /Proposition de Claire\s*en cours/]);
   await expect(enCours.locator("details[open]")).toHaveCount(2);
+  // pastille rouge : le dernier message de Damien et de Claire attend ma réponse
+  await expect(enCours.locator("summary .entr-pastille")).toHaveCount(2);
+  await expect(enCours.first().locator("summary .entr-pastille")).toHaveAccessibleName("message en attente de réponse");
   // replié d'un clic, il le reste en direct
   await enCours.nth(1).locator("summary").click();
   await page.evaluate(() => window.__entraideSignal());
@@ -370,6 +373,8 @@ test("Mes demandes : première section de la page, seulement mes demandes, avec 
   await expect(damien.locator(".entr-moi")).toHaveCount(1);
   await expect(recues.locator('.entr-reps[data-prenom="Claire"] .entr-moi')).toHaveCount(0);
   await expect(damien.locator(".entr-plus")).toBeFocused();
+  await expect(enCours.locator("summary .entr-pastille")).toHaveCount(1); // j'ai répondu à Damien : plus que Claire
+  await expect(enCours.nth(1).locator("summary .entr-pastille")).toHaveCount(1);
   // Supprimer : la conversation reste (les messages de Damien)
   await damien.locator(".entr-moi").getByRole("button", { name: "Supprimer" }).click();
   await expect(damien.locator(".entr-moi")).toHaveCount(0);
