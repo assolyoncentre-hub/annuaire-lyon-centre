@@ -563,3 +563,28 @@ test("téléphone : la zone de rédaction se place au-dessus du clavier @mobile"
   await page.evaluate(() => window.__clavier());
   await expect.poll(() => page.evaluate(() => document.getElementById("entr-rep").getBoundingClientRect().bottom - (innerHeight - 300))).toBeLessThanOrEqual(0);
 });
+
+test("textes de plus de 10 lignes : coupés, « Voir plus » à droite déplie tout @mobile", async ({ open, page }) => {
+  const MOI = [{ email: "admin@example.org", droit: "admin", prenom: "", nom: "", entraide_voir: true, entraide_moderer: false }];
+  await open({ user: ADMIN, hash: "#entraide", acces: MOI });
+  await expect(page.locator(".entr-voir-plus")).toHaveCount(0); // textes courts : rien
+  const long = Array.from({ length: 15 }, (_, i) => "Ligne " + (i + 1)).join("\n");
+  await page.evaluate(t => { window.__S.entraide.find(d => d.id === "e1").besoin = t; window.__entraideSignal(); }, long);
+  const bulle = page.locator('#entr-list .entr-msg[data-id="e1"]'), need = bulle.locator(".need"), plus = bulle.locator(".entr-voir-plus");
+  await expect(plus).toHaveText("Voir plus");
+  await expect(need).toContainText("Ligne 15"); // tout le texte est là (lecteurs d'écran), seulement coupé à l'écran
+  const h = await need.evaluate(p => [p.clientHeight, p.scrollHeight, parseFloat(getComputedStyle(p).lineHeight)]);
+  expect(h[0]).toBeLessThan(h[1]);
+  expect(Math.round(h[0] / h[2])).toBe(10);
+  // calé à droite de la bulle
+  const [bb, pb] = [await bulle.boundingBox(), await plus.boundingBox()];
+  expect(bb.x + bb.width - (pb.x + pb.width)).toBeLessThan(20);
+  await plus.click();
+  await expect(plus).toHaveCount(0);
+  expect(await need.evaluate(p => p.scrollHeight <= p.clientHeight)).toBe(true);
+  // déplié, il le reste après une mise à jour en direct
+  await page.evaluate(() => window.__entraideSignal());
+  await page.waitForTimeout(300);
+  await expect(bulle.locator(".entr-voir-plus")).toHaveCount(0);
+  expect(await bulle.locator(".need").evaluate(p => p.scrollHeight <= p.clientHeight)).toBe(true);
+});

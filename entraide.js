@@ -253,7 +253,10 @@ $("entr-list").addEventListener("click", entrClicFil);
 // Repli ouvert ou fermé : gardé lors des réaffichages en direct
 document.addEventListener("toggle", e => {
   const d = e.target;
-  if (d.matches?.("details[data-repli]")) d.open ? entrRepliOuverts.add(d.dataset.repli) : entrRepliOuverts.delete(d.dataset.repli);
+  if (d.matches?.("details[data-repli]")) {
+    d.open ? entrRepliOuverts.add(d.dataset.repli) : entrRepliOuverts.delete(d.dataset.repli);
+    if (d.open) entrTronquer(d); // textes longs du repli : mesurés maintenant qu'ils sont visibles
+  }
 }, true);
 $("entr-mes-list").addEventListener("click", entrClicFil);
 // Supprimer un de ses messages : sans confirmation, la bulle implose et ce qui suit remonte
@@ -313,6 +316,37 @@ $("entr-rep").addEventListener("submit", async e => {
 $("entr-jump").addEventListener("click", () => { entrVersLeHaut(); $("entr-jump").hidden = true; });
 addEventListener("scroll", () => { if (!$("entr-jump").hidden && entrEnHaut()) $("entr-jump").hidden = true; }, { passive: true });
 let entrSeq = 0;
+// Textes longs (demandes et messages) : 10 lignes au plus, puis « Voir plus » (calé à droite) déplie tout le texte.
+// Les textes dépliés le restent lors des réaffichages en direct.
+const ENTR_TEXTES = ".entr-msg .need, .entr-recue .txt, .entr-moi .txt, .entr-mod-row .need";
+const entrDeplies = new Set();
+function entrCleTexte(p) {
+  const e = p.closest("[data-msg], [data-rep], .entr-mod-row[data-id], [data-demande], [data-id]");
+  if (!e) return null;
+  const a = ["data-msg", "data-rep", "data-demande", "data-id"].find(k => e.hasAttribute(k));
+  return (e.matches(".entr-mod-row") ? "mod:" : "") + a + ":" + e.getAttribute(a);
+}
+function entrTronquer(root = document) {
+  root.querySelectorAll(ENTR_TEXTES).forEach(p => {
+    const k = entrCleTexte(p), b = p.nextElementSibling?.matches(".entr-voir-plus") ? p.nextElementSibling : null;
+    if (k && entrDeplies.has(k)) { p.classList.remove("entr-clamp"); b?.remove(); return; }
+    p.classList.add("entr-clamp");
+    if (!p.offsetParent) return; // masqué (repli fermé) : mesuré à l'ouverture
+    const coupe = p.scrollHeight > p.clientHeight + 1;
+    if (coupe && !b) p.insertAdjacentHTML("afterend", '<button type="button" class="entr-voir-plus" aria-label="Voir plus : afficher tout le texte">Voir plus</button>');
+    else if (!coupe) b?.remove();
+  });
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest(".entr-voir-plus");
+  if (!b) return;
+  const p = b.previousElementSibling, k = entrCleTexte(p);
+  if (k) entrDeplies.add(k);
+  p.classList.remove("entr-clamp");
+  p.tabIndex = -1; b.remove(); p.focus({ preventScroll: true });
+});
+addEventListener("resize", () => { clearTimeout(entrTronquer.t); entrTronquer.t = setTimeout(() => entrTronquer(), 150); });
+
 async function loadEntraide() {
   const seq = ++entrSeq;
   if (!entrLoaded) $("entr-count").textContent = "Chargement…";
@@ -327,6 +361,7 @@ async function loadEntraide() {
     if (!rep.hidden) $("entr-pub").append(rep);
     if (mes) { entrMajMes(mes); renderMesDemandes(mes); }
     renderEntraide(list); renderAidees(aidees); entrLoaded = true;
+    entrTronquer($("entr-pub"));
     if (!rep.hidden) {
       if (entrPlacerReponse(entrRepId, entrRepEdit)) { if (repFocus) $("entr-rep-txt").focus({ preventScroll: true }); }
       else { rep.hidden = true; entrRepId = null; } // demande ou conversation retirée entre-temps
@@ -428,6 +463,7 @@ function renderModeration() {
       '<p class="need">' + esc(d.besoin) + "</p>" + (d.quand ? '<div class="when">Quand : ' + esc(d.quand) + "</div>" : "") +
       '<div class="ops">' + ops(d) + "</div></div>";
   }).join("") || '<div class="empty">' + { a_valider: "Aucune demande à valider.", publiee: "Aucune demande publiée.", terminees: "Aucune demande terminée." }[entrFiltre] + "</div>";
+  entrTronquer($("entr-mod-list"));
 }
 
 async function entrModifier(d, champs, msg) {

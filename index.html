@@ -604,6 +604,11 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .entr-msg .who { font: 700 18px/1.3 Montserrat, sans-serif; color: var(--c, var(--brand)); }
 .entr-msg .who .where { font-weight: 500; color: var(--muted); }
 .entr-msg .need { margin: 2px 0 0; white-space: pre-line; overflow-wrap: anywhere; }
+/* Texte de plus de 10 lignes : coupé, « Voir plus » calé à droite le déplie */
+.entr-clamp { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 10; line-clamp: 10; overflow: hidden; }
+.entr-voir-plus { display: block; margin: 2px 0 0 auto; padding: 0 2px; border: 0; background: none; color: var(--brand); font: 600 15px/1 Montserrat, sans-serif; cursor: pointer; }
+.entr-voir-plus:hover { text-decoration: underline; }
+.entr-voir-plus:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 4px; }
 /* « Quand » : simple ligne d'information (icône calendrier), sans fond, pour ne pas ressembler au bouton */
 .entr-msg .when { display: flex; align-items: center; gap: 6px; margin-top: 4px; color: var(--text); font: 400 18px/1.3 "DM Sans", system-ui, sans-serif; }
 .entr-msg .when svg { flex: none; width: 18px; height: 18px; color: var(--muted); }
