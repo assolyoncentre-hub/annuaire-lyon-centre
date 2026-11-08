@@ -345,7 +345,7 @@ const PAGES = {
   entr: { href: "#entraide", titre: "Entraide", sous: "Demander, aider", nom: "Entraide entre paroissiens", c1: "#ff7a6b", c2: "#b2332a" },
   lead: { href: "#leaders", titre: "Leaders", sous: "Qui fait quoi", nom: "Annuaire des leaders", c1: "#9b7bea", c2: "#4b2a9c" },
   mod: { href: "#entraide/moderation", titre: "Modération", sous: "Relire, publier", nom: "Modération de l'entraide", c1: "#ffb347", c2: "#a65b00" },
-  admin: { href: "#admin", titre: "Admin", sous: "Gérer l'annuaire", nom: "Administration", c1: "#4aa3ff", c2: "#004a8f" },
+  admin: { href: "#admin", titre: "Admin", sous: "Réglages", nom: "Administration", c1: "#4aa3ff", c2: "#004a8f" },
 };
 // Porte en ogive (proportions des affiches de l'Église : 1,24 fois plus haute que large)
 // pointe légèrement arrondie, comme sur les affiches (raccord sans cassure avec les deux courbes)
@@ -377,7 +377,7 @@ function renderHome() {
     !session || canEntraide ? afficheHtml("entr", [canEntraide ? "Demander ou proposer son aide" : "Connexion requise"], pastille("#entraide")) : "",
     canLeaders ? afficheHtml("lead", ["Réservé aux leaders"]) : "",
     isReferent ? afficheHtml("mod", ["Réservé aux modérateurs"], pastille("#entraide/moderation")) : "",
-    isAdmin ? afficheHtml("admin", ["Staffs, pôles, contacts, droits · Réservé aux administrateurs"]) : "",
+    isAdmin ? afficheHtml("admin", ["Staffs, pôles, contacts, droits"]) : "",
   ].join("");
 }
 $("year").textContent = new Date().getFullYear();
