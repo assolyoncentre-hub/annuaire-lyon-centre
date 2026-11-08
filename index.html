@@ -619,7 +619,11 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .entr-decliner { flex: none; padding: 9px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--muted); font: 600 15px/1 Montserrat, sans-serif; cursor: pointer; }
 @media (hover: hover) { .entr-decliner:hover { color: #a3261b; border-color: #e3b4ae; } }
 .entr-fin { margin: 4px 0 0; color: var(--muted); font-size: 15px; }
-.entr-reprendre { padding: 2px 4px; border: 0; background: none; color: var(--brand); font: 600 15px/1 Montserrat, sans-serif; text-decoration: underline; cursor: pointer; }
+.entr-reprendre { padding: 2px 4px; border: 0; background: none; color: var(--muted); font: 500 14px/1 Montserrat, sans-serif; text-decoration: underline; cursor: pointer; }
+@media (hover: hover) { .entr-reprendre:hover { color: var(--brand); } }
+/* Conversation déclinée : grisée (ses messages restent lisibles), « Réactiver » discret en dessous */
+.entr-reps.declinee .entr-recue, .entr-reps.declinee .entr-moi { opacity: .55; filter: grayscale(1); }
+@media (hover: hover) { .entr-reps.declinee .entr-recue:hover, .entr-reps.declinee .entr-moi:hover { transform: none; box-shadow: 0 1px 1px rgba(0, 40, 80, .1); } }
 /* Le rappel « visibles seulement par… » est déjà en tête du fil : la zone de rédaction ne le répète pas,
    et sa croix devient une pastille dans le coin */
 .entr-reps:has(.entr-moi) .entr-rep { position: relative; padding-top: 10px; }

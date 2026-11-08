@@ -334,13 +334,28 @@ test("Mes demandes d'aide : première section de la page, seulement mes demandes
   await damien.locator(".entr-moi").getByRole("button", { name: "Supprimer" }).click();
   await expect(damien.locator(".entr-moi")).toHaveCount(0);
   await expect(damien.locator(".entr-recue")).toHaveCount(2);
-  // Décliner (même ligne que « Répondre à … ») : fin de la conversation, « Reprendre » la rouvre
+  // Décliner (même ligne que « Répondre à … ») : un remerciement pré-rempli s'ouvre ; l'abandonner ne change rien
   await damien.getByRole("button", { name: "Décliner" }).click();
-  await expect(damien.locator(".entr-fin")).toContainText("Vous avez décliné l'aide de Damien");
-  await expect(damien.locator(".entr-plus")).toHaveCount(0);
-  await expect(damien.getByRole("button", { name: "Reprendre" })).toBeFocused();
+  await expect(page.locator("#entr-rep-txt")).toHaveValue("Merci beaucoup pour votre proposition Damien mais j'ai trouvé de l'aide !");
+  await expect(page.locator("#entr-rep-txt")).toBeFocused();
+  await expect(page.locator("#entr-rep")).toContainText("Ce message sera envoyé à Damien, puis la conversation sera terminée.");
+  await page.click("#entr-rep-x");
+  await expect(damien.getByRole("button", { name: "Décliner" })).toBeFocused();
+  await expect(damien).not.toHaveClass(/declinee/);
+  expect(await calls(page, "entraideDecliner")).toHaveLength(0);
+  // Décliner, modifier le message puis l'envoyer : il part, puis la conversation est grisée, avec « Réactiver »
+  await damien.getByRole("button", { name: "Décliner" }).click();
+  await page.fill("#entr-rep-txt", "Merci Damien, mais un voisin s'en occupe !");
+  await page.keyboard.press("Enter");
+  await expect(damien).toHaveClass(/declinee/);
+  await expect(damien.locator(".entr-moi").last()).toContainText("Merci Damien, mais un voisin s'en occupe !");
+  await expect(damien.locator(".entr-fin")).toHaveText("Vous avez décliné l'aide de Damien. Réactiver");
+  await expect(damien.locator(".entr-plus, [data-decliner], [data-modifier]")).toHaveCount(0);
+  await expect(damien.getByRole("button", { name: "Réactiver" })).toBeFocused();
   await expect(recues.locator('.entr-reps[data-prenom="Claire"] .entr-plus')).toBeVisible();
-  await damien.getByRole("button", { name: "Reprendre" }).click();
+  // Réactiver : la conversation reprend
+  await damien.getByRole("button", { name: "Réactiver" }).click();
+  await expect(damien).not.toHaveClass(/declinee/);
   await expect(damien.locator(".entr-plus")).toBeFocused();
   await expect(page.locator("#entr-mes")).not.toContainText("39 98");
 });
@@ -367,6 +382,7 @@ test("pastille rouge sur Demandes d'aide tant qu'un message attend ma réponse @
   }
   await expect(page.locator("#entr-tab-pub .entr-pastille")).toHaveCount(1);
   await conv("Claire").getByRole("button", { name: "Décliner" }).click();
+  await page.keyboard.press("Enter"); // envoie le remerciement pré-rempli, puis termine la conversation
   await expect(page.locator("#entr-tab-pub .entr-pastille")).toHaveCount(0);
   await expect(page.locator("#entr-nav-sel option").first()).toHaveText("Demandes d'aide");
 });

@@ -66,12 +66,15 @@ function renderEntraide(tout) {
 // { demande, conv, prenom (l'autre personne), messages [{ id, texte, le, moi, modifie }], declinee, auteur (ma demande) }
 const entrFils = new Map();
 let entrRepId = null, entrRepEdit = null, entrBrouillon = null; // brouillon : fil dont le texte est gardé après fermeture
+// Décliner : la zone de rédaction s'ouvre avec un remerciement pré-rempli ; à l'envoi, la conversation est terminée
+let entrRepDecline = false;
+const entrMotDecline = prenom => "Merci beaucoup pour votre proposition " + prenom + " mais j'ai trouvé de l'aide !";
 const ENTR_CADENAS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
 // Une conversation attend ma réponse si son dernier message vient de l'autre personne (et qu'elle n'est pas terminée)
 const entrAttend = c => !c.declinee && c.messages.length > 0 && !c.messages[c.messages.length - 1].moi;
 function entrRepsHtml(id, prenom) {
   const f = entrFils.get(id) || { messages: [] }, l = f.messages, recues = l.some(r => !r.moi), fini = f.declinee;
-  return '<div class="entr-reps" data-pour="' + esc(id) + '" data-prenom="' + esc(prenom) + '">' + (l.length ?
+  return '<div class="entr-reps' + (fini ? " declinee" : "") + '" data-pour="' + esc(id) + '" data-prenom="' + esc(prenom) + '">' + (l.length ?
     (recues || f.auteur ? "" : '<p class="entr-rep-note">' + ENTR_CADENAS + "Vos messages ne sont visibles que par " + esc(prenom) + "</p>") +
     l.map(r => !r.moi
       ? '<div class="entr-recue" tabindex="-1" data-msg="' + esc(r.id) + '" style="--c:' + entrCouleur(prenom) + '"><div class="who">' + esc(prenom) + "</div>" +
@@ -79,8 +82,8 @@ function entrRepsHtml(id, prenom) {
       : '<div class="entr-moi" data-rep="' + esc(r.id) + '"><p class="txt">' + esc(r.texte) + "</p>" +
         '<div class="entr-moi-pied"><span class="entr-moi-act">' + (fini ? "" : '<button type="button" data-modifier>Modifier</button><button type="button" data-supprimer>Supprimer</button>') + "</span>" +
         '<time class="time" datetime="' + esc(r.le) + '">' + (r.modifie ? "Modifié · " : "") + (recues ? esc(entrJour(r.le)) + ", " : "") + entrHeure(r.le) + "</time></div></div>").join("") +
-    (fini ? '<p class="entr-fin">' + (f.auteur ? "Vous avez décliné l'aide de " + esc(prenom) + " : la conversation est terminée. " +
-        '<button type="button" class="entr-reprendre" data-reprendre>Reprendre</button>' : esc(prenom) + " a mis fin à la conversation.") + "</p>"
+    (fini ? '<p class="entr-fin">' + (f.auteur ? "Vous avez décliné l'aide de " + esc(prenom) + ". " +
+        '<button type="button" class="entr-reprendre" data-reprendre>Réactiver</button>' : esc(prenom) + " a mis fin à la conversation.") + "</p>"
       : f.auteur ? '<div class="entr-conv-act"><button type="button" class="entr-plus" data-plus>Répondre à ' + esc(prenom) + "</button>" +
         '<button type="button" class="entr-decliner" data-decliner>Décliner</button></div>'
       : '<button type="button" class="entr-plus" data-plus>' + (recues ? "Répondre à " + esc(prenom) : "+ Ajouter un message") + "</button>") : "") + "</div>";
@@ -97,9 +100,11 @@ function entrPlacerReponse(id, editId) {
   entrRepId = id; entrRepEdit = editId;
   const f = $("entr-rep"), b = editId != null && g.querySelector('[data-rep="' + CSS.escape(editId) + '"]');
   if (b) { b.classList.add("edite"); b.after(f); } else g.append(f);
-  $("entr-rep-t").textContent = (b ? "Modifier votre message à " : "Répondre à ") + g.dataset.prenom;
-  $("entr-rep-qui").textContent = "Votre message ne sera vu que par " + g.dataset.prenom + ".";
-  $("entr-rep-x").setAttribute("aria-label", b ? "Annuler la modification" : "Fermer sans envoyer");
+  $("entr-rep-t").textContent = (b ? "Modifier votre message à " : entrRepDecline ? "Décliner l'aide de " : "Répondre à ") + g.dataset.prenom;
+  $("entr-rep-qui").textContent = entrRepDecline
+    ? "Ce message sera envoyé à " + g.dataset.prenom + ", puis la conversation sera terminée."
+    : "Votre message ne sera vu que par " + g.dataset.prenom + ".";
+  $("entr-rep-x").setAttribute("aria-label", b ? "Annuler la modification" : entrRepDecline ? "Ne pas décliner" : "Fermer sans envoyer");
   f.hidden = false;
   return true;
 }
@@ -109,11 +114,13 @@ function entrTexte(v) {
   if (v) t.style.height = t.scrollHeight + "px";
   $("entr-rep-send").disabled = !v.trim();
 }
-function entrOuvrirReponse(id, editId = null) {
+function entrOuvrirReponse(id, editId = null, decliner = false) {
   const r = editId != null && (entrFils.get(id)?.messages || []).find(x => x.id === editId && x.moi);
-  if (r) entrTexte(r.texte);
+  entrRepDecline = decliner;
+  if (decliner) entrTexte(entrMotDecline(entrGroupe(id)?.dataset.prenom || ""));
+  else if (r) entrTexte(r.texte);
   else if (entrBrouillon !== id) entrTexte("");
-  entrBrouillon = r ? null : id;
+  entrBrouillon = r || decliner ? null : id;
   if (!entrPlacerReponse(id, r ? editId : null)) return;
   $("entr-rep").scrollIntoView({ block: "nearest", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
   $("entr-rep-txt").focus({ preventScroll: true });
@@ -148,10 +155,12 @@ function entrFermerReponse(rendreFocus = true) {
   f.hidden = true;
   $("entr-pub").append(f); // hors du fil, pour ne pas être effacée au prochain affichage
   if (editId != null) entrBrouillon = null;
+  const declinait = entrRepDecline;
+  if (declinait) { entrTexte(""); entrRepDecline = false; }
   entrRepId = entrRepEdit = null;
   if (!rendreFocus) return;
   const g = entrGroupe(id);
-  (editId != null && g?.querySelector('[data-rep="' + CSS.escape(editId) + '"] [data-modifier]') || entrBoutonAider(g) || g?.querySelector(".entr-plus"))?.focus();
+  (declinait && g?.querySelector("[data-decliner]") || editId != null && g?.querySelector('[data-rep="' + CSS.escape(editId) + '"] [data-modifier]') || entrBoutonAider(g) || g?.querySelector(".entr-plus"))?.focus();
 }
 // Après un envoi (ou une suppression, un déclin) : la vue affichée se recharge, puis le focus va sur l'élément choisi du fil
 async function entrApres(id, cible) {
@@ -180,14 +189,15 @@ async function entrClicFil(e) {
   else if (b.matches("[data-plus]")) entrOuvrirReponse(g.dataset.pour);
   else if (b.matches("[data-modifier]")) entrOuvrirReponse(g.dataset.pour, b.closest(".entr-moi").dataset.rep);
   else if (b.matches("[data-supprimer]")) entrSupprimerReponse(g, b.closest(".entr-moi"));
-  // Décliner : met fin à la conversation (plus de message possible), « Reprendre » la rouvre
-  else if (b.matches("[data-decliner], [data-reprendre]")) {
-    const id = g.dataset.pour, oui = b.matches("[data-decliner]");
-    if (entrRepId === id) entrFermerReponse(false);
+  // Décliner : ouvre un remerciement pré-rempli (modifiable) ; son envoi met fin à la conversation
+  else if (b.matches("[data-decliner]")) entrOuvrirReponse(g.dataset.pour, null, true);
+  // Réactiver : rouvre une conversation déclinée
+  else if (b.matches("[data-reprendre]")) {
+    const id = g.dataset.pour;
     b.disabled = true;
-    try { await api.entraideDecliner(entrFils.get(id).conv, oui); }
+    try { await api.entraideDecliner(entrFils.get(id).conv, false); }
     catch (err) { b.disabled = false; return entrErreur(err); }
-    await entrApres(id, oui ? "[data-reprendre]" : "[data-plus]");
+    await entrApres(id, "[data-plus]");
   }
 }
 $("entr-list").addEventListener("click", entrClicFil);
@@ -233,16 +243,18 @@ $("entr-rep-txt").addEventListener("keydown", e => {
 let entrEnvoi = false;
 $("entr-rep").addEventListener("submit", async e => {
   e.preventDefault();
-  const texte = $("entr-rep-txt").value.trim(), id = entrRepId, editId = entrRepEdit, f = entrFils.get(id);
+  const texte = $("entr-rep-txt").value.trim(), id = entrRepId, editId = entrRepEdit, f = entrFils.get(id), decline = entrRepDecline;
   if (!texte || id == null || entrEnvoi) return;
   entrEnvoi = true; $("entr-rep-send").disabled = true;
   try {
     if (editId != null) await api.entraideMessageModifier(editId, texte);
     else await api.entraideEcrire(texte, f?.conv ? { p_conversation: f.conv } : { p_demande: f?.demande ?? id });
+    // Décliner : le remerciement est parti, la conversation est terminée (grisée, avec « Réactiver »)
+    if (decline) await api.entraideDecliner(f.conv, true);
   } catch (err) { entrEnvoi = false; $("entr-rep-send").disabled = false; return entrErreur(err); }
   entrEnvoi = false;
-  entrTexte(""); entrBrouillon = null;
-  await entrApres(id, editId != null ? '[data-rep="' + CSS.escape(editId) + '"] [data-modifier]' : ".entr-plus");
+  entrTexte(""); entrBrouillon = null; entrRepDecline = false;
+  await entrApres(id, editId != null ? '[data-rep="' + CSS.escape(editId) + '"] [data-modifier]' : decline ? "[data-reprendre]" : ".entr-plus");
 });
 $("entr-jump").addEventListener("click", () => { entrVersLeHaut(); $("entr-jump").hidden = true; });
 addEventListener("scroll", () => { if (!$("entr-jump").hidden && entrEnHaut()) $("entr-jump").hidden = true; }, { passive: true });
