@@ -350,6 +350,8 @@ test("Mes demandes : première section de la page, seulement mes demandes, avec 
   // Décliner (même ligne que « Répondre à … ») : un remerciement pré-rempli s'ouvre ; l'abandonner ne change rien
   await damien.getByRole("button", { name: "Décliner" }).click();
   await expect(page.locator("#entr-rep-txt")).toHaveValue("Merci beaucoup pour votre proposition Damien mais j'ai trouvé de l'aide !");
+  // le champ prend la hauteur du message prérempli : tout le texte est visible, sans barre de défilement
+  expect(await page.locator("#entr-rep-txt").evaluate(t => t.scrollHeight <= t.clientHeight && t.clientHeight > 50)).toBe(true);
   await expect(page.locator("#entr-rep-txt")).toBeFocused();
   await expect(page.locator("#entr-rep")).toContainText("Ce message sera envoyé à Damien, puis la conversation sera terminée.");
   await page.click("#entr-rep-x");

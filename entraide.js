@@ -121,9 +121,16 @@ function entrPlacerReponse(id, editId) {
 }
 function entrTexte(v) {
   const t = $("entr-rep-txt");
-  t.value = v; t.style.height = "";
-  if (v) t.style.height = t.scrollHeight + "px";
+  t.value = v;
+  entrTaille();
   $("entr-rep-send").disabled = !v.trim();
+}
+// Hauteur du champ ajustée à son texte (contour compris), à refaire une fois la zone affichée à sa place
+function entrTaille() {
+  const t = $("entr-rep-txt");
+  t.style.height = "auto";
+  if (t.value && t.offsetParent) t.style.height = t.scrollHeight + t.offsetHeight - t.clientHeight + "px";
+  else t.style.height = "";
 }
 function entrOuvrirReponse(id, editId = null, decliner = false) {
   const r = editId != null && (entrFils.get(id)?.messages || []).find(x => x.id === editId && x.moi);
@@ -133,6 +140,7 @@ function entrOuvrirReponse(id, editId = null, decliner = false) {
   else if (entrBrouillon !== id) entrTexte("");
   entrBrouillon = r || decliner ? null : id;
   if (!entrPlacerReponse(id, r ? editId : null)) return;
+  entrTaille(); // texte prérempli (Décliner, Modifier) : la zone est maintenant visible, on peut la mesurer
   $("entr-rep").scrollIntoView({ block: "nearest", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
   $("entr-rep-txt").focus({ preventScroll: true });
   entrSuivreClavier();
@@ -276,7 +284,7 @@ $("entr-rep").addEventListener("keydown", e => { if (e.key === "Escape") { e.sto
 $("entr-rep-txt").addEventListener("input", e => {
   const t = e.target;
   $("entr-rep-send").disabled = !t.value.trim();
-  t.style.height = "auto"; t.style.height = t.scrollHeight + "px";
+  entrTaille();
   entrAuDessusDuClavier(); // le texte s'allonge : la zone reste au-dessus du clavier
 });
 // Entrée envoie, Maj+Entrée va à la ligne (comme dans une messagerie)
