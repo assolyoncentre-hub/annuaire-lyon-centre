@@ -254,7 +254,7 @@ body { min-height: 100vh; display: flex; flex-direction: column; }
 .back-link { margin: 20px 0 0; padding: 0; border: 0; background: none; color: var(--brand); font: 600 14px/1 Montserrat, sans-serif; cursor: pointer; }
 .view[hidden] { display: none; }
 .admin-top { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 20px 0 8px; }
-#add-btn { margin-left: auto; }
+#add-btn { margin-left: auto; box-sizing: border-box; height: 40px; }
 .tabs { display: flex; gap: 8px; }
 .tab { padding: 9px 16px; border: 1.5px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text);
   font: 600 13px/1 Montserrat, sans-serif; cursor: pointer; }
@@ -546,17 +546,19 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 /* Titre « Ils/elles ont besoin d'aide » avec « En direct » ferré à droite sur la même ligne */
 .entr-titre-l { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 /* Téléphone : les onglets deviennent une liste déroulante, suivie du bouton sur la même ligne */
-.entr-nav-sel { display: none; }
+.accoles-sel { display: none; }
 @media (max-width: 520px) {
   .entr-bar { flex-wrap: nowrap; gap: 8px; }
-  .entr-bar .entr-tabs { display: none; }
-  .entr-nav-sel { display: block; flex: 1 1 auto; min-width: 0; height: 44px; padding: 0 34px 0 14px; border: 1px solid var(--border); border-radius: 8px;
+  .entr-bar .entr-tabs, .admin-top .accoles { display: none; }
+  .admin-top { flex-wrap: nowrap; }
+  .admin-top #add-btn { flex: none; height: 44px; padding-left: 14px; padding-right: 14px; }
+  .accoles-sel { display: block; flex: 1 1 auto; min-width: 0; height: 44px; padding: 0 34px 0 14px; border: 1px solid var(--border); border-radius: 8px;
     background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23005ea8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 10px center / 16px;
     appearance: none; -webkit-appearance: none; color: var(--brand); font: 700 14px/1 Montserrat, sans-serif; text-overflow: ellipsis; cursor: pointer; }
   /* Pastille rouge près du chevron : des demandes attendent d'être modérées (hors écran de modération) */
-  .entr-nav-sel.alerte { padding-right: 48px; background-image: radial-gradient(circle, #d92d20 3.5px, transparent 4px), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23005ea8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  .accoles-sel.alerte { padding-right: 48px; background-image: radial-gradient(circle, #d92d20 3.5px, transparent 4px), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23005ea8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
     background-position: right 32px center, right 10px center; background-size: 10px 10px, 16px; }
-  .entr-nav-sel:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+  .accoles-sel:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
   .entr-bar .btn { flex: none; padding-left: 14px; padding-right: 14px; }
 }
 /* Textes seulement lus par les lecteurs d'écran (nombre de demandes, destinataire de la réponse) */
@@ -672,18 +674,19 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .entr-done p { margin: 0 0 20px; }
 /* Entraide : modération (référents) */
 .entr-tabs[hidden] { display: none; }
-/* Boutons accolés, comme un interrupteur à plusieurs positions : seule la page affichée est en bleu */
-.entr-tabs { gap: 0; }
+/* Boutons accolés (classe « accoles »), comme un interrupteur à plusieurs positions : seule la page affichée est en bleu.
+   Entraide et Administration ; sur téléphone, remplacés par une liste déroulante (« accoles-sel ») */
 /* Onglets et « J'ai besoin d'aide » : même hauteur (44 px sur téléphone, comme la liste déroulante) */
 .entr-bar .tab, .entr-bar #entr-ask { box-sizing: border-box; height: 40px; min-height: 0; margin: 0; display: inline-flex; align-items: center; }
-@media (max-width: 520px) { .entr-bar #entr-ask, .entr-bar .entr-nav-sel { box-sizing: border-box; height: 44px; min-height: 0; margin: 0; } .entr-bar .entr-nav-sel { line-height: 42px; padding-top: 0; padding-bottom: 0; font-size: 16px; } }
-.entr-tabs .tab { position: relative; display: inline-flex; align-items: center; margin-left: -1.5px; border-radius: 0; text-decoration: none; }
-.entr-tabs .tab:first-child { margin-left: 0; border-radius: 8px 0 0 8px; }
-.entr-tabs .tab:last-child, .entr-tabs .tab:has(+ .tab[hidden]) { border-radius: 0 8px 8px 0; }
-@media (hover: hover) { .entr-tabs .tab:not([aria-current="page"]):hover { background: #eef3f9; } }
-.entr-tabs .tab:focus-visible { z-index: 2; }
-.entr-tabs .tab[aria-current="page"] { z-index: 1; background: var(--brand); border-color: var(--brand); color: #fff; }
-.entr-tabs .tab[aria-current="page"] .entr-pastille { box-shadow: 0 0 0 1.5px #fff; }
+@media (max-width: 520px) { .entr-bar #entr-ask, .accoles-sel { box-sizing: border-box; height: 44px; min-height: 0; margin: 0; } .accoles-sel { line-height: 42px; padding-top: 0; padding-bottom: 0; font-size: 16px; } }
+.accoles { gap: 0; }
+.accoles .tab { position: relative; box-sizing: border-box; height: 40px; display: inline-flex; align-items: center; margin: 0 0 0 -1.5px; border-radius: 0; text-decoration: none; }
+.accoles .tab:first-child { margin-left: 0; border-radius: 8px 0 0 8px; }
+.accoles .tab:last-child, .accoles .tab:has(+ .tab[hidden]) { border-radius: 0 8px 8px 0; }
+@media (hover: hover) { .accoles .tab:not([aria-current="page"]):not([aria-selected="true"]):hover { background: #eef3f9; } }
+.accoles .tab:focus-visible { z-index: 2; }
+.accoles .tab[aria-current="page"], .accoles .tab[aria-selected="true"] { z-index: 1; background: var(--brand); border-color: var(--brand); color: #fff; }
+.accoles .tab[aria-current="page"] .entr-pastille { box-shadow: 0 0 0 1.5px #fff; }
 /* Filtre « À valider » de la modération : pastille rouge s'il reste au moins une demande */
 #entr-filters .afilter { display: inline-flex; align-items: center; }
 #entr-filters .afilter[aria-pressed="true"] .entr-pastille { box-shadow: 0 0 0 1.5px #fff; }
@@ -771,9 +774,9 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 <main class="wrap">
   <!-- Navigation de l'entraide (Modération pour les modérateurs), suivie du bouton « J'ai besoin d'aide » -->
   <div class="entr-bar" id="entr-bar">
-    <nav class="tabs entr-tabs" id="entr-tabs" aria-label="Entraide">
+    <nav class="tabs accoles entr-tabs" id="entr-tabs" aria-label="Entraide">
       <a class="tab" href="#entraide" id="entr-tab-pub">Demandes d'aide</a><a class="tab" href="#entraide/mes-demandes" id="entr-tab-mes">Mes demandes</a><a class="tab" href="#entraide/moderation" id="entr-tab-mod" hidden>Modération</a>
-    </nav><select class="entr-nav-sel" id="entr-nav-sel" aria-label="Entraide : choisir la page"></select><button type="button" class="btn btn-primary" id="entr-ask">J'ai besoin d'aide</button></div>
+    </nav><select class="accoles-sel" id="entr-nav-sel" aria-label="Entraide : choisir la page"></select><button type="button" class="btn btn-primary" id="entr-ask">J'ai besoin d'aide</button></div>
   <!-- Mes demandes (maquette : seulement celles envoyées depuis l'ouverture de la page) -->
   <div id="entr-mes" hidden>
     <h2 class="entr-titre">Mes demandes</h2>
@@ -832,12 +835,13 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
     </div>
     <div id="admin-body" hidden>
       <div class="admin-top">
-        <div class="tabs" role="tablist">
+        <div class="tabs accoles" role="tablist" aria-label="Administration">
           <button type="button" class="tab" role="tab" id="tab-services" aria-selected="true">Staffs</button>
           <button type="button" class="tab" role="tab" id="tab-poles" aria-selected="false">Pôles</button>
           <button type="button" class="tab" role="tab" id="tab-contacts" aria-selected="false">Contacts</button>
           <button type="button" class="tab" role="tab" id="tab-messages" aria-selected="false">Messages</button>
         </div>
+        <select class="accoles-sel" id="admin-nav-sel" aria-label="Administration : choisir la liste"></select>
         <button type="button" class="btn btn-primary btn-sm" id="add-btn">Ajouter un staff</button>
       </div>
       <div class="admin-tools">

@@ -120,6 +120,18 @@ test("téléphone : administration et fiche sans débordement @mobile", async ({
   await open({ user: ADMIN, hash: "#admin" });
   const largeur = () => page.evaluate(() => document.documentElement.scrollWidth);
   expect(await largeur()).toBeLessThanOrEqual(page.viewportSize().width);
+  // Les onglets deviennent une liste déroulante, à côté du bouton d'ajout, à la même hauteur
+  if (page.viewportSize().width <= 520) {
+    await expect(page.locator(".admin-top .tabs")).toBeHidden();
+    const sel = page.locator("#admin-nav-sel");
+    await expect(sel.locator("option")).toHaveText(["Staffs (10)", "Pôles (4)", /Contacts \(\d+\)/, /Messages \(\d+\)/]);
+    const h = await page.evaluate(() => ["admin-nav-sel", "add-btn"].map(id => document.getElementById(id).getBoundingClientRect().height));
+    expect(h[0]).toBe(h[1]);
+    await sel.selectOption("poles");
+    await expect(page).toHaveURL(/#admin\/poles$/);
+    await expect(page.locator("#add-btn")).toHaveText("Ajouter un pôle");
+    await sel.selectOption("services");
+  }
   await editRow(page, "baptême");
   await page.locator(".pick").click();
   const m = await page.locator("#editor .modal").evaluate(e => e.scrollWidth - e.clientWidth);

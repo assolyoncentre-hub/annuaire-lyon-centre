@@ -350,6 +350,7 @@ function showTab(t) {
   adminTab = t;
   $("sw-admin").setAttribute("href", HASH_OF[t]); // retour sur le même onglet depuis Propositions ou Leaders
   for (const k of ["services", "poles", "contacts", "messages"]) $("tab-" + k).setAttribute("aria-selected", String(t === k));
+  $("admin-nav-sel").value = t;
   $("add-btn").hidden = t === "messages";
   $("add-btn").textContent = { services: "Ajouter un staff", poles: "Ajouter un pôle", contacts: "Ajouter un contact" }[t] || "";
 }
@@ -362,6 +363,13 @@ $("tab-services").onclick = () => setTab("services");
 $("tab-poles").onclick = () => setTab("poles");
 $("tab-contacts").onclick = () => setTab("contacts");
 $("tab-messages").onclick = async () => { messages = await api.messages().catch(() => messages); setTab("messages"); };
+// Téléphone : les onglets deviennent une liste déroulante (mêmes libellés, compteurs compris)
+function adminNavSel() {
+  const sel = $("admin-nav-sel");
+  sel.innerHTML = ["services", "poles", "contacts", "messages"].map(k => '<option value="' + k + '">' + esc($("tab-" + k).textContent) + "</option>").join("");
+  sel.value = adminTab;
+}
+$("admin-nav-sel").addEventListener("change", e => $("tab-" + e.target.value).click());
 $("aq").addEventListener("input", e => { adminTerms = norm(e.target.value).split(/\s+/).filter(Boolean); renderAdmin(); });
 const adminMatch = text => { const w = words(text); return adminTerms.every(t => w.some(x => x.startsWith(t))); };
 
@@ -386,6 +394,7 @@ function renderAdmin() {
   $("tab-poles").textContent = "Pôles (" + Object.keys(poles).length + ")";
   $("tab-messages").textContent = "Messages (" + messages.length + ")";
   $("tab-contacts").textContent = "Contacts (" + fiches().length + ")";
+  adminNavSel();
   if (adminTab === "contacts") {
     const all = fiches();
     // Filtres par droit (choix multiple) : un contact s'affiche s'il correspond à l'un des droits cochés

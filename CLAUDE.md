@@ -40,4 +40,5 @@ Annuaire des propositions de l'Église Lyon Centre, publié sur GitHub Pages
 - Réutiliser les styles existants (variables `--brand`, `--muted`, `--border`… ; `.wrap`, `.btn`, `.field`, `.modal`, `.list`/`.row`, `.resp`, `.count`, `.chip`) et les polices du site (Phudu pour les titres, Montserrat pour les libellés, DM Sans pour le texte).
 - Marges latérales : celles de `.wrap` (16 px), identiques pour tous les blocs d'un écran.
 - Ce que j'ai écrit moi (mes demandes, mes messages) est sur fond bleu clair `--moi` ; ce que les autres ont écrit, sur fond blanc.
+- Choix entre plusieurs pages ou listes d'un écran (Entraide, Administration) : boutons accolés `.tabs.accoles` (le choix affiché en bleu, 40 px de haut, pastille rouge `.entr-pastille` si besoin), remplacés sur téléphone par une liste déroulante `.accoles-sel` à côté du bouton principal, à la même hauteur (44 px).
 - Vérifier sur téléphone (tests `@mobile`, capture Playwright à 390 px) et l'accessibilité (`tests/accessibilite.spec.js`).
