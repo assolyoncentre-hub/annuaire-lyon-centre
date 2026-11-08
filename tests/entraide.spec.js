@@ -482,16 +482,18 @@ test("zone de rédaction : la croix et le bouton d'envoi sont alignés sur le m�
   expect(x).toBe(envoi);
 });
 
-test("Mes demandes : « C'est réglé » sur une demande en cours @mobile", async ({ open, page }) => {
+test("Mes demandes : « C'est réglé » sur une demande publiée, poubelle sur une demande en attente @mobile", async ({ open, page }) => {
   const MOI = [{ email: "admin@example.org", droit: "admin", prenom: "", nom: "", entraide_voir: true, entraide_moderer: false }];
   await open({ user: ADMIN, hash: "#entraide", acces: MOI });
   const mes = page.locator("#entr-mes-list .entr-mienne");
   await expect(mes.first().locator(".who")).toHaveText(/^Moi/); // signée « Moi »
   const escabeau = mes.filter({ hasText: "escabeau" }), robinet = mes.filter({ hasText: "Réparer un robinet" });
-  // Seulement sur les demandes en cours (publiée ou à valider), pas sur celle déjà aidée
+  // « C'est réglé » seulement sur la demande publiée ; la demande en attente n'a qu'une poubelle ; rien sur celle déjà aidée
   await expect(escabeau.locator("[data-regler]")).toHaveText("C'est réglé");
-  await expect(robinet.locator("[data-regler]")).toBeVisible();
-  await expect(mes.filter({ hasText: "cartons de livres" }).locator("[data-regler]")).toHaveCount(0);
+  await expect(escabeau.locator("[data-retirer]")).toHaveCount(0);
+  await expect(robinet.locator("[data-regler]")).toHaveCount(0);
+  await expect(robinet.locator("[data-retirer]")).toHaveAccessibleName("Supprimer ma demande");
+  await expect(mes.filter({ hasText: "cartons de livres" }).locator("[data-regler], [data-retirer]")).toHaveCount(0);
   // Demande publiée réglée : « C'est réglé ✓ », et elle rejoint « Ils/elles ont déjà été aidés »
   await escabeau.locator("[data-regler]").click();
   await expect(page.locator("#toast")).toContainText("votre demande est réglée");
@@ -500,13 +502,22 @@ test("Mes demandes : « C'est réglé » sur une demande en cours @mobile", asyn
   await expect(escabeau).toBeFocused();
   await expect(page.locator("#entr-aides")).toContainText("Changer une ampoule");
   expect((await calls(page, "entraideRegler"))[0].arg).toBe("e2");
-  // Demande jamais publiée réglée : « C'est réglé ✓ », mais elle n'apparaît pas dans la liste publique des demandes aidées
-  await robinet.locator("[data-regler]").click();
-  await expect(robinet).toContainText("C'est réglé ✓");
-  await expect(page.locator("#entr-aides")).not.toContainText("Réparer un robinet");
-  // Règles du serveur : la demande d'une autre personne est refusée
-  const essai = await page.evaluate(async () => { try { await window.__api.entraideRegler("e1"); return "ok"; } catch (e) { return e.message; } });
-  expect(essai).toBe("Demande introuvable.");
+  // Poubelle : confirmation, Annuler ne supprime rien
+  await robinet.locator("[data-retirer]").click();
+  await expect(page.locator("#ed-title")).toHaveText("Supprimer ma demande ?");
+  await page.locator("#editor [data-close]").first().click();
+  await expect(robinet).toBeVisible();
+  // puis Supprimer : la demande disparaît
+  await robinet.locator("[data-retirer]").click();
+  await page.locator("#editor").getByRole("button", { name: "Supprimer" }).click();
+  await expect(page.locator("#toast")).toContainText("Demande supprimée.");
+  await expect(robinet).toHaveCount(0);
+  await expect(page.locator("#entr-ask")).toBeFocused();
+  // Règles du serveur : demande d'une autre personne refusée, « C'est réglé » refusé sur une demande en attente
+  const essai = (f, id) => page.evaluate(async ([f, id]) => { try { await window.__api[f](id); return "ok"; } catch (e) { return e.message; } }, [f, id]);
+  expect(await essai("entraideRegler", "e1")).toBe("Demande introuvable.");
+  expect(await essai("entraideRetirer", "e1")).toBe("Demande introuvable.");
+  expect(await essai("entraideRetirer", "e2")).toBe("Cette demande n'est plus en attente de validation.");
 });
 
 test("messagerie : règles du serveur (mêmes que la base)", async ({ open, page }) => {

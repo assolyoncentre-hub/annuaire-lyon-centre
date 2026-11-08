@@ -90,14 +90,22 @@ module.exports = function installFakeApi({ data, user, acces }) {
       return id;
     },
     async droitEntraide() { return entrMoi(); },
-    // Comme entraide_regler : « C'est réglé », par l'auteur d'une demande publiée ou à valider (elle devient pourvue)
+    // Comme entraide_retirer : l'auteur supprime sa demande tant qu'elle attend la validation d'un référent
+    async entraideRetirer(id) {
+      guardVoir(); log("entraideRetirer", id);
+      const d = S.entraide.find(x => x.id === id);
+      if (!d || d.auteur !== entrEmail()) throw new Error("Demande introuvable.");
+      if (d.statut !== "a_valider") throw new Error("Cette demande n'est plus en attente de validation.");
+      S.entraide = S.entraide.filter(x => x !== d);
+      signal();
+    },
+    // Comme entraide_regler : « C'est réglé », par l'auteur d'une demande publiée (elle devient pourvue)
     async entraideRegler(id) {
       guardVoir(); log("entraideRegler", id);
       const d = S.entraide.find(x => x.id === id);
       if (!d || d.auteur !== entrEmail()) throw new Error("Demande introuvable.");
-      if (d.statut !== "publiee" && d.statut !== "a_valider") throw new Error("Cette demande n'est plus en cours.");
-      if (d.statut === "a_valider") d.jamaisPubliee = true;
-      else d.publieAt = new Date(entrRow(d).publiee_le).getTime(); // garde sa date de publication
+      if (d.statut !== "publiee") throw new Error("Cette demande n'est plus en cours.");
+      d.publieAt = new Date(entrRow(d).publiee_le).getTime(); // garde sa date de publication
       d.statut = "pourvue"; d.close = Date.now();
       signal();
     },

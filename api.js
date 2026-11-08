@@ -51,6 +51,7 @@ window.makeApi = function () {
     entraidePourvues: () => sbRpc("entraide_pourvues"),
     // « C'est réglé » : l'auteur marque sa demande (publiée ou à valider) pourvue
     entraideRegler: id => sbRpc("entraide_regler", { p_id: id }),
+    entraideRetirer: id => sbRpc("entraide_retirer", { p_id: id }),
     // Droit Entraide de la personne connectée ("moderer", "voir" ou null), réglé sur sa fiche contact
     droitEntraide: () => sbRpc("mon_droit_entraide"),
     // Modération, réservée au droit « modérer » (vérifié par la base)

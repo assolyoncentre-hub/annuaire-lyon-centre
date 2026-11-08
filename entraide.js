@@ -212,6 +212,17 @@ async function entrClicFil(e) {
     await loadEntraide();
     $("entr-mes-list").querySelector('[data-demande="' + CSS.escape(id) + '"]')?.focus({ preventScroll: true });
   }
+  // Poubelle (ma demande en attente de validation) : suppression définitive, après confirmation
+  else if (b.matches("[data-retirer]")) {
+    const id = m.dataset.demande;
+    openEditor("Entraide", "Supprimer ma demande ?",
+      '<p style="margin:0">Votre demande sera effacée définitivement, avant même d\'avoir été publiée.</p>', async () => {
+        await api.entraideRetirer(id);
+        toast("Demande supprimée.");
+        await loadEntraide();
+        setTimeout(() => $("entr-ask").focus()); // après la fermeture de la fenêtre
+      }, "Supprimer", true);
+  }
   else if (b.matches("[data-plus]")) entrOuvrirReponse(g.dataset.pour);
   else if (b.matches("[data-modifier]")) entrOuvrirReponse(g.dataset.pour, b.closest(".entr-moi").dataset.rep);
   else if (b.matches("[data-supprimer]")) entrSupprimerReponse(g, b.closest(".entr-moi"));
@@ -500,8 +511,10 @@ function renderMesDemandes(list) {
     return '<article class="entr-msg entr-mienne" data-demande="' + esc(d.id) + '" tabindex="-1">' +
       '<div class="who">Moi' + (d.quartier ? ' <span class="where">· ' + esc(d.quartier) + "</span>" : "") + "</div>" +
       '<p class="need">' + esc(d.besoin) + "</p>" + (d.quand ? '<div class="when">' + ENTR_CAL + "<span>" + esc(d.quand) + "</span></div>" : "") +
-      '<div class="entr-pied"><span class="entr-pied-g">' + (d.statut === "publiee" || d.statut === "a_valider"
-        ? '<button type="button" class="btn btn-ok btn-sm" data-regler>C\'est réglé</button>' : "") +
+      '<div class="entr-pied"><span class="entr-pied-g">' + (d.statut === "publiee"
+        ? '<button type="button" class="btn btn-ok btn-sm" data-regler>C\'est réglé</button>'
+        // en attente de validation : on peut seulement la supprimer (poubelle rouge)
+        : d.statut === "a_valider" ? '<button type="button" class="trash" data-retirer aria-label="Supprimer ma demande" title="Supprimer ma demande">' + TRASH + "</button>" : "") +
         '<span class="badge ' + cls + '">' + esc(label) + "</span></span>" +
       '<time class="time" datetime="' + esc(d.created_at) + '">' + esc(entrJour(d.created_at)) + ", " + entrHeure(d.created_at) + "</time></div></article>" +
       (convs.length ? '<div class="entr-convs"><p class="entr-rep-note">' + ENTR_CADENAS +
