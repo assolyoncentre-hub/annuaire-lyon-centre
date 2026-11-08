@@ -117,6 +117,19 @@ test("téléphone : trois onglets sans débordement @mobile", async ({ open, pag
   expect(new Set(top).size).toBe(1);
 });
 
+test("téléphone : onglets du haut à 8 px des deux bords, quel que soit leur nombre @mobile", async ({ open, page }) => {
+  const w = page.viewportSize().width;
+  if (w > 520) return; // règle propre au téléphone
+  // Trois onglets (leader avec l'entraide, sans administration) : le cas qui débordait à droite
+  await open({ user: { email: "damien@example.org" }, acces: [{ email: "damien@example.org", droit: "leaders", prenom: "", nom: "", entraide_voir: true, entraide_moderer: false }] });
+  await expect(page.locator("#sw-entr")).toBeVisible();
+  await expect(page.locator("#sw-admin")).toBeHidden();
+  const bords = await page.locator("#switch a:not([hidden])").evaluateAll(as => [as[0].getBoundingClientRect().left, as.at(-1).getBoundingClientRect().right]);
+  expect(Math.round(bords[0])).toBe(8);
+  expect(Math.round(w - bords[1])).toBe(8);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(w);
+});
+
 test("annuaire des leaders : filtres par pôle et par staff en listes à cocher @mobile", async ({ open, page }) => {
   await open({ user: ADMIN, hash: "#leaders" });
   await expect(page.locator("#serv-grid")).toBeVisible();
