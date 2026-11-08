@@ -679,3 +679,15 @@ test("l'heure d'une demande publiée ne bouge pas quand le fil se recharge", asy
   await page.waitForTimeout(300);
   expect(await heures()).toEqual(avant);
 });
+
+test("grand écran : « Mes demandes » à 420 px quand elle est vide, moitié de la largeur dès qu'il y a une demande", async ({ open, page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await open({ user: VOIR, hash: "#entraide", acces: ACCES });
+  const largeurs = () => page.locator("#entr-mes").evaluate(e => [e.getBoundingClientRect().width, e.parentElement.querySelector("#entr-list").closest("#entr-pub > *").getBoundingClientRect().width]);
+  await expect(page.locator("#entr-mes-vide")).toBeVisible();
+  expect((await largeurs())[0]).toBe(420);
+  // Une demande : les deux colonnes se partagent la largeur
+  await page.evaluate(() => { window.__S.entraide.push({ id: "moi1", auteur: "voir@example.org", prenom: "Moi", telephone: "+33639980098", besoin: "Un coup de main", statut: "a_valider", jours: 0 }); window.__entraideSignal(); });
+  await expect(page.locator("#entr-mes-vide")).toBeHidden();
+  await expect.poll(async () => { const [d, g] = await largeurs(); return Math.abs(d - g) < 1; }).toBe(true);
+});
