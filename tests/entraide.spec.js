@@ -181,7 +181,7 @@ test("demander de l'aide : trois écrans qui se remplacent, puis remerciement @m
   await expect(page.locator("#entr-list")).not.toContainText("Zoé"); // à valider par un modérateur
 });
 
-test("modération : publier sur WhatsApp, modifier, pourvue, refuser, supprimer", async ({ open, page }) => {
+test("modération : publier, modifier, pourvue, refuser, supprimer", async ({ open, page }) => {
   await page.addInitScript(() => { window.open = (...a) => { (window.__opened ||= []).push(a); return null; }; });
   await open({ user: MOD, hash: "#entraide/moderation", acces: ACCES });
   await expect(page.locator("#entr-tab-mod .entr-pastille")).toBeVisible(); // pastille rouge : des demandes à modérer
@@ -192,22 +192,18 @@ test("modération : publier sur WhatsApp, modifier, pourvue, refuser, supprimer"
   const henri = row(page, "Henri");
   await expect(henri).toContainText("06 39 98 00 06");
 
-  // Modifier le texte affiché, puis publier : WhatsApp reçoit le message sans le numéro
+  // Modifier le texte affiché, puis publier : la demande devient visible dans le fil, sans rien ouvrir d'autre
   await henri.locator("[data-act=modifier]").click();
   await page.fill("#ee-besoin", "M'accompagner à la messe du dimanche");
   await page.click("#ed-form [type=submit]");
   await expect(henri.locator(".need")).toHaveText("M'accompagner à la messe du dimanche");
+  await expect(henri.locator("[data-act=publier]")).toHaveText("Publier");
   await henri.locator("[data-act=publier]").click();
-  const [url] = await page.evaluate(() => window.__opened[0]);
-  const text = decodeURIComponent(url.split("text=")[1]);
-  expect(url).toMatch(/^https:\/\/wa\.me\/\?text=/);
-  expect(text).toContain("*Henri* (Fourvière) : M'accompagner à la messe du dimanche");
-  expect(text).not.toContain("39 98");
+  await expect(page.locator("#toast")).toContainText("Demande publiée.");
   await expect(page.locator("#entr-filters")).toContainText("Publiées (6)");
-
-  // « Contacter » ouvre une conversation privée avec la personne
+  expect(await page.evaluate(() => window.__opened || [])).toHaveLength(0); // plus de WhatsApp
+  await expect(page.locator("#entr-mod-list")).not.toContainText("Contacter");
   const colette = row(page, "Colette");
-  await expect(colette.locator("a", { hasText: "Contacter" })).toHaveAttribute("href", /^https:\/\/wa\.me\/33639980007\?text=Bonjour%20Colette/);
   await colette.locator("[data-act=refuser]").click();
   await expect(page.locator("#entr-filters")).toContainText("À valider (0)");
   await expect(page.locator("[data-filter=a_valider] .entr-pastille")).toHaveCount(0); // plus rien à valider : pas de pastille

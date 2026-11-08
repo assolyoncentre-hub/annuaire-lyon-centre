@@ -541,7 +541,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .copy-all.done { border-color: #1d6b3a; background: #1d6b3a; }
 .person .fields input[type=tel] { grid-column: 1 / -1; }
 /* Entraide : liste succincte des demandes publiées, et formulaire qui se dévoile champ après champ */
-/* Entraide : demandes publiées en conversation (bulles comme dans un groupe WhatsApp, aux couleurs du site) */
+/* Entraide : demandes publiées en conversation (bulles comme dans une messagerie, aux couleurs du site) */
 /* Barre du haut : onglets (Modération pour les modérateurs), puis « J'ai besoin d'aide » juste à la suite */
 .entr-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin: 0 0 20px; }
 .entr-bar .entr-tabs { margin: 0; }
@@ -935,7 +935,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
       </div>
       <div class="e-step" data-step="2" hidden>
         <div class="field"><label for="e-prenom">Votre prénom</label><input id="e-prenom" name="prenom" maxlength="60" autocomplete="given-name"></div>
-        <div class="field"><label for="e-tel">Votre téléphone WhatsApp</label><input id="e-tel" name="tel" type="tel" inputmode="tel" autocomplete="tel" placeholder="06 12 34 56 78">
+        <div class="field"><label for="e-tel">Votre téléphone</label><input id="e-tel" name="tel" type="tel" inputmode="tel" autocomplete="tel" placeholder="06 12 34 56 78">
           <div class="hint">Il n'est pas publié : seuls les référents le voient.</div></div>
         <div class="field"><label class="check"><input type="checkbox" name="accord" id="e-accord">J'accepte que ma demande soit publiée, avec mon prénom (sans mon numéro).</label></div>
       </div>
@@ -948,7 +948,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
     <div class="entr-done" id="e-done" hidden>
       <div class="e-ok" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
       <h3 id="e-done-title" tabindex="-1">Merci !</h3>
-      <p>Votre demande est bien arrivée. Un référent va la relire, puis la publier ici et dans le groupe WhatsApp «&nbsp;Besoin d'aide&nbsp;». La personne qui pourra vous aider vous contactera directement.</p>
+      <p>Votre demande est bien arrivée. Un référent va la relire, puis la publier ici. La personne qui pourra vous aider vous contactera directement.</p>
       <div class="actions"><button type="button" class="btn btn-primary" id="e-close">Fermer</button></div>
     </div>
   </div>

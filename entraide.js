@@ -9,22 +9,9 @@ const ENTR_STATUT = { a_valider: ["À valider", "wait"], publiee: ["Publiée", "
 const entrDate = iso => new Date(iso).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 // +33612345678 → 06 12 34 56 78 (les numéros étrangers restent au format international)
 const entrTel = t => { const m = /^\+33(\d{9})$/.exec(t || ""); return m ? ("0" + m[1]).replace(/(\d{2})(?=\d)/g, "$1 ") : t || ""; };
-const entrPageUrl = () => location.origin + location.pathname + "#entraide";
-
-// Messages WhatsApp : publication dans le groupe (sans le numéro) et contact privé de la personne
-function entrMessage(d) {
-  const who = "*" + d.prenom + "*" + (d.quartier ? " (" + d.quartier + ")" : "");
-  return ["🙏 *Besoin d'aide*", "", who + " : " + d.besoin, ...(d.quand ? ["🗓️ " + d.quand] : []), "",
-    "🤝 Vous pouvez aider ? Appuyez longuement sur ce message, puis « Répondre en privé ».",
-    "Toutes les demandes : " + entrPageUrl()].join("\n");
-}
-const entrShareUrl = d => "https://wa.me/?text=" + encodeURIComponent(entrMessage(d));
-const entrChatUrl = d => "https://wa.me/" + d.telephone.replace(/^\+/, "") + "?text=" + encodeURIComponent(
-  "Bonjour " + d.prenom + ", je suis référent de l'entraide de l'Église Lyon Centre. Je reviens vers vous au sujet de votre demande : « " + d.besoin + " ».");
-
 // --- Demandes publiées : une conversation, les plus récentes en haut ---
 let entrLoaded = false, entrVus = new Set();
-// Couleur du prénom (fixe pour un même prénom, comme les noms dans un groupe WhatsApp), lisible sur fond blanc
+// Couleur du prénom (fixe pour un même prénom, comme les noms dans une messagerie de groupe), lisible sur fond blanc
 const ENTR_COULEURS = ["#0060aa", "#0a7d6f", "#a0306b", "#b0451f", "#6b4fbb", "#8a5a00", "#1f6f3a"];
 const entrCouleur = nom => ENTR_COULEURS[[...String(nom)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7) % ENTR_COULEURS.length];
 const ENTR_CAL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>';
@@ -368,10 +355,9 @@ function renderModeration() {
 
   const list = all.filter(d => entrDans(d, entrFiltre));
   const btn = (act, label, cls = "btn-ghost") => '<button type="button" class="btn ' + cls + ' btn-sm" data-act="' + act + '"' + (entrBusy ? " disabled" : "") + ">" + label + "</button>";
-  const contact = d => '<a class="btn btn-ghost btn-sm" href="' + esc(entrChatUrl(d)) + '" target="_blank" rel="noopener">Contacter</a>';
   const ops = d => ({
-    a_valider: btn("publier", "Publier sur WhatsApp", "btn-primary") + btn("modifier", "Modifier") + contact(d) + btn("refuser", "Refuser"),
-    publiee: btn("pourvue", "C'est pourvu", "btn-primary") + btn("modifier", "Modifier") + contact(d),
+    a_valider: btn("publier", "Publier", "btn-primary") + btn("modifier", "Modifier") + btn("refuser", "Refuser"),
+    publiee: btn("pourvue", "C'est pourvu", "btn-primary") + btn("modifier", "Modifier"),
     pourvue: btn("rouvrir", "Rouvrir") + btn("supprimer", "Supprimer"),
     refusee: btn("rouvrir", "Rouvrir") + btn("supprimer", "Supprimer"),
   })[d.statut];
@@ -406,7 +392,7 @@ function entrEditer(d) {
   const field = (id, label, value, max, area) => '<div class="field"><label for="' + id + '">' + label + "</label>" +
     (area ? '<textarea id="' + id + '" maxlength="' + max + '">' + esc(value) + "</textarea>" : '<input id="' + id + '" maxlength="' + max + '" value="' + esc(value) + '">') + "</div>";
   openEditor("Entraide", "Demande de " + d.prenom,
-    '<p class="hint" style="margin:0">Ce texte est celui affiché publiquement et publié sur WhatsApp : restez discret (pas de motif médical, pas d\'adresse).</p>' +
+    '<p class="hint" style="margin:0">Ce texte est celui affiché publiquement : restez discret (pas de motif médical, pas d\'adresse).</p>' +
     field("ee-prenom", "Prénom affiché", d.prenom, 60) + field("ee-besoin", "Besoin", d.besoin, 500, true) +
     field("ee-quand", "Quand", d.quand, 100) + field("ee-quartier", "Quartier", d.quartier, 100),
     async f => {
@@ -425,9 +411,9 @@ $("entr-mod-list").addEventListener("click", e => {
   if (!b) return;
   const d = entrDemandes.find(x => x.id === b.closest("[data-id]")?.dataset.id);
   if (!d) return;
-  // Publication : WhatsApp s'ouvre avec le message prérempli (sans le numéro), on choisit le groupe et on envoie
+  // Publier : la demande devient visible dans « Ils/elles ont besoin d'aide » (sans le numéro)
   const act = b.dataset.act;
-  if (act === "publier") { window.open(entrShareUrl(d), "_blank", "noopener"); entrModifier(d, { p_statut: "publiee" }, "Demande publiée sur le site."); }
+  if (act === "publier") entrModifier(d, { p_statut: "publiee" }, "Demande publiée.");
   else if (act === "modifier") entrEditer(d);
   else if (act === "refuser") entrModifier(d, { p_statut: "refusee" }, "Demande refusée.");
   else if (act === "pourvue") entrModifier(d, { p_statut: "pourvue" }, "Demande marquée pourvue : elle n'apparaît plus publiquement.");
@@ -555,7 +541,7 @@ function eCheck() {
   if (eStep === 0 && f.besoin.value.trim().length < 3) return eError("Décrivez en quelques mots ce dont vous avez besoin.");
   if (eStep === 2) {
     if (!f.prenom.value.trim()) return eError("Indiquez votre prénom.");
-    if (!/^[+0-9 .()-]{10,20}$/.test(f.tel.value.trim())) return eError("Indiquez votre numéro WhatsApp (exemple : 06 12 34 56 78).");
+    if (!/^[+0-9 .()-]{10,20}$/.test(f.tel.value.trim())) return eError("Indiquez votre numéro de téléphone (exemple : 06 12 34 56 78).");
     if (!f.accord.checked) return eError("Votre accord est nécessaire pour publier la demande.");
   }
   return eError("");
