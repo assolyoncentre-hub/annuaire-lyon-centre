@@ -73,7 +73,7 @@ test("demandes en conversation : les plus récentes en haut, nouvelles demandes 
   await expect(page.locator(".entr-msg.repond + .entr-reps > #entr-rep")).toHaveCount(1);
   await expect(page.locator(".entr-msg.repond .who")).toContainText("Jeanne");
   await expect(page.locator("#entr-rep-t")).toHaveText("Répondre à Jeanne");
-  await expect(page.locator("#entr-rep")).toContainText("Votre réponse ne sera vue que par Jeanne.");
+  await expect(page.locator("#entr-rep")).toContainText("Votre message ne sera vu que par Jeanne.");
   await expect(page.locator("#entr-rep-txt")).toBeFocused();
   await expect(page.locator("#entr-rep-send")).toBeDisabled();
   await page.fill("#entr-rep-txt", "Bonjour, je peux vous conduire jeudi.");
@@ -308,7 +308,7 @@ test("Mes demandes : seulement mes demandes, avec les réponses reçues @mobile"
   const damien = recues.locator('.entr-reps[data-prenom="Damien"]');
   await expect(recues.locator(".entr-plus")).toHaveText(["Répondre à Damien", "Répondre à Claire"]);
   await damien.getByRole("button", { name: "Répondre à Damien" }).click();
-  await expect(page.locator("#entr-rep")).toContainText("Votre réponse ne sera vue que par Damien.");
+  await expect(page.locator("#entr-rep")).toContainText("Votre message ne sera vu que par Damien.");
   await expect(page.locator("#entr-rep-txt")).toBeFocused();
   await page.fill("#entr-rep-txt", "Jeudi 18 h, c'est parfait, merci !");
   await page.keyboard.press("Enter");

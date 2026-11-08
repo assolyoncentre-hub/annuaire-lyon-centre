@@ -450,6 +450,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; scroll-behavior: auto !important; }
   .card:hover { transform: none; }
+  .entr-msg:hover, .entr-recue:hover, .entr-moi:hover { transform: none; }
 }
 /* Listes déroulantes : flèche dessinée, à distance du bord droit (la flèche native de Safari est collée au bord) */
 .field select { -webkit-appearance: none; appearance: none; padding-right: 44px; background-repeat: no-repeat; background-position: right 16px center; background-size: 12px 8px;
@@ -579,7 +580,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .entr-msg .aide-ok { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px; background: #e3f4ea; color: #1d6b43; font: 600 13px/1.5 Montserrat, sans-serif; vertical-align: 1px; }
 .entr-day { display: flex; justify-content: center; margin: 12px 0 8px; }
 .entr-day span { padding: 5px 10px; border-radius: 8px; background: rgba(255, 255, 255, .92); color: var(--muted); font: 600 14px/1 Montserrat, sans-serif; box-shadow: 0 1px 1px rgba(0, 40, 80, .08); }
-.entr-msg { position: relative; width: fit-content; max-width: min(84%, 560px); margin: 6px 0 16px; padding: 7px 10px 6px; border-radius: 2px 10px 10px 10px;
+.entr-msg { position: relative; width: fit-content; max-width: min(84%, 560px); margin: 6px 0 16px; padding: 11px 14px 10px; border-radius: 2px 10px 10px 10px;
   background: var(--bulle, var(--surface)); box-shadow: 0 1px 1px rgba(0, 40, 80, .1); }
 .entr-msg::before { content: ""; position: absolute; top: 0; left: -7px; width: 8px; height: 10px; background: linear-gradient(to bottom left, var(--bulle, var(--surface)) 50%, transparent 50%); }
 .entr-msg .who { font: 700 18px/1.3 Montserrat, sans-serif; color: var(--c, var(--brand)); }
@@ -606,7 +607,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .entr-reps::before { content: ""; position: absolute; left: -18px; top: -6px; width: 14px; height: 26px; border: solid #9db6cc; border-width: 0 0 2px 2px; border-bottom-left-radius: 10px; }
 .entr-reps > .entr-rep-note { margin: 0 0 6px; padding-top: 4px; color: var(--muted); font-size: 14px; }
 /* Messages envoyés : bulles bleu clair, dans l'ordre d'envoi */
-.entr-moi { margin: 0 0 6px; padding: 7px 10px 5px; border-radius: 10px 2px 10px 10px; background: var(--moi); box-shadow: 0 1px 1px rgba(0, 40, 80, .1); }
+.entr-moi { margin: 0 0 6px; padding: 11px 14px 9px; border-radius: 10px 2px 10px 10px; background: var(--moi); box-shadow: 0 1px 1px rgba(0, 40, 80, .1); }
 .entr-moi.edite { display: none; }
 .entr-moi .txt { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 .entr-moi-pied { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 4px; }
@@ -695,6 +696,9 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 #entr-mod[hidden], #entr-pub[hidden], #entr-mes[hidden] { display: none; }
 /* Lisibilité : sous la barre, textes plus grands que sur le reste du site, et boutons d'au moins 40 px de haut */
 #entr-pub, #entr-mes, #entr-mod { font-size: 17px; }
+/* Bulles : même survol que les cartes des propositions (légère montée et ombre) */
+.entr-msg, .entr-recue, .entr-moi { transition: transform .15s, box-shadow .15s; }
+@media (hover: hover) { .entr-msg:hover, .entr-recue:hover, .entr-moi:hover { transform: translateY(-2px); box-shadow: 0 12px 28px -16px rgba(0, 60, 110, .35); } }
 /* Bulles : nom, lieu, texte et moment à la même taille (18 px) ; seule l'heure reste discrète */
 .entr-msg, .entr-recue, .entr-moi { font-size: 18px; }
 #entr-pub .btn-sm, #entr-mes .btn-sm, #entr-mod .btn-sm { font-size: 15px; }
@@ -704,7 +708,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .entr-jump { min-height: 40px; }
 /* Mes demandes : mêmes bulles que le fil, avec l'état de la demande */
 /* Réponses reçues : bulles blanches au nom de la personne qui répond, dans le fil sous ma demande */
-.entr-recue { margin: 0 0 6px; padding: 7px 10px 5px; border-radius: 2px 10px 10px 10px; background: var(--surface); box-shadow: 0 1px 1px rgba(0, 40, 80, .1); }
+.entr-recue { margin: 0 0 6px; padding: 11px 14px 9px; border-radius: 2px 10px 10px 10px; background: var(--surface); box-shadow: 0 1px 1px rgba(0, 40, 80, .1); }
 .entr-recue .who { font: 700 18px/1.3 Montserrat, sans-serif; color: var(--c, var(--brand)); }
 .entr-recue .txt { margin: 2px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 .entr-recue .time { display: block; margin-top: 2px; text-align: right; color: var(--muted); font-size: 13px; }

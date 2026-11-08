@@ -125,7 +125,7 @@ function entrPlacerReponse(id, editId) {
   const f = $("entr-rep"), b = editId != null && g.querySelector('[data-rep="' + CSS.escape(editId) + '"]');
   if (b) { b.classList.add("edite"); b.after(f); } else g.append(f);
   $("entr-rep-t").textContent = (b ? "Modifier votre message à " : "Répondre à ") + g.dataset.prenom;
-  $("entr-rep-qui").textContent = "Votre réponse ne sera vue que par " + g.dataset.prenom + ".";
+  $("entr-rep-qui").textContent = "Votre message ne sera vu que par " + g.dataset.prenom + ".";
   $("entr-rep-x").setAttribute("aria-label", b ? "Annuler la modification" : "Fermer sans envoyer");
   f.hidden = false;
   return true;
