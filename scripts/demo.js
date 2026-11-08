@@ -1,6 +1,6 @@
 // Corps de demo.js (version de test /dev/), assemblé par scripts/site.sh après tests/fake-api.js (fake)
 // et tests/data.js (data). Les modifications sont gardées dans ce navigateur (localStorage).
-// Connexion : administrateur « admin@example.org » ou adresse du responsable du site (droits Voir et Modérer l'entraide),
+// Connexion : administrateur « admin@example.org » ou adresses des responsables du site (droits Voir et Modérer l'entraide),
 // ou un leader des données ; code 123456.
 // Clé versionnée : changer de version efface les données de démo enregistrées par une version précédente.
 const KEY = "annuaire-dev:donnees-v4";
@@ -13,14 +13,17 @@ fake.exports({
   user: null,
   acces: saved?.acces || [{ email: "admin@example.org", droit: "admin", civilite: "", prenom: "Admin", nom: "Démo", telephone: "", entraide_voir: true, entraide_moderer: true }],
 });
-// Adresse du responsable du site reconnue comme administrateur (droits Voir et Modérer l'entraide). Le dépôt étant
-// public, seule son empreinte SHA-256 figure ici.
-const RESPONSABLE = "9c030fc7e0acba56648fb3977e8e9f0051081a0023e2e1dfb1b74b6769608faa";
+// Adresses des responsables du site reconnues comme administrateurs (droits Voir et Modérer l'entraide). Le dépôt
+// étant public, seule leur empreinte SHA-256 figure ici, avec le prénom affiché.
+const RESPONSABLES = {
+  "9c030fc7e0acba56648fb3977e8e9f0051081a0023e2e1dfb1b74b6769608faa": "Loïc",
+  "107c9a43215a7915d1e9266319b986a16314cd4dcfad6263992e526ca1776ed7": "",
+};
 async function reconnaitre(email) {
   const e = String(email || "").trim().toLowerCase();
   if (!e || !crypto.subtle || window.__S.acces?.some(a => a.email === e)) return;
   const h = [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(e)))].map(b => b.toString(16).padStart(2, "0")).join("");
-  if (h === RESPONSABLE) window.__S.acces.push({ email: e, droit: "admin", civilite: "", prenom: "Loïc", nom: "", telephone: "", entraide_voir: true, entraide_moderer: true });
+  if (h in RESPONSABLES) window.__S.acces.push({ email: e, droit: "admin", civilite: "", prenom: RESPONSABLES[h], nom: "", telephone: "", entraide_voir: true, entraide_moderer: true });
 }
 for (const name of ["canSignIn", "verifyCode"]) {
   const fn = window.__api[name];

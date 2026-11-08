@@ -350,7 +350,8 @@ const PAGES = {
   admin: { href: "#admin", titre: "Admin", sous: "Gérer l'annuaire", nom: "Administration", c1: "#4aa3ff", c2: "#004a8f" },
 };
 // Porte en ogive (proportions des affiches de l'Église : 1,24 fois plus haute que large)
-const OGIVE = "M0 124V45C0 25 28 6.6 50 0 72 6.6 100 25 100 45V124Z";
+// pointe légèrement arrondie, comme sur les affiches (raccord sans cassure avec les deux courbes)
+const OGIVE = "M0 124V45C0 25 28 6.6 44.5 1.65Q50 0 55.5 1.65C72 6.6 100 25 100 45V124Z";
 function afficheHtml(k, infos, pastille) {
   const p = PAGES[k];
   return '<a class="aff" href="' + p.href + '" style="--c1:' + p.c1 + ";--c2:" + p.c2 + '"><div class="aff-visuel" aria-hidden="true">' +

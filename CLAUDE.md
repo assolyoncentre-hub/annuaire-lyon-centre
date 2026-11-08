@@ -20,7 +20,7 @@ Annuaire des propositions de l'Église Lyon Centre, publié sur GitHub Pages
 - Ne pas mettre en prod du code qui appelle des fonctions de base pas encore créées.
 - Avant de pousser : `npm test` (Playwright, Chromium).
 - Le workflow `.github/workflows/pages.yml` teste chaque push sur `main` ou `dev`. Pages ne publie que depuis `main` : un push sur `dev` relance le workflow sur `main`, qui publie la prod et `/dev/`. Le dossier publié est préparé par `scripts/site.sh` (avec `demo` pour `/dev/`, qui ajoute `demo.js` assemblé depuis `tests/fake-api.js`, `tests/data.js` et `scripts/demo.js`).
-- Connexion en version de test : `admin@example.org` ou l'adresse du responsable du site, reconnue par son empreinte SHA-256 dans `scripts/demo.js` (administrateur, avec les droits Voir et Modérer l'entraide) ou un leader des données de test (`damien@example.org`), code `123456`. Les données de démo sont gardées dans le navigateur ; clic sur le badge « DEV » pour les remettre à zéro.
+- Connexion en version de test : `admin@example.org` ou les adresses des responsables du site, reconnues par leur empreinte SHA-256 dans `scripts/demo.js` (administrateur, avec les droits Voir et Modérer l'entraide) ou un leader des données de test (`damien@example.org`), code `123456`. Les données de démo sont gardées dans le navigateur ; clic sur le badge « DEV » pour les remettre à zéro.
 
 ## Base de données (Supabase « Annuaire Lyon Centre », `xhjmmzounimrfshlihhx`)
 
