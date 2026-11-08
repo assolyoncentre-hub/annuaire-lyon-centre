@@ -243,6 +243,9 @@ async function onSession(s) {
   }
   session = s;
   isAdmin = droit === "admin"; canLeaders = !!droit; canEntraide = !!s && !!entraide; isReferent = !!s && entraide === "moderer";
+  let apres = null;
+  try { apres = s && sessionStorage.getItem("apres-connexion"); if (apres) sessionStorage.removeItem("apres-connexion"); } catch { /* stockage indisponible */ }
+  if (apres && location.hash === "#admin") history.replaceState(null, "", apres);
   // Accès à l'entraide seulement, connecté depuis « Connexion » : direction l'entraide (la modération pour un modérateur)
   if (canEntraide && !canLeaders && /^#(admin|leaders)/.test(location.hash)) history.replaceState(null, "", isReferent ? "#entraide/moderation" : "#entraide");
   if (canLeaders) await Promise.all([loadAdmin(), isAdmin && api.messages().then(m => { messages = m; }, () => {}), isAdmin && loadAcces()]);
@@ -328,6 +331,8 @@ function route() {
   if (view !== lastViewAdmin) window.scrollTo(0, 0);
   lastViewAdmin = view;
 }
+// Quitter l'écran de connexion sans se connecter : la prochaine connexion n'est plus celle du bouton du haut
+window.addEventListener("hashchange", () => { if (location.hash !== "#admin") try { sessionStorage.removeItem("apres-connexion"); } catch { /* stockage indisponible */ } });
 window.addEventListener("hashchange", route);
 
 // --- Accueil : une affiche par page accessible, dans l'ordre des onglets (couleurs reprises par les titres de la page)
@@ -395,7 +400,11 @@ function firstName() {
 }
 const closeAcct = () => { $("acct-menu").hidden = true; if (session) $("admin-link").setAttribute("aria-expanded", "false"); };
 $("admin-link").addEventListener("click", () => {
-  if (!session) { location.hash = "admin"; return route(); }
+  if (!session) {
+    // Connexion lancée depuis ce bouton : arrivée sur l'accueil (retenu dans l'onglet, la connexion Google recharge la page)
+    try { sessionStorage.setItem("apres-connexion", "#accueil"); } catch { /* stockage indisponible */ }
+    location.hash = "admin"; return route();
+  }
   $("acct-menu").hidden = !$("acct-menu").hidden;
   $("admin-link").setAttribute("aria-expanded", String(!$("acct-menu").hidden));
   if (!$("acct-menu").hidden) $("logout").focus();

@@ -63,3 +63,25 @@ test("lien de l'e-mail expiré : message et formulaire de code", async ({ open, 
   await expect(page.locator("#login-error")).toContainText("expiré ou a déjà servi");
   await expect(page.locator("#otp-email")).toBeVisible();
 });
+
+test("connexion depuis le bouton du haut : arrivée sur l'accueil @mobile", async ({ open, page }) => {
+  await open({ hash: "#" });
+  await page.click("#admin-link");
+  await page.fill("#otp-email", "damien@example.org");
+  await page.click("#otp-send");
+  await page.fill("#otp-code", "123456");
+  await expect(page).toHaveURL(/#accueil$/);
+  await expect(page.locator("#home-view")).toBeVisible();
+  await expect(page.locator('#home-grid .aff[href="#leaders"]')).toBeVisible();
+});
+
+test("connexion depuis l'onglet Leaders : on reste sur les leaders, même après un passage par le bouton du haut", async ({ open, page }) => {
+  await open({ hash: "#" });
+  await page.click("#admin-link");
+  await page.click("#sw-serv"); // on quitte l'écran de connexion sans se connecter
+  await page.fill("#otp-email", "damien@example.org");
+  await page.click("#otp-send");
+  await page.fill("#otp-code", "123456");
+  await expect(page.locator("#serv-view")).toBeVisible();
+  await expect(page).toHaveURL(/#leaders$/);
+});
