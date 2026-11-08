@@ -464,6 +464,18 @@ test("demander de l'aide connecté : prénom et téléphone de ma fiche préremp
   expect((await calls(page, "entraideDemander"))[0].arg).toMatchObject({ p_prenom: "Dam", p_telephone: "06 39 98 10 21" });
 });
 
+test("zone de rédaction : la croix et le bouton d'envoi sont alignés sur le même axe vertical @mobile", async ({ open, page }) => {
+  const MOI = [{ email: "admin@example.org", droit: "admin", prenom: "", nom: "", entraide_voir: true, entraide_moderer: false }];
+  await open({ user: ADMIN, hash: "#entraide", acces: MOI });
+  const centres = () => page.evaluate(() => ["entr-rep-x", "entr-rep-send"].map(id => { const r = document.getElementById(id).getBoundingClientRect(); return Math.round(r.left + r.width / 2); }));
+  await page.locator('#entr-list .entr-msg[data-id="e1"] [data-aider]').click(); // première réponse
+  let [x, envoi] = await centres();
+  expect(x).toBe(envoi);
+  await page.locator('#entr-list .entr-reps[data-prenom="Marie"] [data-plus]').click(); // conversation déjà commencée
+  [x, envoi] = await centres();
+  expect(x).toBe(envoi);
+});
+
 test("messagerie : règles du serveur (mêmes que la base)", async ({ open, page }) => {
   const MOI = [{ email: "admin@example.org", droit: "admin", prenom: "", nom: "", entraide_voir: true, entraide_moderer: false }];
   await open({ user: ADMIN, hash: "#entraide", acces: MOI });
