@@ -577,8 +577,8 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 #entr-mes .entr-titre { margin-top: 18px; }
 #entr-mes .entr-thread { padding-bottom: 12px; }
 /* « J'ai besoin d'aide » en haut de la section, sous le titre */
-#entr-ask { margin: 0 0 18px; }
-.entr-mes-vide { margin: -6px 0 18px; color: var(--muted); font-size: 16px; }
+#entr-mes #entr-ask { margin: 0 0 18px; }
+.entr-mes-vide { margin: -6px 0 20px; color: var(--muted); font-size: 16px; }
 #entr-mes-list:empty { display: none; }
 /* sur fond blanc, les messages reçus (blancs) gardent un contour pour rester lisibles */
 #entr-mes .entr-recue { border: 1px solid var(--border); box-shadow: none; }
@@ -844,7 +844,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
   <!-- Mes demandes (avec « J'ai besoin d'aide » ; à droite du fil sur grand écran, en tête sur téléphone) : chacune avec ses conversations, en direct -->
   <section id="entr-mes" aria-labelledby="entr-mes-t" hidden><h2 class="entr-titre" id="entr-mes-t">Mes demandes</h2>
     <button type="button" class="btn btn-primary" id="entr-ask">J'ai besoin d'aide</button>
-    <p class="entr-mes-vide" id="entr-mes-vide" hidden>Vous n'avez pas de demande en cours. Un référent relit chaque demande avant de la publier.</p>
+    <p class="entr-mes-vide" id="entr-mes-vide" hidden>Vous n'avez pas encore formulé de demande d'aide.</p>
     <div class="entr-thread" id="entr-mes-list"></div></section>
   <!-- Demandes publiées, présentées comme une conversation (les plus récentes en haut), mises à jour en direct -->
   <p class="count entr-count" id="entr-count" role="status" aria-live="polite"></p>

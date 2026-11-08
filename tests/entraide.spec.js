@@ -40,7 +40,10 @@ test("droit Voir : demandes publiées seulement, sans téléphone ni modération
   // « Mes demandes » : toujours là, avec « J'ai besoin d'aide » en haut, et une phrase tant qu'on n'a rien déposé
   await expect(page.locator("#entr-bar")).toBeHidden();
   await expect(page.locator("#entr-mes #entr-ask")).toBeVisible();
-  await expect(page.locator("#entr-mes-vide")).toBeVisible();
+  await expect(page.locator("#entr-mes-vide")).toHaveText("Vous n'avez pas encore formulé de demande d'aide.");
+  // Sur téléphone (ou fenêtre étroite) : Mes demandes d'abord, puis les demandes des autres
+  const yMes = (await page.locator("#entr-mes").boundingBox()).y, yFil = (await page.locator("#entr-list").boundingBox()).y;
+  if ((page.viewportSize()?.width || 0) < 1024) expect(yMes).toBeLessThan(yFil);
   // Ancienne adresse de la page Mes demandes : ramène à la page des demandes
   await page.evaluate(() => { location.hash = "#entraide/mes-demandes"; });
   await expect(page).toHaveURL(/#entraide$/);
