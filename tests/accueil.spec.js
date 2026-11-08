@@ -27,7 +27,6 @@ test("accueil sans connexion : onglet maison, Propositions puis Entraide (connex
 
 test("accueil d'un administrateur : toutes les pages dans l'ordre des onglets, titres de la couleur de chaque page @mobile", async ({ open, page }) => {
   await open({ user: ADMIN, hash: "#accueil", acces: TOUT });
-  await expect(page.locator("#home-intro")).toContainText("Bonjour");
   await expect(titres(page)).toHaveText([/^Annuaire des propositions$/, /^Entraide entre paroissiens/, /^Annuaire des leaders$/, /^Modération de l'entraide/, /^Administration$/]);
   // onglets dans le même ordre : Accueil, Propositions, Entraide, Leaders, Administration
   expect(await page.locator("#switch a:not([hidden])").evaluateAll(as => as.map(a => a.id))).toEqual(["sw-home", "sw-prop", "sw-entr", "sw-serv", "sw-admin"]);

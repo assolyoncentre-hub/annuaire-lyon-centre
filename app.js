@@ -370,7 +370,6 @@ function renderHome() {
     if (!p?.on) return null;
     return p.n ? { n: p.n, texte: n(p.n, "demande à valider", "demandes à valider") } : { texte: p.cache.trim().replace(/^\(|\)$/g, "") };
   };
-  $("home-intro").innerHTML = session ? "Bonjour <strong>" + esc(firstName()) + "</strong>, où voulez-vous aller ?" : "Que cherchez-vous aujourd'hui ?";
   $("home-grid").innerHTML = [
     afficheHtml("prop", ["Il existe forcément une proposition faite pour vous !"]),
     // Entraide : proposée aussi sans connexion (elle mène à la connexion), pas à une personne connectée sans ce droit
