@@ -826,6 +826,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
   .switch:has(#sw-entr:not([hidden])):has(#sw-admin:not([hidden])) .short { display: none; }
   .switch:has(#sw-entr:not([hidden])):has(#sw-admin:not([hidden])) .gear { margin-right: 0; }
 }
+#m-title:focus { outline: none; } /* focus posé à l'ouverture de la fenêtre, pour les lecteurs d'écran */
 </style>
 </head>
 <body>
@@ -948,7 +949,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="m-title">
     <div class="modal-head">
       <div class="kicker" id="m-kicker">Envoyer un message</div>
-      <h2 id="m-title"></h2>
+      <h2 id="m-title" tabindex="-1"></h2>
       <p id="m-people"></p>
     </div>
     <form id="m-form">

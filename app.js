@@ -151,7 +151,8 @@ function openModal(t) {
   lastFocus = document.activeElement;
   $("modal").hidden = false;
   document.body.classList.add("locked");
-  $("m-civ").focus();
+  // focus sur le titre, pas sur la civilité : sur téléphone, la liste déroulante s'ouvrirait et masquerait l'écran
+  $("m-title").focus();
   setPageInert(true);
 }
 function closeModal() {

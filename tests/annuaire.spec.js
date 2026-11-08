@@ -77,7 +77,8 @@ test("message à un staff : civilité obligatoire, puis envoi", async ({ open })
   await c.locator(".msg").click();
   await expect(page.locator("#m-kicker")).toHaveText("Envoyer un message");
   await expect(page.locator("#m-people")).toHaveText("Damien de LAFORÊT et Magali de LAFORÊT");
-  await expect(page.locator("#m-civ")).toBeFocused();
+  await expect(page.locator("#m-title")).toBeFocused(); // pas la civilité : sa liste s'ouvrirait sur téléphone
+  await expect(page.locator("#m-civ")).not.toBeFocused();
   await page.fill("#m-prenom", "Jeanne");
   await page.fill("#m-nom", "Test");
   await page.fill("#m-email", "jeanne@example.org");
