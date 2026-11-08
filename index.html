@@ -547,7 +547,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .person .fields input[type=tel] { grid-column: 1 / -1; }
 /* Entraide : liste succincte des demandes publiées, et formulaire qui se dévoile champ après champ */
 /* Entraide : demandes publiées en conversation (bulles comme dans une messagerie, aux couleurs du site) */
-/* Barre du haut : onglets (Modération pour les modérateurs), puis « J'ai besoin d'aide » juste à la suite */
+/* Barre du haut : onglets (Modération pour les modérateurs), puis « Faire une demande » juste à la suite */
 .entr-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin: 0 0 20px; }
 .entr-bar .entr-tabs { margin: 0; }
 .entr-tabs .tab[hidden] { display: none; }
@@ -582,9 +582,9 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .entr-cadre .entr-msg:not(.entr-mienne):not(.aidee)::before { top: -1px; left: -9px; width: 10px; height: 12px;
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='12'%3E%3Cpath d='M0 .5H10V12Z' fill='%23fff'/%3E%3Cpath d='M10 11.5 .9.5H10' fill='none' stroke='%23dde5ee'/%3E%3C/svg%3E") no-repeat; } /* pointe de bulle avec son contour */
 .entr-cadre .entr-day span { border: 1px solid var(--border); box-shadow: none; }
-/* « J'ai besoin d'aide » en haut de la section, sous le titre */
+/* « Faire une demande » en haut de la section, sous le titre (et sous la phrase quand je n'ai encore rien demandé) */
 #entr-mes #entr-ask { margin: 0 0 18px; }
-.entr-mes-vide { margin: -6px 0 20px; color: var(--muted); font-size: 16px; }
+.entr-mes-vide { margin: -6px 0 14px; color: var(--muted); font-size: 16px; }
 #entr-mes-list:empty { display: none; }
 /* sur fond blanc, les messages reçus (blancs) gardent un contour pour rester lisibles */
 .entr-cadre .entr-recue { border: 1px solid var(--border); box-shadow: none; }
@@ -749,7 +749,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .entr-tabs[hidden] { display: none; }
 /* Boutons accolés (classe « accoles »), comme un interrupteur à plusieurs positions : seule la page affichée est en bleu.
    Entraide et Administration ; sur téléphone, remplacés par une liste déroulante (« accoles-sel ») */
-/* Onglets et « J'ai besoin d'aide » : même hauteur (44 px sur téléphone, comme la liste déroulante) */
+/* Onglets et « Faire une demande » : même hauteur (44 px sur téléphone, comme la liste déroulante) */
 .entr-bar .tab, #entr-ask { box-sizing: border-box; height: 40px; min-height: 0; margin: 0; display: inline-flex; align-items: center; }
 @media (max-width: 520px) { #entr-ask, .accoles-sel { box-sizing: border-box; height: 44px; min-height: 0; margin: 0; } .accoles-sel { line-height: 42px; padding-top: 0; padding-bottom: 0; font-size: 16px; } }
 .accoles { gap: 0; }
@@ -858,7 +858,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 </div>
 <div id="entr-view" class="view" hidden>
 <main class="wrap">
-  <!-- Navigation de l'entraide (seulement pour les modérateurs : Demandes d'aide / Modération), suivie du bouton « J'ai besoin d'aide » -->
+  <!-- Navigation de l'entraide (seulement pour les modérateurs : Demandes d'aide / Modération), suivie du bouton « Faire une demande » -->
   <div class="entr-bar" id="entr-bar">
     <nav class="tabs accoles entr-tabs" id="entr-tabs" aria-label="Entraide">
       <a class="tab" href="#entraide" id="entr-tab-pub">Demandes d'aide</a><a class="tab" href="#entraide/moderation" id="entr-tab-mod" hidden>Modération</a>
@@ -868,10 +868,10 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
     <div class="list" id="entr-mod-list"></div>
   </div>
   <div id="entr-pub">
-  <!-- Mes demandes (avec « J'ai besoin d'aide » ; à droite du fil sur grand écran, en tête sur téléphone) : chacune avec ses conversations, en direct -->
+  <!-- Mes demandes (avec « Faire une demande » ; à droite du fil sur grand écran, en tête sur téléphone) : chacune avec ses conversations, en direct -->
   <section class="entr-cadre" id="entr-mes" aria-labelledby="entr-mes-t" hidden><h2 class="entr-titre" id="entr-mes-t">Mes demandes</h2>
-    <button type="button" class="btn btn-primary" id="entr-ask">J'ai besoin d'aide</button>
     <p class="entr-mes-vide" id="entr-mes-vide" hidden>Vous n'avez pas encore formulé de demande d'aide.</p>
+    <button type="button" class="btn btn-primary" id="entr-ask">Faire une demande</button>
     <div class="entr-thread" id="entr-mes-list"></div></section>
   <!-- Demandes publiées, présentées comme une conversation (les plus récentes en haut), mises à jour en direct -->
   <section class="entr-cadre" id="entr-besoin-sec" aria-labelledby="entr-besoin-t">

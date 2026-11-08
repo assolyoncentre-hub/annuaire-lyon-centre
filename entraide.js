@@ -1,7 +1,7 @@
 // ---------- Entraide ----------
 // Onglet « Entraide », réservé aux comptes qui en ont le droit (fiche contact : « Voir » / « Modérer » l'entraide) :
 //   #entraide            mes demandes d'aide (avec leurs conversations), demandes publiées, demandes pourvues,
-//                        et formulaire « J'ai besoin d'aide »                                        droit « voir »
+//                        et formulaire de demande d'aide                                          droit « voir »
 //   #entraide/moderation modération des demandes                                                    droit « modérer »
 // Utilise les outils d'app.js ($, esc, api, toast, setPageInert, openEditor, canEntraide, isReferent, telHref).
 
@@ -551,7 +551,7 @@ function onEntraideRoute() {
   entrEcouter(canEntraide);
   if (h !== "#entraide") entrFermerReponse();
   if (!(h === "#entraide" && canEntraide) && !mod) { entrModShown = false; return; }
-  // Une seule page sans le droit de modérer : pas de barre de navigation (« J'ai besoin d'aide » est dans Mes demandes)
+  // Une seule page sans le droit de modérer : pas de barre de navigation (« Faire une demande » est dans Mes demandes)
   $("entr-bar").hidden = $("entr-tabs").hidden = $("entr-nav-sel").hidden = !isReferent;
   $("entr-tab-mod").hidden = !isReferent;
   $("entr-pub").hidden = mod;
@@ -575,7 +575,7 @@ $("entr-nav-sel").addEventListener("change", e => { location.hash = e.target.val
 // les messages s'affichent directement et se mettent à jour en direct avec le reste de la page.
 const ENTR_MON_STATUT = { a_valider: ["En attente de validation", "wait"], publiee: ["Publiée", "lead"], pourvue: ["C'est réglé ✓", "ok"], refusee: ["Non publiée", "none"] };
 function renderMesDemandes(list) {
-  $("entr-mes").hidden = false; // toujours là : elle porte le bouton « J'ai besoin d'aide »
+  $("entr-mes").hidden = false; // toujours là : elle porte le bouton « Faire une demande »
   $("entr-mes-vide").hidden = !!list.length;
   $("entr-mes-list").innerHTML = [...list].sort((a, b) => b.created_at.localeCompare(a.created_at)).map(d => {
     const [label, cls] = ENTR_MON_STATUT[d.statut] || ENTR_MON_STATUT.a_valider;

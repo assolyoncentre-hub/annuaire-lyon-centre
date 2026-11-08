@@ -37,10 +37,13 @@ test("droit Voir : demandes publiées seulement, sans téléphone ni modération
   await expect(page.locator("#entr-tabs")).toBeHidden();
   await expect(page.locator("#entr-nav-sel")).toBeHidden();
   await expect(page.locator("#entr-ask")).toBeVisible();
-  // « Mes demandes » : toujours là, avec « J'ai besoin d'aide » en haut, et une phrase tant qu'on n'a rien déposé
+  // « Mes demandes » : toujours là, avec « Faire une demande » en haut, sous une phrase tant qu'on n'a rien déposé
   await expect(page.locator("#entr-bar")).toBeHidden();
   await expect(page.locator("#entr-mes #entr-ask")).toBeVisible();
   await expect(page.locator("#entr-mes-vide")).toHaveText("Vous n'avez pas encore formulé de demande d'aide.");
+  await expect(page.locator("#entr-ask")).toHaveText("Faire une demande");
+  const yVide = (await page.locator("#entr-mes-vide").boundingBox()).y, yAsk = (await page.locator("#entr-ask").boundingBox()).y;
+  expect(yAsk).toBeGreaterThan(yVide); // bouton sous la phrase
   // Sur téléphone (ou fenêtre étroite) : Mes demandes d'abord, puis les demandes des autres
   const yMes = (await page.locator("#entr-mes").boundingBox()).y, yFil = (await page.locator("#entr-list").boundingBox()).y;
   if ((page.viewportSize()?.width || 0) < 1024) expect(yMes).toBeLessThan(yFil);
