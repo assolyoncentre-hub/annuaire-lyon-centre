@@ -494,21 +494,26 @@ async function renderMesDemandes() {
 function entrVoirReponses(id) { entrCibleMes = id; location.hash = "#entraide/mes-demandes"; }
 onEntraideRoute(); // premier affichage : route() a pu s'exécuter avant le chargement de ce fichier
 
-// --- Formulaire progressif : chaque « Continuer » (ou Entrée) dévoile l'étape suivante sous la précédente ---
-const E_STEPS = 4;
+// --- Demande d'aide en trois écrans qui se remplacent (« Suivant » ou Entrée) : le besoin ; quand et où ;
+// prénom, téléphone et accord (« Envoyer ma demande »). Puis un écran de remerciement remplace toute la fenêtre.
+const E_STEPS = 3;
 let eStep = 0, eLastFocus = null;
 const eForm = $("e-form");
+const E_FIRST = ["e-besoin", "e-quand", "e-prenom"];
 function eShow(step) {
   eStep = step;
-  eForm.querySelectorAll("[data-step]").forEach(el => { el.hidden = Number(el.dataset.step) > step; });
-  $("e-next").textContent = step < E_STEPS - 1 ? "Continuer" : "Envoyer ma demande";
+  eForm.querySelectorAll("[data-step]").forEach(el => { el.hidden = Number(el.dataset.step) !== step; });
+  const last = step === E_STEPS - 1;
+  $("e-next").textContent = last ? "Envoyer ma demande" : "Suivant";
+  $("e-note").hidden = !last;
 }
 function openEntraide() {
   eLastFocus = document.activeElement;
   eForm.reset();
-  eForm.hidden = false;
+  eForm.hidden = $("e-head").hidden = false;
   $("e-done").hidden = $("e-error").hidden = true;
   eShow(0);
+  $("entr-modal").querySelector("[role=dialog]").setAttribute("aria-labelledby", "e-title");
   $("entr-modal").hidden = false;
   document.body.classList.add("locked");
   setPageInert(true);
@@ -521,13 +526,12 @@ function closeEntraide() {
   eLastFocus?.focus?.();
 }
 const eError = msg => { $("e-error").textContent = msg; $("e-error").hidden = !msg; return !msg; };
-const E_FIRST = ["e-besoin", "e-quand", "e-quartier", "e-prenom"];
 
 // Vérifications de l'étape en cours (la base refait les mêmes)
 function eCheck() {
   const f = eForm;
   if (eStep === 0 && f.besoin.value.trim().length < 3) return eError("Décrivez en quelques mots ce dont vous avez besoin.");
-  if (eStep === 3) {
+  if (eStep === 2) {
     if (!f.prenom.value.trim()) return eError("Indiquez votre prénom.");
     if (!/^[+0-9 .()-]{10,20}$/.test(f.tel.value.trim())) return eError("Indiquez votre numéro WhatsApp (exemple : 06 12 34 56 78).");
     if (!f.accord.checked) return eError("Votre accord est nécessaire pour publier la demande.");
@@ -546,7 +550,8 @@ eForm.addEventListener("submit", async e => {
       p_prenom: f.prenom.value, p_telephone: f.tel.value, p_accord: f.accord.checked, p_site: f.site.value });
     if (location.hash === "#entraide/mes-demandes") renderMesDemandes();
     $("e-done-title").textContent = "Merci " + f.prenom.value.trim() + " !";
-    eForm.hidden = true;
+    eForm.hidden = $("e-head").hidden = true;
+    $("entr-modal").querySelector("[role=dialog]").setAttribute("aria-labelledby", "e-done-title");
     $("e-done").hidden = false;
     $("e-close").focus();
     if (isReferent) entrModShown = false; // la modération se rechargera avec la nouvelle demande

@@ -137,26 +137,35 @@ test("une fiche hors annuaire avec le droit Voir se connecte et arrive sur l'ent
   await expect(page.locator("#sw-admin")).toBeHidden();
 });
 
-test("demander de l'aide : les champs se dévoilent un à un, puis remerciement @mobile", async ({ open, page }) => {
+test("demander de l'aide : trois écrans qui se remplacent, puis remerciement @mobile", async ({ open, page }) => {
   await open({ user: VOIR, hash: "#entraide", acces: ACCES });
   await page.click("#entr-ask");
   await expect(page.locator("#e-besoin")).toBeFocused();
+  await expect(page.locator("label[for=e-besoin]")).toHaveText("De quoi avez-vous besoin ?");
+  await expect(page.locator("#e-head")).not.toContainText("référent"); // la note est sous « Envoyer ma demande »
   await page.keyboard.press("Escape"); // Échap ne ferme pas la fenêtre
   await expect(page.locator("#entr-modal")).toBeVisible();
   await expect(page.locator("#e-quand")).toBeHidden();
+  await expect(page.locator("#e-next")).toHaveText("Suivant");
   await page.click("#e-next");
   await expect(page.locator("#e-error")).toHaveText("Décrivez en quelques mots ce dont vous avez besoin.");
   await expect(page.locator("#e-quand")).toBeHidden();
 
+  // Écran 2 : quand et quartier, le besoin n'est plus affiché
   await page.fill("#e-besoin", "Un trajet pour un rendez-vous");
   await page.click("#e-next");
   await expect(page.locator("#e-quand")).toBeFocused();
+  await expect(page.locator("#e-quartier")).toBeVisible();
+  await expect(page.locator("#e-besoin")).toBeHidden();
+  await expect(page.locator("#e-note")).toBeHidden();
   await page.fill("#e-quand", "Jeudi 14 h");
-  await page.press("#e-quand", "Enter"); // Entrée passe aussi à la suite
-  await expect(page.locator("#e-quartier")).toBeFocused();
-  await page.click("#e-next"); // quartier facultatif
+  await page.press("#e-quand", "Enter"); // Entrée passe aussi à la suite (quartier facultatif)
+
+  // Écran 3 : prénom, téléphone, accord ; « Envoyer ma demande » et la note du référent
   await expect(page.locator("#e-prenom")).toBeFocused();
+  await expect(page.locator("#e-quand")).toBeHidden();
   await expect(page.locator("#e-next")).toHaveText("Envoyer ma demande");
+  await expect(page.locator("#e-note")).toHaveText("Un référent relira votre demande avant de la publier.");
 
   await page.fill("#e-prenom", "Zoé");
   await page.fill("#e-tel", "06 39 98 00 42");
@@ -165,6 +174,8 @@ test("demander de l'aide : les champs se dévoilent un à un, puis remerciement 
   await page.check("#e-accord");
   await page.click("#e-next");
   await expect(page.locator("#e-done-title")).toHaveText("Merci Zoé !");
+  await expect(page.locator("#e-head")).toBeHidden(); // le remerciement remplace toute la fenêtre
+  await expect(page.locator("#e-done .e-ok")).toBeVisible();
   expect((await calls(page, "entraideDemander"))[0].arg).toMatchObject({ p_besoin: "Un trajet pour un rendez-vous", p_quand: "Jeudi 14 h", p_quartier: "", p_prenom: "Zoé", p_accord: true });
   await page.click("#e-close");
   await expect(page.locator("#entr-list")).not.toContainText("Zoé"); // à valider par un modérateur
