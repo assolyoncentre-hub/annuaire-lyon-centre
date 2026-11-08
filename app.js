@@ -206,7 +206,6 @@ $("grid").addEventListener("focusout", e => {
 });
 $("m-cancel").addEventListener("click", closeModal);
 $("modal").addEventListener("click", e => { if (e.target === $("modal")) closeModal(); });
-document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("modal").hidden) closeModal(); });
 $("m-form").addEventListener("submit", async e => {
   e.preventDefault();
   const f = e.target, btn = $("m-send");
@@ -590,8 +589,7 @@ $("ed-form").addEventListener("input", e => {
   else if (["pe-civ", "pe-prenom", "pe-nom"].includes(e.target.id))
     $("ed-title").textContent = fullName({ civilite: $("pe-civ").value, prenom: $("pe-prenom").value.trim(), nom: $("pe-nom").value.trim() }) || "Nouveau contact";
 });
-// Échap ne ferme que les simples confirmations : une fenêtre de saisie (contact, staff, pôle…) reste ouverte pour ne rien perdre
-document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("editor").hidden && !$("ed-form").querySelector("input, textarea, select")) closeEditor(); });
+// Échap ne ferme aucune fenêtre (message, saisie, confirmation, photo) : on ferme avec Annuler, × ou un clic à côté
 
 // Liste de personnes : contacts existants (affichés, non modifiables ici) ou nouveaux (prénom, nom, e-mail à saisir),
 // avec une poignée pour changer l'ordre et une poubelle pour retirer. Un contact existant se choisit dans la liste déroulante.
@@ -1078,17 +1076,15 @@ async function copyServ(b, text, msg) {
 }
 // Coordonnées d'un leader : nom, staffs, téléphone, e-mail, une ligne chacun
 const servBlock = x => [servName(x.p), servRoles(x), x.p.telephone, x.p.email].filter(Boolean).join("\n");
-// Clic sur une photo : agrandie en rond et en couleur au milieu de l'écran (clic, Échap ou × pour fermer).
+// Clic sur une photo : agrandie en rond et en couleur au milieu de l'écran (clic ou × pour fermer ; Échap sans effet).
 // La miniature s'affiche tout de suite, remplacée par la version 600 px une fois chargée.
 function zoomPhoto(x, from) {
   const z = document.createElement("div");
   z.className = "ph-zoom"; z.setAttribute("role", "dialog"); z.setAttribute("aria-modal", "true"); z.setAttribute("aria-label", "Photo de " + fullName(x.p));
   z.innerHTML = '<figure><img src="' + esc(photoFor(x.p)) + '" alt="Photo de ' + esc(fullName(x.p)) + '"><figcaption>' + esc(servName(x.p)) + "</figcaption></figure>" +
     '<button type="button" class="ph-zoom-x" aria-label="Fermer">×</button>';
-  const close = () => { z.remove(); document.removeEventListener("keydown", key, true); from.focus(); };
-  const key = e => { if (e.key === "Escape") { e.stopPropagation(); close(); } };
+  const close = () => { z.remove(); from.focus(); };
   z.addEventListener("click", close);
-  document.addEventListener("keydown", key, true);
   document.body.append(z);
   z.querySelector(".ph-zoom-x").focus();
   api.photoGrande(x.p.email).then(src => {

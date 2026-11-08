@@ -264,7 +264,9 @@ test("photo d'un contact : envoyée depuis la fiche, en noir et blanc dans l'ann
   await expect(zoom).toHaveCSS("filter", "none");
   await expect(zoom).toHaveAttribute("src", sent.grand);
   await expect(page.locator(".ph-zoom figcaption")).toHaveText("Jean BRUNET");
-  await page.keyboard.press("Escape");
+  await page.keyboard.press("Escape"); // Échap ne ferme pas la photo
+  await expect(page.locator(".ph-zoom")).toHaveCount(1);
+  await page.click(".ph-zoom-x");
   await expect(page.locator(".ph-zoom")).toHaveCount(0);
   // Retirer la photo : retour aux initiales
   await page.click("#sw-admin");

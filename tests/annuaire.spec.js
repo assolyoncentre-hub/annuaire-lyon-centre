@@ -124,6 +124,8 @@ test("téléphone : le bouton Message d'une section dépliée ouvre le formulair
   await carte.locator("summary").tap();
   await carte.locator(".msg").tap();
   await expect(page.locator("#modal")).toBeVisible();
+  await page.keyboard.press("Escape"); // Échap ne ferme pas la fenêtre
+  await expect(page.locator("#modal")).toBeVisible();
 });
 
 test("filtres par pôle repliés, dépliables, pôle choisi rappelé @mobile", async ({ open, page }) => {

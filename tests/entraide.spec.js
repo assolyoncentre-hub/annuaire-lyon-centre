@@ -141,6 +141,8 @@ test("demander de l'aide : les champs se dévoilent un à un, puis remerciement 
   await open({ user: VOIR, hash: "#entraide", acces: ACCES });
   await page.click("#entr-ask");
   await expect(page.locator("#e-besoin")).toBeFocused();
+  await page.keyboard.press("Escape"); // Échap ne ferme pas la fenêtre
+  await expect(page.locator("#entr-modal")).toBeVisible();
   await expect(page.locator("#e-quand")).toBeHidden();
   await page.click("#e-next");
   await expect(page.locator("#e-error")).toHaveText("Décrivez en quelques mots ce dont vous avez besoin.");
