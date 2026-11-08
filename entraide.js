@@ -348,7 +348,7 @@ function renderModeration() {
   const contact = d => '<a class="btn btn-ghost btn-sm" href="' + esc(entrChatUrl(d)) + '" target="_blank" rel="noopener">Contacter</a>';
   const ops = d => ({
     a_valider: btn("publier", "Publier sur WhatsApp", "btn-primary") + btn("modifier", "Modifier") + contact(d) + btn("refuser", "Refuser"),
-    publiee: btn("pourvue", "C'est pourvu", "btn-primary") + btn("republier", "Republier") + btn("modifier", "Modifier") + contact(d),
+    publiee: btn("pourvue", "C'est pourvu", "btn-primary") + btn("modifier", "Modifier") + contact(d),
     pourvue: btn("rouvrir", "Rouvrir") + btn("supprimer", "Supprimer"),
     refusee: btn("rouvrir", "Rouvrir") + btn("supprimer", "Supprimer"),
   })[d.statut];
@@ -367,8 +367,14 @@ async function entrModifier(d, champs, msg) {
   entrBusy = true; renderModeration();
   try {
     const r = await api.entraideModifier(d.id, champs);
-    entrDemandes = entrDemandes.map(x => x.id === d.id ? r : x);
     if (msg) toast(msg);
+    // La demande quitte la liste affichée (pourvue, publiée, refusée, rouverte) : elle s'efface en se repliant
+    const row = $("entr-mod-list").querySelector('[data-id="' + CSS.escape(d.id) + '"]');
+    if (row && !entrDans(r, entrFiltre) && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      row.style.height = row.offsetHeight + "px"; row.offsetHeight; row.classList.add("sort");
+      await new Promise(ok => { row.addEventListener("transitionend", e => e.propertyName === "height" && ok()); setTimeout(ok, 500); });
+    }
+    entrDemandes = entrDemandes.map(x => x.id === d.id ? r : x);
   } catch (err) { toast("Enregistrement impossible : " + (err?.message || "erreur inconnue")); }
   finally { entrBusy = false; renderModeration(); }
 }
@@ -399,7 +405,6 @@ $("entr-mod-list").addEventListener("click", e => {
   // Publication : WhatsApp s'ouvre avec le message prérempli (sans le numéro), on choisit le groupe et on envoie
   const act = b.dataset.act;
   if (act === "publier") { window.open(entrShareUrl(d), "_blank", "noopener"); entrModifier(d, { p_statut: "publiee" }, "Demande publiée sur le site."); }
-  else if (act === "republier") window.open(entrShareUrl(d), "_blank", "noopener");
   else if (act === "modifier") entrEditer(d);
   else if (act === "refuser") entrModifier(d, { p_statut: "refusee" }, "Demande refusée.");
   else if (act === "pourvue") entrModifier(d, { p_statut: "pourvue" }, "Demande marquée pourvue : elle n'apparaît plus publiquement.");

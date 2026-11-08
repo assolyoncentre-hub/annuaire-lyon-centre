@@ -713,6 +713,9 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 #entr-mod .admin-tools { margin-top: 0; }
 .entr-filters { margin-left: 0; justify-content: flex-start; }
 .entr-mod-row { padding: 16px 18px; border-top: 1px solid var(--border); display: grid; gap: 8px; }
+/* Demande qui quitte la liste (changement de statut) : glisse, s'estompe et se replie */
+.entr-mod-row.sort { overflow: hidden; height: 0 !important; padding-top: 0; padding-bottom: 0; opacity: 0; transform: translateX(24px);
+  transition: opacity .2s ease-in, transform .2s ease-in, height .25s ease-in .15s, padding .25s ease-in .15s; }
 .entr-mod-row:first-child { border-top: 0; }
 .entr-mod-row .head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
 .entr-mod-row .head strong { font-size: 19px; }

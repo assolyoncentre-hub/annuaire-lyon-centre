@@ -198,7 +198,10 @@ test("modération : publier sur WhatsApp, modifier, pourvue, refuser, supprimer"
 
   // Publiée → pourvue : elle disparaît des demandes publiées
   await page.click("[data-filter=publiee]");
+  await expect(page.locator("[data-act=republier]")).toHaveCount(0); // plus de « Republier »
   await row(page, "Jeanne").locator("[data-act=pourvue]").click();
+  await expect(page.locator("#toast")).toContainText("pourvue");
+  await expect(row(page, "Jeanne")).toHaveCount(0); // sortie animée de la liste
   await page.click("[data-filter=terminees]");
   await expect(page.locator(".entr-mod-row")).toHaveCount(3); // Gérard, Colette, Jeanne
   await row(page, "Gérard").locator("[data-act=supprimer]").click();
