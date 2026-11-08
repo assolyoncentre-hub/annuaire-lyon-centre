@@ -589,6 +589,8 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 /* sur fond blanc, les messages reçus (blancs) gardent un contour pour rester lisibles */
 .entr-cadre .entr-recue { border: 1px solid var(--border); box-shadow: none; }
 @media (max-width: 520px) { .entr-cadre { padding: 2px 14px 4px; } }
+/* « Ils/elles ont déjà été aidés » : encadrée, sans fond blanc */
+#entr-aides-sec { background: transparent; box-shadow: none; }
 /* Pastille rouge : des demandes attendent d'être modérées */
 .entr-pastille { display: inline-block; width: 8px; height: 8px; margin-left: 6px; border-radius: 50%; background: #d92d20; flex: none; }
 /* Demandes pourvues : grisées, sans bouton */
@@ -605,14 +607,15 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .entr-msg .who { font: 700 18px/1.3 Montserrat, sans-serif; color: var(--c, var(--brand)); }
 .entr-msg .who .where { font-weight: 500; color: var(--muted); }
 .entr-msg .need { margin: 2px 0 0; white-space: pre-line; overflow-wrap: anywhere; }
-/* Texte de plus de 10 lignes : coupé, « Voir plus » calé à droite le déplie */
-.entr-clamp { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 10; line-clamp: 10; overflow: hidden; }
-.entr-voir-plus { display: block; position: relative; margin: 0 0 0 auto; padding: 0 2px; border: 0; background: none; color: var(--brand); font: 600 15px/1 Montserrat, sans-serif; cursor: pointer; }
+/* Texte de plus de 10 lignes : coupé, « … Voir + » à la suite de sa dernière ligne le déplie ; « Voir − » le replie */
+.entr-voir-plus { display: inline; position: relative; margin: 0; padding: 0 2px; border: 0; background: none; color: var(--brand); font: 600 15px/1 Montserrat, sans-serif; white-space: nowrap; cursor: pointer; }
 .entr-voir-plus:hover { text-decoration: underline; }
-/* pile sous le texte : pas de hauteur minimale des boutons, la zone de clic est agrandie par ::after */
+.entr-voir-plus:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 4px; }
+/* dans le texte, à la suite de « … » : pas de hauteur minimale des boutons, la zone de clic est agrandie par ::after */
 #entr-pub .entr-voir-plus, #entr-mes .entr-voir-plus, #entr-mod .entr-voir-plus { min-height: 0; }
 .entr-voir-plus::after { content: ""; position: absolute; inset: -8px -8px; }
-.entr-voir-plus:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 4px; }
+/* texte complet d'un texte coupé : lu par les lecteurs d'écran seulement */
+.entr-lu { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 /* « Quand » : simple ligne d'information (icône calendrier), sans fond, pour ne pas ressembler au bouton */
 .entr-msg .when { display: flex; align-items: center; gap: 6px; margin-top: 4px; color: var(--text); font: 400 18px/1.3 "DM Sans", system-ui, sans-serif; }
 .entr-msg .when svg { flex: none; width: 18px; height: 18px; color: var(--muted); }
@@ -703,8 +706,9 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .entr-pied .time { margin-left: auto; } /* petit écran : l'heure passe sous le bouton, à droite */
 .entr-pied .entr-aider { margin-top: 0; }
 /* Mes demandes : « C'est réglé » puis l'état de la demande, à gauche */
-/* action positive : bouton plein vert, sans contour */
-.btn-ok { background: #1d7a4a; border-color: transparent; color: #fff; }
+/* action positive : transparent, contour et texte verts, icône coche */
+.btn-ok { display: inline-flex; align-items: center; gap: 6px; background: transparent; border-color: #1d7a4a; color: #1d7a4a; }
+.btn-ok svg { width: 16px; height: 16px; flex: none; }
 .entr-pied-g { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
 .entr-pied .time { margin-top: 0; }
 .entr-msg.new { animation: entr-pop .28s ease-out; }

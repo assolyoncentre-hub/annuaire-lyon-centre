@@ -504,8 +504,10 @@ test("Mes demandes : « C'est réglé » sur une demande publiée, poubelle sur 
   const mes = page.locator("#entr-mes-list .entr-mienne");
   await expect(mes.first().locator(".who")).toHaveText(/^Moi/); // signée « Moi »
   const escabeau = mes.filter({ hasText: "escabeau" }), robinet = mes.filter({ hasText: "Réparer un robinet" });
-  // « C'est réglé » seulement sur la demande publiée ; la demande en attente n'a qu'une poubelle ; rien sur celle déjà aidée
+  // « C'est réglé » sur la demande publiée qui a des messages ; poubelle sur la demande en attente ; rien sur celle déjà aidée
   await expect(escabeau.locator("[data-regler]")).toHaveText("C'est réglé");
+  await expect(escabeau.locator("[data-regler] svg")).toBeVisible(); // icône coche
+  expect(await escabeau.locator("[data-regler]").evaluate(b => [getComputedStyle(b).backgroundColor, getComputedStyle(b).borderColor])).toEqual(["rgba(0, 0, 0, 0)", "rgb(29, 122, 74)"]);
   await expect(escabeau.locator("[data-retirer]")).toHaveCount(0);
   await expect(robinet.locator("[data-regler]")).toHaveCount(0);
   await expect(robinet.locator("[data-retirer]")).toHaveAccessibleName("Supprimer ma demande");
@@ -533,7 +535,32 @@ test("Mes demandes : « C'est réglé » sur une demande publiée, poubelle sur 
   const essai = (f, id) => page.evaluate(async ([f, id]) => { try { await window.__api[f](id); return "ok"; } catch (e) { return e.message; } }, [f, id]);
   expect(await essai("entraideRegler", "e1")).toBe("Demande introuvable.");
   expect(await essai("entraideRetirer", "e1")).toBe("Demande introuvable.");
-  expect(await essai("entraideRetirer", "e2")).toBe("Cette demande n'est plus en attente de validation.");
+  expect(await essai("entraideRetirer", "e2")).toBe("Cette demande n'est plus en cours."); // réglée entre-temps
+});
+
+test("Mes demandes : demande publiée sans aucun message → poubelle ; dès le premier message → « C'est réglé » @mobile", async ({ open, page }) => {
+  const MOI = [{ email: "admin@example.org", droit: "admin", prenom: "", nom: "", entraide_voir: true, entraide_moderer: false }];
+  await open({ user: ADMIN, hash: "#entraide", acces: MOI });
+  await page.evaluate(() => { window.__S.entraide.push({ id: "e9", auteur: "admin@example.org", prenom: "Paul", telephone: "+33639980009", quartier: "", besoin: "Arroser mes plantes pendant mes vacances.", quand: "", statut: "publiee", jours: 0, cree: Date.now() }); window.__entraideSignal(); });
+  const plantes = page.locator("#entr-mes-list .entr-mienne").filter({ hasText: "Arroser mes plantes" });
+  await expect(plantes.locator("[data-retirer]")).toHaveAccessibleName("Supprimer ma demande");
+  await expect(plantes.locator("[data-regler]")).toHaveCount(0);
+  // quelqu'un répond : la poubelle laisse place à « C'est réglé », et le serveur refuse la suppression
+  await page.evaluate(() => {
+    const S = window.__S;
+    S.entraideConversations.push({ id: "c9", demande: "e9", aidant: "damien@example.org", prenom: "Damien", le: new Date().toISOString() });
+    S.entraideMessages.push({ id: "m9", conversation: "c9", auteur: "damien@example.org", texte: "Je peux passer !", le: new Date().toISOString() });
+    window.__entraideSignal();
+  });
+  await expect(plantes.locator("[data-regler]")).toBeVisible();
+  await expect(plantes.locator("[data-retirer]")).toHaveCount(0);
+  expect(await page.evaluate(async () => { try { await window.__api.entraideRetirer("e9"); return "ok"; } catch (e) { return e.message; } })).toBe("Quelqu'un vous a déjà répondu : utilisez « C'est réglé ».");
+  // sans message, la suppression passe (demande publiée)
+  await page.evaluate(() => { window.__S.entraideMessages = window.__S.entraideMessages.filter(m => m.id !== "m9"); window.__entraideSignal(); });
+  await plantes.locator("[data-retirer]").click();
+  await expect(page.locator("#editor")).toContainText("effacée définitivement.");
+  await page.locator("#editor").getByRole("button", { name: "Supprimer" }).click();
+  await expect(plantes).toHaveCount(0);
 });
 
 test("messagerie : règles du serveur (mêmes que la base)", async ({ open, page }) => {
@@ -565,36 +592,34 @@ test("téléphone : la zone de rédaction se place au-dessus du clavier @mobile"
   await expect.poll(() => page.evaluate(() => document.getElementById("entr-rep").getBoundingClientRect().bottom - (innerHeight - 300))).toBeLessThanOrEqual(0);
 });
 
-test("textes de plus de 10 lignes : coupés, « Voir + » à droite déplie tout, « Voir − » replie @mobile", async ({ open, page }) => {
+test("textes de plus de 10 lignes : « … Voir + » à la suite de la 10e ligne déplie tout, « Voir − » replie @mobile", async ({ open, page }) => {
   const MOI = [{ email: "admin@example.org", droit: "admin", prenom: "", nom: "", entraide_voir: true, entraide_moderer: false }];
   await open({ user: ADMIN, hash: "#entraide", acces: MOI });
   await expect(page.locator(".entr-voir-plus")).toHaveCount(0); // textes courts : rien
   const long = Array.from({ length: 15 }, (_, i) => "Ligne " + (i + 1)).join("\n");
   await page.evaluate(t => { window.__S.entraide.find(d => d.id === "e1").besoin = t; window.__entraideSignal(); }, long);
-  const bulle = page.locator('#entr-list .entr-msg[data-id="e1"]'), need = bulle.locator(".need"), plus = bulle.locator(".entr-voir-plus");
-  await expect(plus).toHaveText("Voir +");
-  await expect(need).toContainText("Ligne 15"); // tout le texte est là (lecteurs d'écran), seulement coupé à l'écran
-  const h = await need.evaluate(p => [p.clientHeight, p.scrollHeight, parseFloat(getComputedStyle(p).lineHeight)]);
-  expect(h[0]).toBeLessThan(h[1]);
-  expect(Math.round(h[0] / h[2])).toBe(10);
-  // calé à droite de la bulle
-  const [bb, pb] = [await bulle.boundingBox(), await plus.boundingBox()];
-  expect(bb.x + bb.width - (pb.x + pb.width)).toBeLessThan(20);
-  await expect(plus).toHaveAttribute("aria-expanded", "false");
-  await plus.click();
-  expect(await need.evaluate(p => p.scrollHeight <= p.clientHeight)).toBe(true);
-  // « Voir − » en bas du texte déplié, toujours à droite
-  await expect(plus).toHaveText("Voir −");
-  await expect(plus).toHaveAttribute("aria-expanded", "true");
-  const [nb, mb] = [await need.boundingBox(), await plus.boundingBox()];
-  expect(mb.y).toBeGreaterThanOrEqual(nb.y + nb.height - 1);
+  const bulle = page.locator('#entr-list .entr-msg[data-id="e1"]'), need = bulle.locator(".need"), voir = need.locator(".entr-voir-plus");
+  const lignes = () => need.evaluate(p => Math.round(p.offsetHeight / parseFloat(getComputedStyle(p).lineHeight)));
+  // dans le texte, sur sa 10e ligne, juste après « … »
+  await expect(voir).toHaveText("Voir +");
+  await expect(voir).toHaveAttribute("aria-expanded", "false");
+  expect(await lignes()).toBe(10);
+  await expect(need.locator('[aria-hidden="true"]')).toHaveText(/Ligne 10…$/);
+  const [nb, vb] = [await need.boundingBox(), await voir.boundingBox()];
+  expect(vb.y + vb.height).toBeGreaterThan(nb.y + nb.height - 30); // dernière ligne
+  await expect(need).toContainText("Ligne 15"); // texte complet pour les lecteurs d'écran
+  await voir.click();
+  await expect(voir).toHaveText("Voir −");
+  await expect(voir).toHaveAttribute("aria-expanded", "true");
+  expect(await lignes()).toBe(15); // « Voir − » tient sur la dernière ligne
+  await expect(need).toHaveText(/Ligne 15\s*Voir −$/);
   // déplié, il le reste après une mise à jour en direct
   await page.evaluate(() => window.__entraideSignal());
   await page.waitForTimeout(300);
-  await expect(bulle.locator(".entr-voir-plus")).toHaveText("Voir −");
-  expect(await bulle.locator(".need").evaluate(p => p.scrollHeight <= p.clientHeight)).toBe(true);
+  await expect(voir).toHaveText("Voir −");
   // « Voir − » replie à 10 lignes
-  await bulle.locator(".entr-voir-plus").click();
-  await expect(bulle.locator(".entr-voir-plus")).toHaveText("Voir +");
-  expect(await bulle.locator(".need").evaluate(p => p.scrollHeight > p.clientHeight)).toBe(true);
+  await voir.click();
+  await expect(voir).toHaveText("Voir +");
+  await expect(voir).toBeFocused();
+  expect(await lignes()).toBe(10);
 });

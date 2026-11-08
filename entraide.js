@@ -229,11 +229,11 @@ async function entrClicFil(e) {
     await loadEntraide();
     $("entr-mes-list").querySelector('[data-demande="' + CSS.escape(id) + '"]')?.focus({ preventScroll: true });
   }
-  // Poubelle (ma demande en attente de validation) : suppression définitive, après confirmation
+  // Poubelle (ma demande en attente de validation, ou publiée sans message) : suppression définitive, après confirmation
   else if (b.matches("[data-retirer]")) {
-    const id = m.dataset.demande;
+    const id = m.dataset.demande, publiee = !!m.querySelector(".badge.lead");
     openEditor("Entraide", "Supprimer ma demande ?",
-      '<p style="margin:0">Votre demande sera effacée définitivement, avant même d\'avoir été publiée.</p>', async () => {
+      '<p style="margin:0">Votre demande sera effacée définitivement' + (publiee ? "." : ", avant même d'avoir été publiée.") + "</p>", async () => {
         await api.entraideRetirer(id);
         toast("Demande supprimée.");
         await loadEntraide();
@@ -322,9 +322,11 @@ $("entr-rep").addEventListener("submit", async e => {
 $("entr-jump").addEventListener("click", () => { entrVersLeHaut(); $("entr-jump").hidden = true; });
 addEventListener("scroll", () => { if (!$("entr-jump").hidden && entrEnHaut()) $("entr-jump").hidden = true; }, { passive: true });
 let entrSeq = 0;
-// Textes longs (demandes et messages) : 10 lignes au plus, puis « Voir + » (calé à droite) déplie tout le texte ;
-// une fois déplié, « Voir − » en bas le replie. Les textes dépliés le restent lors des réaffichages en direct.
+// Textes longs (demandes et messages) : 10 lignes au plus, terminées par « … Voir + » sur la dernière ligne, qui déplie
+// tout le texte ; déplié, « Voir − » suit sa dernière ligne et le replie. Le texte complet reste lu par les lecteurs
+// d'écran. Les textes dépliés le restent lors des réaffichages en direct.
 const ENTR_TEXTES = ".entr-msg .need, .entr-recue .txt, .entr-moi .txt, .entr-mod-row .need";
+const ENTR_LIGNES = 10;
 const entrDeplies = new Set();
 function entrCleTexte(p) {
   const e = p.closest("[data-msg], [data-rep], .entr-mod-row[data-id], [data-demande], [data-id]");
@@ -332,31 +334,41 @@ function entrCleTexte(p) {
   const a = ["data-msg", "data-rep", "data-demande", "data-id"].find(k => e.hasAttribute(k));
   return (e.matches(".entr-mod-row") ? "mod:" : "") + a + ":" + e.getAttribute(a);
 }
+const entrVoir = deplie => '<button type="button" class="entr-voir-plus" aria-expanded="' + deplie + '" aria-label="' +
+  (deplie ? "Voir moins : réduire le texte" : "Voir plus : afficher tout le texte") + '">' + (deplie ? "Voir −" : "Voir +") + "</button>";
 function entrTronquer(root = document) {
   root.querySelectorAll(ENTR_TEXTES).forEach(p => {
-    const k = entrCleTexte(p), deplie = !!k && entrDeplies.has(k);
-    let b = p.nextElementSibling?.matches(".entr-voir-plus") ? p.nextElementSibling : null;
-    p.classList.add("entr-clamp");
-    if (!p.offsetParent) { p.classList.toggle("entr-clamp", !deplie); return; } // masqué (repli fermé) : mesuré à l'ouverture
-    const coupe = p.scrollHeight > p.clientHeight + 1; // mesuré coupé, même s'il est déplié
-    p.classList.toggle("entr-clamp", !deplie);
-    if (!coupe) { b?.remove(); return; }
-    if (!b) { p.insertAdjacentHTML("afterend", '<button type="button" class="entr-voir-plus"></button>'); b = p.nextElementSibling; }
-    b.textContent = deplie ? "Voir −" : "Voir +";
-    b.setAttribute("aria-label", deplie ? "Voir moins : réduire le texte" : "Voir plus : afficher tout le texte");
-    b.setAttribute("aria-expanded", deplie);
+    const plein = p.dataset.plein ??= p.textContent;
+    p.textContent = plein;
+    if (!p.offsetParent) return; // masqué (repli fermé) : mesuré à l'ouverture
+    const max = parseFloat(getComputedStyle(p).lineHeight) * ENTR_LIGNES + 2;
+    if (!(p.offsetHeight > max)) return; // court : rien à couper
+    const k = entrCleTexte(p);
+    if (k && entrDeplies.has(k)) { p.innerHTML = esc(plein) + "\u00a0" + entrVoir(true); return; }
+    // plus long début qui tient en 10 lignes avec « … Voir + »
+    const court = n => '<span aria-hidden="true">' + esc(plein.slice(0, n).trimEnd()) + "…</span>\u00a0" + entrVoir(false);
+    let lo = 0, hi = plein.length;
+    while (lo < hi) {
+      const mid = Math.ceil((lo + hi) / 2);
+      p.innerHTML = court(mid);
+      if (p.offsetHeight > max) hi = mid - 1; else lo = mid;
+    }
+    p.innerHTML = court(lo).replace("</span>", '</span><span class="entr-lu">' + esc(plein) + "</span>");
   });
 }
 document.addEventListener("click", e => {
   const b = e.target.closest(".entr-voir-plus");
   if (!b) return;
-  const p = b.previousElementSibling, k = entrCleTexte(p);
+  const p = b.closest(ENTR_TEXTES), k = entrCleTexte(p);
   if (!k) return;
   const deplier = !entrDeplies.has(k);
   if (deplier) entrDeplies.add(k); else entrDeplies.delete(k);
   entrTronquer(p.parentElement);
   if (deplier) { p.tabIndex = -1; p.focus({ preventScroll: true }); } // lecture du texte complet
-  else if (p.getBoundingClientRect().top < 0) p.scrollIntoView({ block: "start" }); // replié : revenir au début du texte
+  else {
+    p.querySelector(".entr-voir-plus")?.focus({ preventScroll: true });
+    if (p.getBoundingClientRect().top < 0) p.scrollIntoView({ block: "start" }); // replié : revenir au début du texte
+  }
 });
 addEventListener("resize", () => { clearTimeout(entrTronquer.t); entrTronquer.t = setTimeout(() => entrTronquer(), 150); });
 
@@ -567,14 +579,14 @@ function renderMesDemandes(list) {
   $("entr-mes-vide").hidden = !!list.length;
   $("entr-mes-list").innerHTML = [...list].sort((a, b) => b.created_at.localeCompare(a.created_at)).map(d => {
     const [label, cls] = ENTR_MON_STATUT[d.statut] || ENTR_MON_STATUT.a_valider;
-    const convs = d.conversations.filter(c => c.messages.length), n = convs.reduce((t, c) => t + c.messages.filter(m => !m.moi).length, 0);
+    const convs = d.conversations.filter(c => c.messages.length), echanges = convs.length > 0, n = convs.reduce((t, c) => t + c.messages.filter(m => !m.moi).length, 0);
     return '<article class="entr-msg entr-mienne" data-demande="' + esc(d.id) + '" tabindex="-1">' +
       '<div class="who">Moi' + (d.quartier ? ' <span class="where">· ' + esc(d.quartier) + "</span>" : "") + "</div>" +
       '<p class="need">' + esc(d.besoin) + "</p>" + (d.quand ? '<div class="when">' + ENTR_CAL + "<span>" + esc(d.quand) + "</span></div>" : "") +
-      '<div class="entr-pied"><span class="entr-pied-g">' + (d.statut === "publiee"
-        ? '<button type="button" class="btn btn-ok btn-sm" data-regler>C\'est réglé</button>'
-        // en attente de validation : on peut seulement la supprimer (poubelle rouge)
-        : d.statut === "a_valider" ? '<button type="button" class="trash" data-retirer aria-label="Supprimer ma demande" title="Supprimer ma demande">' + TRASH + "</button>" : "") +
+      '<div class="entr-pied"><span class="entr-pied-g">' + (d.statut === "publiee" && echanges
+        ? '<button type="button" class="btn btn-ok btn-sm" data-regler>' + CHECK_ICON + 'C\'est réglé</button>'
+        // en attente de validation, ou publiée sans aucun message : on peut seulement la supprimer (poubelle rouge)
+        : d.statut === "a_valider" || d.statut === "publiee" ? '<button type="button" class="trash" data-retirer aria-label="Supprimer ma demande" title="Supprimer ma demande">' + TRASH + "</button>" : "") +
         '<span class="badge ' + cls + '">' + esc(label) + "</span></span>" +
       '<time class="time" datetime="' + esc(d.created_at) + '">' + esc(entrJour(d.created_at)) + ", " + entrHeure(d.created_at) + "</time></div></article>" +
       (convs.length ? '<div class="entr-convs"><p class="entr-rep-note">' + ENTR_CADENAS +

@@ -90,12 +90,15 @@ module.exports = function installFakeApi({ data, user, acces }) {
       return id;
     },
     async droitEntraide() { return entrMoi(); },
-    // Comme entraide_retirer : l'auteur supprime sa demande tant qu'elle attend la validation d'un référent
+    // Comme entraide_retirer : l'auteur supprime sa demande en attente de validation, ou publiée tant qu'aucun message n'a été échangé
     async entraideRetirer(id) {
       guardVoir(); log("entraideRetirer", id);
       const d = S.entraide.find(x => x.id === id);
       if (!d || d.auteur !== entrEmail()) throw new Error("Demande introuvable.");
-      if (d.statut !== "a_valider") throw new Error("Cette demande n'est plus en attente de validation.");
+      if (!["a_valider", "publiee"].includes(d.statut)) throw new Error("Cette demande n'est plus en cours.");
+      const convs = S.entraideConversations.filter(c => c.demande === id).map(c => c.id);
+      if (S.entraideMessages.some(m => convs.includes(m.conversation))) throw new Error("Quelqu'un vous a déjà répondu : utilisez « C'est réglé ».");
+      S.entraideConversations = S.entraideConversations.filter(c => c.demande !== id);
       S.entraide = S.entraide.filter(x => x !== d);
       signal();
     },
