@@ -224,6 +224,8 @@ main.wrap { padding-top: 24px; padding-bottom: 56px; }
 .ph-menu .danger { color: #a3261c; }
 .btn-primary { background: #000; border-color: transparent; color: #fff; } /* bouton plein : pas de contour */
 .btn:hover { opacity: .85; }
+/* Bouton blanc à contour noir : la transparence ne se voit pas sur fond blanc, on teinte le fond (comme les boutons accolés) */
+@media (hover: hover) { .btn-ghost:hover:not(:disabled) { opacity: 1; background: #eef3f9; } }
 body.locked { overflow: hidden; }
 @media (max-width: 520px) { .row2 { grid-template-columns: 1fr; } .actions { flex-wrap: wrap; } .actions-left { flex-basis: 100%; padding-bottom: 6px; } .actions .btn { flex: 1; } }
 /* Administration */
