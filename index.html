@@ -658,6 +658,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .entr-repli summary::-webkit-details-marker { display: none; }
 .entr-repli summary::before { content: ""; flex: none; width: 7px; height: 7px; margin-right: 2px; border: solid currentColor; border-width: 0 2px 2px 0; transform: rotate(-45deg); transition: transform .15s; }
 .entr-repli details[open] summary::before { transform: translateY(-2px) rotate(45deg); } /* pointe vers le bas : remontée pour être centrée sur le texte */
+.entr-repli details[open] summary { margin-bottom: 4px; } /* un peu d'air entre le titre (parfois sur deux lignes) et le premier message */
 .entr-repli summary:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 10px; }
 .entr-repli summary .etat { padding: 2px 8px; border-radius: 999px; background: #dfe6ee; font-weight: 500; font-size: 13px; }
 /* proposition en cours : repli blanc, titre en couleur du texte */
