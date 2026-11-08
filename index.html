@@ -597,6 +597,8 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .entr-aider:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 /* Zone de réponse (« Je peux aider ! ») : sous la demande, en retrait, reliée à la bulle par un trait comme une réponse */
 .entr-reps { position: relative; width: min(84%, 560px); margin: -8px 0 18px 28px; }
+/* Téléphone : bulles et fils sur toute la largeur (le fil garde son retrait) */
+@media (max-width: 520px) { .entr-msg { width: auto; max-width: none; } .entr-reps { width: auto; } }
 .entr-reps:empty { display: none; }
 .entr-reps::before { content: ""; position: absolute; left: -18px; top: -6px; width: 14px; height: 26px; border: solid #9db6cc; border-width: 0 0 2px 2px; border-bottom-left-radius: 10px; }
 .entr-reps > .entr-rep-note { margin: 0 0 6px; padding-top: 4px; color: var(--muted); font-size: 12.5px; }
