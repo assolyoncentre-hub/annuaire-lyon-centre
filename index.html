@@ -577,9 +577,10 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .entr-cadre { max-width: 840px; margin: 16px 0; padding: 4px 24px 6px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); box-shadow: 0 1px 2px rgba(0, 40, 80, .06); }
 .entr-cadre .entr-titre { margin: 18px 0 20px; }
 .entr-cadre .entr-thread { padding-bottom: 12px; }
-/* sur fond blanc, les bulles blanches des autres gardent un contour (sans la pointe), et les dates aussi */
+/* sur fond blanc, les bulles blanches des autres gardent un contour (pointe comprise), et les dates aussi */
 .entr-cadre .entr-msg:not(.entr-mienne):not(.aidee) { border: 1px solid var(--border); box-shadow: none; }
-.entr-cadre .entr-msg:not(.entr-mienne):not(.aidee)::before { display: none; }
+.entr-cadre .entr-msg:not(.entr-mienne):not(.aidee)::before { top: -1px; left: -9px; width: 10px; height: 12px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='12'%3E%3Cpath d='M0 .5H10V12Z' fill='%23fff'/%3E%3Cpath d='M10 11.5 .9.5H10' fill='none' stroke='%23dde5ee'/%3E%3C/svg%3E") no-repeat; } /* pointe de bulle avec son contour */
 .entr-cadre .entr-day span { border: 1px solid var(--border); box-shadow: none; }
 /* « J'ai besoin d'aide » en haut de la section, sous le titre */
 #entr-mes #entr-ask { margin: 0 0 18px; }
