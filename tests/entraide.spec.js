@@ -485,6 +485,7 @@ test("Mes demandes : « C'est réglé » sur une demande en cours @mobile", asyn
   const MOI = [{ email: "admin@example.org", droit: "admin", prenom: "", nom: "", entraide_voir: true, entraide_moderer: false }];
   await open({ user: ADMIN, hash: "#entraide", acces: MOI });
   const mes = page.locator("#entr-mes-list .entr-mienne");
+  await expect(mes.first().locator(".who")).toHaveText(/^Moi/); // signée « Moi »
   const escabeau = mes.filter({ hasText: "escabeau" }), robinet = mes.filter({ hasText: "Réparer un robinet" });
   // Seulement sur les demandes en cours (publiée ou à valider), pas sur celle déjà aidée
   await expect(escabeau.locator("[data-regler]")).toHaveText("C'est réglé");

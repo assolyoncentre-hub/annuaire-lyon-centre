@@ -498,7 +498,7 @@ function renderMesDemandes(list) {
     const [label, cls] = ENTR_MON_STATUT[d.statut] || ENTR_MON_STATUT.a_valider;
     const convs = d.conversations.filter(c => c.messages.length), n = convs.reduce((t, c) => t + c.messages.filter(m => !m.moi).length, 0);
     return '<article class="entr-msg entr-mienne" data-demande="' + esc(d.id) + '" tabindex="-1">' +
-      '<div class="who">Ma demande' + (d.quartier ? ' <span class="where">· ' + esc(d.quartier) + "</span>" : "") + "</div>" +
+      '<div class="who">Moi' + (d.quartier ? ' <span class="where">· ' + esc(d.quartier) + "</span>" : "") + "</div>" +
       '<p class="need">' + esc(d.besoin) + "</p>" + (d.quand ? '<div class="when">' + ENTR_CAL + "<span>" + esc(d.quand) + "</span></div>" : "") +
       '<div class="entr-pied"><span class="entr-pied-g">' + (d.statut === "publiee" || d.statut === "a_valider"
         ? '<button type="button" class="btn btn-ok btn-sm" data-regler>C\'est réglé</button>' : "") +
