@@ -28,6 +28,7 @@ test("droit Voir : demandes publiées seulement, sans téléphone ni modération
   await open({ user: VOIR, hash: "#entraide", acces: ACCES });
   await expect(page.locator("#sw-entr")).toBeVisible();
   await expect(page.locator("#sw-entr")).toHaveAttribute("aria-current", "page");
+  await expect(page.locator("#sw-serv")).toBeHidden(); // pas de droit sur l'annuaire des leaders : pas d'onglet Leaders
   await expect(page.locator("#entr-count")).toHaveText("5 demandes en cours");
   await expect(page.locator("#entr-list")).not.toContainText("Henri"); // à valider : pas encore publiée
   await expect(page.locator("#entr-view")).not.toContainText("39 98");

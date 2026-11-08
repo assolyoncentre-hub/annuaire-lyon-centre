@@ -294,8 +294,10 @@ function route() {
   $("admin-link").classList.toggle("signed-in", !!session);
   $("admin-link").setAttribute("aria-label", session ? "Compte de " + label : label);
   if (session) $("admin-link").setAttribute("aria-expanded", String(!$("acct-menu").hidden)); else { $("admin-link").removeAttribute("aria-expanded"); $("acct-menu").hidden = true; }
-  // Onglets : Propositions et Leaders pour tous (Leaders sans être administrateur affiche la connexion),
+  // Onglets : Propositions pour tous ; Leaders pour un visiteur non connecté (il y trouve la connexion) ou une personne
+  // connectée qui en a le droit (masqué sinon, par exemple avec seulement un droit Entraide) ;
   // Administration seulement pour un administrateur connecté
+  $("sw-serv").hidden = !!session && !canLeaders;
   $("sw-admin").hidden = !isAdmin;
   for (const k of ["sw-prop", "sw-serv", "sw-entr", "sw-admin"]) $(k).removeAttribute("aria-current");
   $("sw-entr").hidden = !canEntraide;
