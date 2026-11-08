@@ -588,7 +588,9 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 /* Demandes pourvues : grisées, sans bouton */
 .entr-msg.aidee { --bulle: #eef2f6; box-shadow: none; }
 .entr-msg.aidee .who { color: var(--text); }
-.entr-msg .aide-ok { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px; background: #e3f4ea; color: #1d6b43; font: 600 13px/1.5 Montserrat, sans-serif; vertical-align: 1px; }
+/* « ✓ Aidé » : badge calé à droite de la ligne du prénom */
+.entr-msg.aidee .who { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 6px; }
+.entr-msg .aide-ok { display: inline-block; margin-left: auto; padding: 1px 8px; border-radius: 999px; background: #e3f4ea; color: #1d6b43; font: 600 13px/1.5 Montserrat, sans-serif; vertical-align: 1px; }
 .entr-day { display: flex; justify-content: center; margin: 12px 0 8px; }
 .entr-day span { padding: 5px 10px; border-radius: 8px; background: rgba(255, 255, 255, .92); color: var(--muted); font: 600 14px/1 Montserrat, sans-serif; box-shadow: 0 1px 1px rgba(0, 40, 80, .08); }
 .entr-msg { position: relative; width: fit-content; max-width: min(84%, 660px); margin: 6px 0 16px; padding: 11px 14px 10px; border-radius: 2px 10px 10px 10px;

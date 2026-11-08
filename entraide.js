@@ -32,7 +32,7 @@ function renderAidees(list) {
   $("entr-aides-sec").hidden = !list.length;
   $("entr-aides").innerHTML = [...list].sort((a, b) => b.close_le.localeCompare(a.close_le)).map(d =>
     '<article class="entr-msg aidee" style="--c:' + entrCouleur(d.prenom) + '" data-id="' + esc(d.id) + '">' +
-    '<div class="who">' + esc(d.prenom) + (d.quartier ? ' <span class="where">· ' + esc(d.quartier) + "</span>" : "") + '<span class="aide-ok">Aidé ✓</span></div>' +
+    '<div class="who">' + esc(d.prenom) + (d.quartier ? ' <span class="where">· ' + esc(d.quartier) + "</span>" : "") + '<span class="aide-ok">✓ Aidé</span></div>' +
     '<p class="need">' + esc(d.besoin) + "</p>" +
     '<time class="time" datetime="' + esc(d.close_le) + '">Aidé ' + esc(entrJour(d.close_le).toLowerCase()) + "</time></article>").join("");
 }
