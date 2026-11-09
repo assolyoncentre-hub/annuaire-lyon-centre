@@ -18,6 +18,7 @@ fake.exports({
 const RESPONSABLES = {
   "9c030fc7e0acba56648fb3977e8e9f0051081a0023e2e1dfb1b74b6769608faa": "Loïc",
   "107c9a43215a7915d1e9266319b986a16314cd4dcfad6263992e526ca1776ed7": "",
+  "83831e91f1cc9b61c6c5604cc6346ad06d6d6785b471b03c1c7f79eb4c5ea4c2": "",
 };
 async function reconnaitre(email) {
   const e = String(email || "").trim().toLowerCase();
