@@ -635,10 +635,14 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .entr-moi { margin: 0 0 6px; padding: 11px 14px 9px; border-radius: 10px 2px 10px 10px; background: var(--moi); box-shadow: 0 1px 1px rgba(0, 40, 80, .1); }
 .entr-moi.edite { display: none; }
 .entr-moi .txt { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
-.entr-moi-pied { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; margin-top: 4px; }
-.entr-moi-pied .time { margin-left: auto; }
-.entr-moi-act { display: flex; gap: 4px; margin-left: -6px; }
-.entr-moi-act button { padding: 4px 6px; border: 0; border-radius: 6px; background: none; color: var(--brand); font: 600 14px/1 Montserrat, sans-serif; cursor: pointer; }
+.entr-moi-tete { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.entr-moi-pied { display: flex; justify-content: flex-end; margin-top: 4px; }
+/* en haut à droite : poubelle puis « Modifier » ; marges négatives pour ne pas grandir la ligne de « Moi » */
+.entr-moi-act { display: flex; align-items: center; gap: 2px; margin: -6px -8px -6px 0; }
+.entr-moi-act button { display: inline-flex; align-items: center; min-height: 32px; padding: 0 8px; border: 0; border-radius: 6px; background: none; color: var(--brand); font: 600 14px/1 Montserrat, sans-serif; cursor: pointer; }
+#entr-pub .entr-moi-act button, #entr-mes .entr-moi-act button { min-height: 32px; }
+.entr-moi-act .entr-moi-suppr { color: #a3261c; }
+.entr-moi-act .entr-moi-suppr svg { width: 17px; height: 17px; }
 @media (hover: hover) { .entr-moi-act button:hover { background: rgba(0, 94, 168, .1); } }
 .entr-moi .time { color: #4d6378; font-size: 13px; white-space: nowrap; }
 .entr-plus { display: block; width: 100%; padding: 9px 12px; border: 1px dashed #8eaecb; border-radius: 10px; background: none; color: var(--brand); font: 600 15px/1 Montserrat, sans-serif; text-align: left; cursor: pointer; }

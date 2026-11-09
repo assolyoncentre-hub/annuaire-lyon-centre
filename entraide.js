@@ -111,9 +111,11 @@ function entrFilHtml(id, prenom) {
     l.map(r => !r.moi
       ? '<div class="entr-recue" tabindex="-1" data-msg="' + esc(r.id) + '" style="--c:' + entrCouleur(prenom) + '"><div class="who">' + esc(prenom) + "</div>" +
         '<p class="txt">' + esc(r.texte) + '</p><time class="time" datetime="' + esc(r.le) + '">' + (r.modifie ? "Modifié · " : "") + esc(entrJour(r.le)) + ", " + entrHeure(r.le) + "</time></div>"
-      : '<div class="entr-moi" data-rep="' + esc(r.id) + '"><div class="who">Moi</div><p class="txt">' + esc(r.texte) + "</p>" +
-        '<div class="entr-moi-pied"><span class="entr-moi-act">' + (fini ? "" : '<button type="button" data-modifier>Modifier</button><button type="button" data-supprimer>Supprimer</button>') + "</span>" +
-        '<time class="time" datetime="' + esc(r.le) + '">' + (r.modifie ? "Modifié · " : "") + (recues ? esc(entrJour(r.le)) + ", " : "") + entrHeure(r.le) + "</time></div></div>").join("") +
+      // mes messages : la poubelle et « Modifier » en haut à droite, à côté de « Moi »
+      : '<div class="entr-moi" data-rep="' + esc(r.id) + '"><div class="entr-moi-tete"><div class="who">Moi</div>' +
+        (fini ? "" : '<span class="entr-moi-act"><button type="button" class="entr-moi-suppr" data-supprimer aria-label="Supprimer ce message" title="Supprimer ce message">' +
+          TRASH + '</button><button type="button" data-modifier>Modifier</button></span>') + '</div><p class="txt">' + esc(r.texte) + "</p>" +
+        '<div class="entr-moi-pied"><time class="time" datetime="' + esc(r.le) + '">' + (r.modifie ? "Modifié · " : "") + (recues ? esc(entrJour(r.le)) + ", " : "") + entrHeure(r.le) + "</time></div></div>").join("") +
     (fini ? "" // « X a mis fin à la conversation » : titre du repli
       : f.auteur ? '<div class="entr-conv-act"><button type="button" class="entr-plus" data-plus>Répondre à ' + esc(prenom) + "</button>" +
         '<button type="button" class="entr-decliner" data-decliner>Décliner</button></div>'
