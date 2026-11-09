@@ -851,6 +851,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 /* Titres de la page : couleur de son affiche sur l'accueil (--page, posée par route() ; bleu du site sinon) */
 .card h2, .letter, .entr-titre, .login h2 { color: var(--page, var(--brand)); }
 /* Onglet Accueil : une maison, tout à gauche */
+.switch a.sw-home[hidden] { display: none; }
 .switch a.sw-home { display: inline-flex; align-items: center; justify-content: center; padding: 10px 14px; }
 .switch a.sw-home svg { width: 18px; height: 18px; }
 @media (max-width: 520px) { .switch a.sw-home { flex: 0 0 auto; min-width: 0; padding: 10px 12px; } }

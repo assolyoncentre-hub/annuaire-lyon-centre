@@ -42,3 +42,18 @@ test("accueil d'un administrateur : toutes les pages dans l'ordre des onglets, t
     expect(await bandeau(page)).toBe("rgb(0, 96, 170)"); // bandeau toujours bleu
   }
 });
+
+test("production : pas encore d'accueil (pas d'onglet maison, #accueil mène aux propositions, connexion par le bouton du haut sans détour) @mobile", async ({ open, page }) => {
+  await page.addInitScript(() => { window.__sansAccueil = true; });
+  await open({ hash: "#accueil" });
+  await expect(page.locator("#sw-home")).toBeHidden();
+  await expect(page.locator("#dir-view")).toBeVisible();
+  await expect(page.locator("#home-view")).toBeHidden();
+  await expect(page).not.toHaveURL(/#accueil/);
+  await page.click("#admin-link");
+  await page.fill("#otp-email", "damien@example.org");
+  await page.click("#otp-send");
+  await page.fill("#otp-code", "123456");
+  await expect(page.locator("#admin-login")).toBeHidden(); // connecté, on reste où l'on est, comme avant l'accueil
+  await expect(page).toHaveURL(/#admin$/);
+});

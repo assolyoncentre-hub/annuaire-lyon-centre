@@ -3,6 +3,8 @@ const COLORS = { "Croissance dans la foi": "#009498", "Le dimanche": "#78d8da", 
   "Jeunes": "#fa772f", "Prière, écoute et guérison": "#4760ff", "Écosystème": "#0060aa", "Solidarité": "#0e0f17", "Support": "#797881" };
 const FALLBACK = ["#414e8a", "#df683d", "#535259", "#ffccbd"];
 const api = window.__api || window.makeApi();
+// Accueil (onglet maison) : seulement en version de test (faux serveur), pas encore en production
+const ACCUEIL = !!window.__api && !window.__sansAccueil;
 let services = [], poles = {}, active = null, terms = [], shown = [];
 // Les noms ne font pas partie de la liste publique : ils sont chargés à la demande, au clic
 // (toute la liste, e-mails compris, seulement pour les administrateurs)
@@ -344,6 +346,7 @@ function route() {
   if (location.hash === "#serviteurs") history.replaceState(null, "", "#leaders");
   // Ancienne page « Mes demandes » : désormais première section de la page des demandes
   if (location.hash === "#entraide/mes-demandes") history.replaceState(null, "", "#entraide");
+  if (!ACCUEIL) { $("sw-home").hidden = true; if (location.hash === "#accueil") history.replaceState(null, "", "#"); }
   const h = location.hash, serv = h === "#leaders", showServ = serv && canLeaders;
   // Entraide, réservée au droit « voir » (#entraide) et « modérer » (#entraide/moderation) : sinon connexion ou refus
   const entrMod = h === "#entraide/moderation", entrHash = h === "#entraide" || entrMod;
@@ -466,7 +469,7 @@ const closeAcct = () => { $("acct-menu").hidden = true; if (session) $("admin-li
 $("admin-link").addEventListener("click", () => {
   if (!session) {
     // Connexion lancée depuis ce bouton : arrivée sur l'accueil (retenu dans l'onglet, la connexion Google recharge la page)
-    try { sessionStorage.setItem("apres-connexion", "#accueil"); } catch { /* stockage indisponible */ }
+    if (ACCUEIL) try { sessionStorage.setItem("apres-connexion", "#accueil"); } catch { /* stockage indisponible */ }
     location.hash = "admin"; return route();
   }
   $("acct-menu").hidden = !$("acct-menu").hidden;
