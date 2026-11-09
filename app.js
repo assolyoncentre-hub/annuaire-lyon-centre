@@ -22,6 +22,68 @@ const fullName = p => typeof p === "string" ? p : [prenomAff(p), nomAff(p?.nom)]
 // Lien d'appel : chiffres seuls, numéro français à 10 chiffres au format international (+33…)
 const telHref = t => { let d = String(t).replace(/[^\d+]/g, ""); if (/^0\d{9}$/.test(d)) d = "+33" + d.slice(1); return "tel:" + d; };
 const TEL_RE = /^[+0-9 .()\/-]{6,30}$/;
+// Champs téléphone (classe tel-masque) : espaces mis pendant la frappe (06 12 34 56 78, cinq groupes de deux chiffres),
+// numéro en +33 / 0033 ramené au format 06 ; un numéro étranger (+ suivi d'un autre indicatif) est laissé tel quel.
+// En quittant le champ, une erreur s'affiche juste en dessous si le numéro est incomplet.
+const telFrancais = v => !/^\s*(\+|00)/.test(v) || /^\s*(\+|00)\s*33/.test(v);
+function telMasquer(v) {
+  v = String(v || "");
+  if (!telFrancais(v)) return v;
+  let d = v.replace(/\D/g, "");
+  if (/^\s*(\+|00)\s*33/.test(v)) d = "0" + d.replace(/^(00)?33/, "").replace(/^0/, "");
+  return d.slice(0, 10).replace(/(\d{2})(?=\d)/g, "$1 ");
+}
+function telErreur(v) {
+  v = String(v || "").trim();
+  if (!v) return "";
+  if (!telFrancais(v)) return TEL_RE.test(v) ? "" : "Numéro de téléphone invalide.";
+  const d = v.replace(/\D/g, "");
+  if (d[0] !== "0" || d[1] === "0") return "Un numéro français commence par 01 à 09.";
+  const k = 10 - d.length;
+  return k > 0 ? "Numéro incomplet : il manque " + k + " chiffre" + (k > 1 ? "s" : "") + "." : "";
+}
+function telMontrer(el, msg) {
+  let err = document.getElementById(el.id + "-err");
+  if (!err) {
+    err = document.createElement("div");
+    err.className = "tel-err"; err.id = el.id + "-err";
+    el.after(err);
+    el.setAttribute("aria-describedby", err.id);
+  }
+  err.textContent = msg; err.hidden = !msg;
+  el.classList.toggle("bad", !!msg);
+  if (msg) el.setAttribute("aria-invalid", "true"); else el.removeAttribute("aria-invalid");
+}
+document.addEventListener("input", e => {
+  const el = e.target;
+  if (!el.matches?.("input.tel-masque")) return;
+  const prev = el.dataset.tel || "";
+  // Retour arrière sur un espace : efface aussi le chiffre qui le précède (sinon l'espace reviendrait aussitôt)
+  if (e.inputType === "deleteContentBackward" && el.value.length < prev.length && el.value.replace(/\D/g, "") === prev.replace(/\D/g, "")) {
+    let j = (el.selectionStart ?? el.value.length) - 1;
+    while (j >= 0 && !/\d/.test(el.value[j])) j--;
+    if (j >= 0) { el.value = el.value.slice(0, j) + el.value.slice(j + 1); el.setSelectionRange(j, j); }
+  }
+  const pos = el.selectionStart ?? el.value.length, chiffres = el.value.slice(0, pos).replace(/\D/g, "").length;
+  const indicatif = /^\s*(\+|00)/.test(el.value), v = telMasquer(el.value);
+  if (v !== el.value) {
+    el.value = v;
+    // le curseur reste après le même chiffre (à la fin si +33 vient d'être remplacé par 0)
+    let i = v.length, n = 0;
+    if (!indicatif) for (i = 0; i < v.length && n < chiffres; i++) if (/\d/.test(v[i])) n++;
+    el.setSelectionRange(i, i);
+  }
+  el.dataset.tel = el.value;
+  telMontrer(el, "");
+});
+// En quittant le champ : pas tout de suite, et pas pour un clic sur un bouton (l'envoi vérifie de lui-même) ; sinon
+// l'erreur, en apparaissant, décalerait le bouton pendant le clic, qui tomberait à côté
+document.addEventListener("focusout", e => {
+  const el = e.target;
+  if (!el.matches?.("input.tel-masque") || e.relatedTarget?.closest?.("button")) return;
+  const v = el.value;
+  setTimeout(() => { if (el.isConnected && el.value === v && document.activeElement !== el) telMontrer(el, telErreur(v)); }, 250);
+});
 const peopleOf = s => (contactsOf[s._id] ?? []).map(fullName);
 const nbContacts = s => Number.isFinite(s.nbContacts) ? s.nbContacts : (contactsOf[s._id] ?? []).length;
 const respNames = p => (respOf[p._id] ?? []).map(fullName);
@@ -149,6 +211,7 @@ function openModal(t) {
   $("m-title").textContent = t.name || "";
   $("m-people").textContent = andList(t.people);
   $("m-form").reset();
+  telMontrer($("m-tel"), "");
   lastFocus = document.activeElement;
   $("modal").hidden = false;
   document.body.classList.add("locked");
@@ -209,7 +272,8 @@ $("grid").addEventListener("focusout", e => {
 $("m-cancel").addEventListener("click", closeModal);
 $("m-form").addEventListener("submit", async e => {
   e.preventDefault();
-  const f = e.target, btn = $("m-send");
+  const f = e.target, btn = $("m-send"), errTel = telErreur(f.tel.value);
+  if (errTel) { telMontrer(f.tel, errTel); f.tel.focus(); return; }
   btn.disabled = true;
   try {
     const r = await api.sendMessage({ [modalTarget.pole ? "pole_id" : "service_id"]: modalTarget.id, civilite: f.civilite.value, prenom: f.prenom.value, nom: f.nom.value,
@@ -933,7 +997,7 @@ function editPerson(p) {
     '<div class="row2 names"><div class="field"><label for="pe-prenom">Prénom</label><input id="pe-prenom" value="' + esc(p?.prenom || "") + '"></div>' +
     '<div class="field"><label for="pe-nom">Nom</label><input id="pe-nom" value="' + esc(p?.nom || "") + '"></div></div>' +
     '<div class="field"><label for="pe-email">E-mail <span class="opt">(privé : visible seulement des leaders)</span></label><input id="pe-email" type="email" value="' + esc(p?.email || "") + '"></div>' +
-    '<div class="field w-tel"><label for="pe-tel">Téléphone <span class="opt">(privé : visible seulement des leaders)</span></label><input id="pe-tel" type="tel" autocomplete="off" value="' + esc(p?.telephone || "") + '"></div></section>' +
+    '<div class="field w-tel"><label for="pe-tel">Téléphone <span class="opt">(privé : visible seulement des leaders)</span></label><input id="pe-tel" class="tel-masque" type="tel" inputmode="tel" autocomplete="off" value="' + esc(telMasquer(p?.telephone || "")) + '"></div></section>' +
     '<section class="ed-sec"><h3 class="ed-sec-title">Responsabilités</h3><div class="row2">' + msel("pe-svc", "Leader des staffs…", "Aucun staff", svcBoxes) + msel("pe-pole", "Responsable des pôles…", "Aucun pôle", poleBoxes) + "</div>" +
     '<p class="hors-warn" id="pe-hors" hidden>Ni staff ni pôle : cette personne n\'apparaîtra pas dans l\'annuaire, elle pourra seulement se connecter.</p></section>' +
     '<section class="ed-sec droits" role="radiogroup" aria-labelledby="pe-droits-t"><h3 class="ed-sec-title" id="pe-droits-t">Droits</h3><div class="seg">' +
@@ -950,7 +1014,8 @@ function editPerson(p) {
       if (!prenom && !nom) return invalid(f, "#pe-prenom", "Indiquez au moins un prénom ou un nom.");
       if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return invalid(f, "#pe-email", "Adresse e-mail invalide.");
       const telephone = f.querySelector("#pe-tel").value.trim();
-      if (telephone && !TEL_RE.test(telephone)) return invalid(f, "#pe-tel", "Numéro de téléphone invalide.");
+      const errTel = telErreur(telephone);
+      if (errTel) { telMontrer(f.querySelector("#pe-tel"), errTel); return invalid(f, "#pe-tel", errTel); }
       const checked = name => [...f.querySelectorAll('input[name="' + name + '"]:checked')].map(i => i.value);
       const svcIds = checked("svc"), poleIds = checked("pole");
       const d = f.querySelector('input[name="pe-droit"]:checked')?.value || "leaders";

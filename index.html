@@ -199,6 +199,11 @@ main.wrap { padding-top: 24px; padding-bottom: 56px; }
 .field input, .field textarea { width: 100%; padding: 11px 12px; border: 1.5px solid var(--border); border-radius: 6px; background: #fff;
   font: 16px/1.4 "DM Sans", sans-serif; color: var(--text); outline: none; }
 .field input:focus, .field textarea:focus { border-color: var(--brand); }
+/* Téléphone : chiffres à chasse fixe (groupes alignés) ; erreur juste sous le champ */
+.field input.tel-masque { font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+.tel-err { display: flex; gap: 6px; align-items: flex-start; margin-top: 6px; color: #a12622; font-size: 14px; font-weight: 500; }
+.tel-err[hidden] { display: none; }
+.tel-err::before { content: "!"; flex: none; width: 16px; height: 16px; margin-top: 1px; border-radius: 50%; background: #a12622; color: #fff; font: 700 11px/16px Montserrat, sans-serif; text-align: center; }
 .field textarea { min-height: 130px; resize: vertical; }
 .actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }
 .actions-left { margin-right: auto; align-self: center; }
@@ -1016,7 +1021,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
         <div class="field"><label for="m-nom">Mon nom</label><input id="m-nom" name="nom" required autocomplete="family-name"></div>
       </div>
       <div class="field"><label for="m-email">Mon adresse e-mail</label><input id="m-email" name="email" type="email" required autocomplete="email"></div>
-      <div class="field"><label for="m-tel">Mon téléphone <span class="opt">(facultatif)</span></label><input id="m-tel" name="tel" type="tel" autocomplete="tel" placeholder="06 12 34 56 78"></div>
+      <div class="field"><label for="m-tel">Mon téléphone <span class="opt">(facultatif)</span></label><input id="m-tel" class="tel-masque" name="tel" type="tel" inputmode="tel" autocomplete="tel" placeholder="06 12 34 56 78"></div>
       <div class="field"><label for="m-msg">Message</label><textarea id="m-msg" name="message" required placeholder="Votre message…"></textarea></div>
       <div class="hp" aria-hidden="true"><label>Site <input name="site" tabindex="-1" autocomplete="off"></label></div>
       <div class="actions"><button type="button" class="btn btn-ghost" id="m-cancel">Annuler</button><button type="submit" class="btn btn-primary" id="m-send">Envoyer</button></div>

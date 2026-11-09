@@ -158,3 +158,33 @@ test("recherche : une croix vide le champ @mobile", async ({ open, page }) => {
   await expect(clear).toBeHidden();
   await expect(page.locator("#count")).not.toContainText("Aucun résultat");
 });
+
+test("formulaire de message : téléphone mis en forme pendant la frappe, +33 ramené à 06, erreur sous le champ @mobile", async ({ open, page }) => {
+  await open();
+  const touche = test.info().project.name === "téléphone" ? "tap" : "click";
+  await page.locator(".card summary").first()[touche]();
+  await page.locator(".card .msg").first()[touche]();
+  const tel = page.locator("#m-tel");
+  await tel.pressSequentially("0639980042");
+  await expect(tel).toHaveValue("06 39 98 00 42");
+  // Retour arrière juste après un espace : le chiffre d'avant part avec lui
+  await tel.fill(""); await tel.pressSequentially("063998");
+  await expect(tel).toHaveValue("06 39 98");
+  await tel.press("Backspace");
+  await expect(tel).toHaveValue("06 39 9");
+  // Numéro collé en +33
+  await tel.fill("+33 6 39 98 00 42");
+  await expect(tel).toHaveValue("06 39 98 00 42");
+  // Numéro étranger : laissé tel quel
+  await tel.fill("+41 22 123 45 67");
+  await expect(tel).toHaveValue("+41 22 123 45 67");
+  // Incomplet : erreur sous le champ en le quittant, et pas d'envoi
+  await tel.fill(""); await tel.pressSequentially("06399");
+  await page.locator("#m-msg").focus();
+  await expect(page.locator("#m-tel-err")).toHaveText("Numéro incomplet : il manque 5 chiffres.");
+  await expect(tel).toHaveAttribute("aria-invalid", "true");
+  await page.selectOption("#m-civ", "Madame"); await page.fill("#m-prenom", "Zoé"); await page.fill("#m-nom", "Martin"); await page.fill("#m-email", "zoe@example.org"); await page.fill("#m-msg", "Bonjour");
+  await page.click("#m-send");
+  await expect(tel).toBeFocused();
+  expect(await calls(page, "sendMessage")).toHaveLength(0);
+});

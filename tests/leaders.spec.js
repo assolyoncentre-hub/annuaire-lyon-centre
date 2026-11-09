@@ -75,10 +75,16 @@ test("téléphone : saisi dans la fiche d'un contact, gardé en enregistrant un 
   await page.click("#tab-contacts");
   await page.fill("#aq", "tanya");
   await page.locator("#admin-list [data-act=edit]").click();
-  await page.fill("#pe-tel", "abc");
+  // Masque : les espaces se mettent pendant la frappe ; un numéro incomplet est signalé sous le champ et bloque l'envoi
+  await page.locator("#pe-tel").fill("");
+  await page.locator("#pe-tel").pressSequentially("0639987");
+  await expect(page.locator("#pe-tel")).toHaveValue("06 39 98 7");
   await page.locator("#ed-form [type=submit]").click();
-  await expect(page.locator("#toast")).toHaveText("Numéro de téléphone invalide.");
-  await page.fill("#pe-tel", "06 39 98 70 08");
+  await expect(page.locator("#toast")).toHaveText("Numéro incomplet : il manque 3 chiffres.");
+  await expect(page.locator("#pe-tel-err")).toHaveText("Numéro incomplet : il manque 3 chiffres.");
+  await page.locator("#pe-tel").pressSequentially("008");
+  await expect(page.locator("#pe-tel")).toHaveValue("06 39 98 70 08");
+  await expect(page.locator("#pe-tel-err")).toBeHidden();
   await page.locator("#ed-form [type=submit]").click();
   await expect(page.locator("#editor")).toBeHidden();
   expect((await calls(page, "savePerson")).pop().arg.fields.telephone).toBe("06 39 98 70 08");
