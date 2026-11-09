@@ -65,7 +65,7 @@ test("lien de l'e-mail expiré : message et formulaire de code", async ({ open, 
 });
 
 test("connexion depuis le bouton du haut : arrivée sur l'accueil @mobile", async ({ open, page }) => {
-  await open({ hash: "#" });
+  await open({ hash: "#", accueil: true });
   await page.click("#admin-link");
   await page.fill("#otp-email", "damien@example.org");
   await page.click("#otp-send");

@@ -321,7 +321,7 @@ test("accessibilité : modération @mobile", async ({ open, page }) => {
 });
 
 test("téléphone : cinq onglets (Accueil, Propositions, Entraide, Leaders, Administration) visibles sans défilement @mobile", async ({ open, page }) => {
-  await open({ user: ADMIN, hash: "#entraide", acces: [{ email: "admin@example.org", droit: "admin", prenom: "", nom: "", entraide_voir: true, entraide_moderer: true }] });
+  await open({ user: ADMIN, hash: "#entraide", acces: [{ email: "admin@example.org", droit: "admin", prenom: "", nom: "", entraide_voir: true, entraide_moderer: true }], accueil: true });
   await expect(page.locator("#sw-admin")).toBeVisible();
   await expect(page.locator("#sw-entr")).toBeVisible();
   const width = page.viewportSize().width;

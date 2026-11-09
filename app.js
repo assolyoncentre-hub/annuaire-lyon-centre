@@ -4,7 +4,7 @@ const COLORS = { "Croissance dans la foi": "#009498", "Le dimanche": "#78d8da", 
 const FALLBACK = ["#414e8a", "#df683d", "#535259", "#ffccbd"];
 const api = window.__api || window.makeApi();
 // Accueil (onglet maison) : seulement en version de test (faux serveur), pas encore en production
-const ACCUEIL = !!window.__api && !window.__sansAccueil;
+const ACCUEIL = !!window.__avecAccueil; // accueil mis de côté : seulement dans ses tests
 let services = [], poles = {}, active = null, terms = [], shown = [];
 // Les noms ne font pas partie de la liste publique : ils sont chargés à la demande, au clic
 // (toute la liste, e-mails compris, seulement pour les administrateurs)
