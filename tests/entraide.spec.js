@@ -704,3 +704,15 @@ test("modération : une demande sans téléphone s'affiche sans lien d'appel", a
   await expect(zoe).toBeVisible();
   await expect(zoe.locator('a[href^="tel:"]')).toHaveCount(0);
 });
+
+test("version de test : un nouveau message ne reprend pas l'identifiant d'un message gardé d'une visite précédente", async ({ page }) => {
+  // Données gardées par le navigateur : elles contiennent déjà un message « m900 » écrit lors d'une visite précédente
+  const data = JSON.parse(JSON.stringify(require("./data")));
+  const ancien = { ...data.entraideMessages[0], id: "m900" };
+  data.entraideMessages.push(ancien);
+  await page.route(/^https?:\/\//, route => route.abort());
+  await page.addInitScript(require("./fake-api"), { data, user: ADMIN, acces: [{ email: "admin@example.org", droit: "admin", prenom: "", nom: "", entraide_voir: true, entraide_moderer: true }] });
+  await page.goto("file://" + require("path").resolve(__dirname, "..", "index.html") + "#entraide");
+  const id = await page.evaluate(async () => { await window.__api.entraideEcrire("Nouveau", { p_demande: "e1" }); return window.__S.entraideMessages.at(-1).id; });
+  expect(Number(id.slice(1))).toBeGreaterThan(900);
+});

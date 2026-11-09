@@ -5,6 +5,10 @@ module.exports = function installFakeApi({ data, user, acces }) {
   const S = JSON.parse(JSON.stringify(data));
   let n = 0;
   for (const r of [...S.contacts, ...S.responsables]) r.id = "r" + n++;
+  // Identifiants des nouveaux enregistrements : à la suite des plus grands déjà présents. Les données gardées par la
+  // version de test en contiennent d'une visite précédente ; repartir de zéro créait des doublons (un message
+  // supprimé « introuvable », parce qu'un autre message portait le même identifiant)
+  for (const [, k] of JSON.stringify(S).matchAll(/"id":"[a-z]+(\d+)"/g)) n = Math.max(n, Number(k) + 1);
   window.__S = S;
   window.__calls = [];
   const log = (name, arg) => window.__calls.push({ name, arg });
