@@ -1038,24 +1038,20 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
       <div class="kicker">Entraide</div>
       <h2 id="e-title">Demander de l'aide</h2>
     </div>
-    <!-- Trois écrans qui se remplacent : le besoin, puis quand et où, puis prénom, téléphone et accord -->
+    <!-- Deux écrans qui se remplacent : le besoin et quand, puis le quartier, le prénom et l'accord -->
     <form id="e-form" novalidate>
       <div class="e-step" data-step="0">
         <div class="field"><label for="e-besoin" class="e-question">De quoi avez-vous besoin ?</label>
           <textarea id="e-besoin" name="besoin" maxlength="500" placeholder="Par exemple : un trajet pour un rendez-vous, changer une ampoule…"></textarea>
           <div class="hint">Restez discret·e ! Votre demande sera publique, alors évitez de divulguer vos coordonnées, votre mail ou encore un motif médical.</div></div>
-      </div>
-      <div class="e-step" data-step="1" hidden>
         <div class="field"><label for="e-quand">Quand ? <span class="opt">(facultatif)</span></label>
           <input id="e-quand" name="quand" maxlength="100" placeholder="Jeudi 14 h, dès que possible…"></div>
+      </div>
+      <div class="e-step" data-step="1" hidden>
         <div class="field"><label for="e-quartier">Dans quel quartier ? <span class="opt">(facultatif)</span></label>
           <input id="e-quartier" name="quartier" maxlength="100" placeholder="Croix-Rousse, Presqu'île…"></div>
-      </div>
-      <div class="e-step" data-step="2" hidden>
         <div class="field"><label for="e-prenom">Votre prénom</label><input id="e-prenom" name="prenom" maxlength="60" autocomplete="given-name"></div>
-        <div class="field"><label for="e-tel">Votre téléphone</label><input id="e-tel" name="tel" type="tel" inputmode="tel" autocomplete="tel" placeholder="06 12 34 56 78">
-          <div class="hint">Il n'est pas publié : seuls les référents le voient.</div></div>
-        <div class="field"><label class="check"><input type="checkbox" name="accord" id="e-accord">J'accepte que ma demande soit publiée, avec mon prénom (sans mon numéro).</label></div>
+        <div class="field"><label class="check"><input type="checkbox" name="accord" id="e-accord">J'accepte que ma demande soit publiée, avec mon prénom.</label></div>
       </div>
       <p class="entr-error" id="e-error" role="alert" hidden></p>
       <div class="hp" aria-hidden="true"><label>Site <input name="site" tabindex="-1" autocomplete="off"></label></div>

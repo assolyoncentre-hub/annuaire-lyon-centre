@@ -504,7 +504,7 @@ function renderModeration() {
     const [label, cls] = ENTR_STATUT[d.statut];
     return '<div class="entr-mod-row" data-id="' + esc(d.id) + '"><div class="head"><strong>' + esc(d.prenom) + "</strong>" +
       (d.quartier ? '<span class="meta">' + esc(d.quartier) + "</span>" : "") +
-      '<a href="' + esc(telHref(d.telephone)) + '">' + esc(entrTel(d.telephone)) + "</a>" +
+      (d.telephone ? '<a href="' + esc(telHref(d.telephone)) + '">' + esc(entrTel(d.telephone)) + "</a>" : "") + // anciennes demandes seulement
       '<span class="meta">Reçue le ' + entrDate(d.created_at) + "</span>" + '<span class="badge ' + cls + '">' + label + "</span></div>" +
       '<p class="need">' + esc(d.besoin) + "</p>" + (d.quand ? '<div class="when">Quand : ' + esc(d.quand) + "</div>" : "") +
       '<div class="ops">' + ops(d) + "</div></div>";
@@ -624,12 +624,12 @@ function renderMesDemandes(list) {
 }
 onEntraideRoute(); // premier affichage : route() a pu s'exécuter avant le chargement de ce fichier
 
-// --- Demande d'aide en trois écrans qui se remplacent (« Suivant » ou Entrée) : le besoin ; quand et où ;
-// prénom, téléphone et accord (« Envoyer ma demande »). Puis un écran de remerciement remplace toute la fenêtre.
-const E_STEPS = 3;
+// --- Demande d'aide en deux écrans qui se remplacent (« Suivant » ou Entrée) : le besoin et quand ; le quartier,
+// le prénom et l'accord (« Envoyer ma demande »). Puis un écran de remerciement remplace toute la fenêtre.
+const E_STEPS = 2;
 let eStep = 0, eLastFocus = null;
 const eForm = $("e-form");
-const E_FIRST = ["e-besoin", "e-quand", "e-prenom"];
+const E_FIRST = ["e-besoin", "e-quartier"];
 function eShow(step) {
   eStep = step;
   eForm.querySelectorAll("[data-step]").forEach(el => { el.hidden = Number(el.dataset.step) !== step; });
@@ -654,14 +654,12 @@ function openEntraide() {
   $("e-besoin").focus();
   ePreremplir();
 }
-// Personne connectée : prénom et téléphone de sa fiche, préremplis à l'écran 3 (modifiables ; un champ déjà saisi n'est pas touché)
+// Personne connectée : prénom de sa fiche, prérempli au 2e écran (modifiable ; un champ déjà saisi n'est pas touché)
 async function ePreremplir() {
   let f;
   try { f = await api.entraideMaFiche(); } catch { return; }
   if (!f || $("entr-modal").hidden) return;
-  const tel = String(f.telephone || "").replace(/[\s.]/g, "");
   if (f.prenom && !eForm.prenom.value) eForm.prenom.value = f.prenom;
-  if (tel && !eForm.tel.value) eForm.tel.value = /^\+33\d{9}$/.test(tel) ? entrTel(tel) : f.telephone.trim();
 }
 function closeEntraide() {
   setPageInert(false);
@@ -675,9 +673,8 @@ const eError = msg => { $("e-error").textContent = msg; $("e-error").hidden = !m
 function eCheck() {
   const f = eForm;
   if (eStep === 0 && f.besoin.value.trim().length < 3) return eError("Décrivez en quelques mots ce dont vous avez besoin.");
-  if (eStep === 2) {
+  if (eStep === 1) {
     if (!f.prenom.value.trim()) return eError("Indiquez votre prénom.");
-    if (!/^[+0-9 .()-]{10,20}$/.test(f.tel.value.trim())) return eError("Indiquez votre numéro de téléphone (exemple : 06 12 34 56 78).");
     if (!f.accord.checked) return eError("Votre accord est nécessaire pour publier la demande.");
   }
   return eError("");
@@ -691,7 +688,7 @@ eForm.addEventListener("submit", async e => {
   btn.disabled = true;
   try {
     await api.entraideDemander({ p_besoin: f.besoin.value, p_quand: f.quand.value, p_quartier: f.quartier.value,
-      p_prenom: f.prenom.value, p_telephone: f.tel.value, p_accord: f.accord.checked, p_site: f.site.value });
+      p_prenom: f.prenom.value, p_telephone: "", p_accord: f.accord.checked, p_site: f.site.value });
     if (location.hash === "#entraide") loadEntraide(); // ma nouvelle demande apparaît dans « Mes demandes »
     $("e-done-title").textContent = "Merci " + f.prenom.value.trim() + " !";
     eForm.hidden = $("e-head").hidden = true;
