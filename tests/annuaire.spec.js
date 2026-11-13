@@ -133,6 +133,8 @@ test("téléphone : le bouton Message d'une section dépliée ouvre le formulair
 test("filtres par pôle repliés, dépliables, pôle choisi rappelé @mobile", async ({ open, page }) => {
   await open();
   const toggle = page.locator("#dir-view .filt-toggle");
+  // Pour le public, « thème » plutôt que « pôle »
+  await expect(toggle.locator(".filt-lbl")).toHaveText("Filtrer par thème");
   await expect(page.locator("#filters")).toBeHidden();
   await expect(toggle).toHaveAttribute("aria-expanded", "false");
   await toggle.click();
