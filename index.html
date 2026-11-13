@@ -599,11 +599,15 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 /* Section en cours de chargement : bulles fantômes (skeleton) de la forme des demandes */
 .entr-charge { display: grid; gap: 14px; padding-bottom: 14px; }
 .entr-sq { width: min(100%, 560px); padding: 14px 16px; display: grid; gap: 10px; border: 1px solid var(--border); border-radius: 4px 16px 16px 16px; background: var(--surface); }
-.entr-sq .l { display: block; height: 12px; border-radius: 6px; background: linear-gradient(90deg, var(--border) 0 40%, var(--bg) 50%, var(--border) 60% 100%) 0 0 / 300% 100%; animation: entr-sq 1.4s ease-in-out infinite; }
+.entr-sq .l, .entr-sq-mod .l { display: block; height: 12px; border-radius: 6px; background: linear-gradient(90deg, var(--border) 0 40%, var(--bg) 50%, var(--border) 60% 100%) 0 0 / 300% 100%; animation: entr-sq 1.4s ease-in-out infinite; }
 .entr-sq .w20 { width: 20%; } .entr-sq .w30 { width: 30%; height: 14px; } .entr-sq .w45 { width: 45%; } .entr-sq .w70 { width: 70%; }
 .entr-sq .fin { justify-self: end; height: 10px; }
 @keyframes entr-sq { from { background-position: 100% 0; } to { background-position: 0 0; } }
-@media (prefers-reduced-motion: reduce) { .entr-sq .l { animation: none; } }
+.entr-mod-charge { gap: 0; padding: 0; }
+.entr-sq-mod .head { align-items: center; }
+.entr-sq-mod .w12 { width: 12%; } .entr-sq-mod .w20 { width: 20%; height: 16px; }
+.entr-sq-mod .b { width: 90px; height: 32px; border-radius: 8px; }
+@media (prefers-reduced-motion: reduce) { .entr-sq .l, .entr-sq-mod .l { animation: none; } }
 /* Pastille rouge : des demandes attendent d'être modérées */
 .entr-pastille { display: inline-block; width: 8px; height: 8px; margin-left: 6px; border-radius: 50%; background: #d92d20; flex: none; }
 /* Demandes pourvues : grisées, sans bouton */

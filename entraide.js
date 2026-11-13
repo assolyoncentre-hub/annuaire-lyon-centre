@@ -512,10 +512,17 @@ function renderModeration() {
   const all = entrDemandes || [];
   const n = f => all.filter(d => entrDans(d, f)).length;
   $("entr-filters").innerHTML = ENTR_FILTRES.map(([k, label]) =>
-    '<button type="button" class="afilter" data-filter="' + k + '" aria-pressed="' + (entrFiltre === k) + '">' + label + " (" + n(k) + ")" +
+    // en cours de chargement : filtres sans leur nombre
+    '<button type="button" class="afilter" data-filter="' + k + '" aria-pressed="' + (entrFiltre === k) + '">' + label + (entrDemandes === null ? "" : " (" + n(k) + ")") +
     (k === "a_valider" && n(k) ? '<span class="entr-pastille" aria-hidden="true"></span>' : "") + "</button>").join("");
   if (entrDemandes !== null) entrPastille("#entraide/moderation", n("a_valider"));
-  if (entrDemandes === null) { $("entr-mod-list").innerHTML = '<div class="empty">Chargement…</div>'; return; }
+  // en cours de chargement : lignes fantômes (skeleton) de la forme des demandes
+  if (entrDemandes === null) {
+    $("entr-mod-list").innerHTML = '<div class="entr-charge entr-mod-charge" role="status" aria-label="Chargement…">' + [70, 45, 60].map(w =>
+      '<div class="entr-mod-row entr-sq-mod" aria-hidden="true"><div class="head"><span class="l w20"></span><span class="l w12"></span><span class="l w12"></span></div>' +
+      '<span class="l"></span><span class="l" style="width:' + w + '%"></span><div class="ops"><span class="l b"></span><span class="l b"></span></div></div>').join("") + "</div>";
+    return;
+  }
 
   const list = all.filter(d => entrDans(d, entrFiltre));
   const btn = (act, label, cls = "btn-ghost") => '<button type="button" class="btn ' + cls + ' btn-sm" data-act="' + act + '"' + (entrBusy ? " disabled" : "") + ">" + label + "</button>";

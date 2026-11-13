@@ -743,3 +743,20 @@ test("premier chargement : les trois sections s'affichent tout de suite avec des
   await expect(page.locator("#entr-count")).toHaveText("5 demandes en cours");
   await expect(page.locator(".entr-charge")).toHaveCount(0);
 });
+
+test("modération : lignes skeleton et filtres sans nombre pendant le chargement @mobile", async ({ open, page }) => {
+  await page.addInitScript(() => {
+    let lacher, api; const attente = new Promise(r => { lacher = r; });
+    window.__lacher = () => lacher();
+    Object.defineProperty(window, "__api", { configurable: true, get: () => api, set(v) {
+      api = v; const f = v.entraideModeration; v.entraideModeration = async (...a) => { await attente; return f.apply(v, a); };
+    } });
+  });
+  await open({ user: MOD, hash: "#entraide/moderation", acces: ACCES });
+  await expect(page.locator("#entr-mod-list .entr-sq-mod")).toHaveCount(3);
+  await expect(page.locator("#entr-filters .afilter").first()).not.toContainText("(");
+  await page.evaluate(() => window.__lacher());
+  await expect(page.locator("#entr-mod-list .entr-charge")).toHaveCount(0);
+  await expect(page.locator("#entr-filters .afilter").first()).toContainText(/\(\d+\)/);
+  await expect(page.locator(".entr-mod-row").first()).toBeVisible();
+});
