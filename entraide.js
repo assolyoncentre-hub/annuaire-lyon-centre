@@ -390,13 +390,32 @@ document.addEventListener("click", e => {
 });
 addEventListener("resize", () => { clearTimeout(entrTronquer.t); entrTronquer.t = setTimeout(() => entrTronquer(), 150); });
 
+// Premier chargement : les trois sections s'affichent tout de suite, chacune avec des bulles fantômes (skeleton), remplacées par son contenu
+// dès que ses données arrivent (Mes demandes, puis les demandes déjà aidées, le fil attendant aussi mes demandes et mes aides)
+const entrSquelette = (n = 2) => '<div class="entr-charge" role="status" aria-label="Chargement…">' +
+  Array.from({ length: n }, (_, i) => '<div class="entr-sq" aria-hidden="true"><span class="l w30"></span><span class="l"></span>' +
+    '<span class="l ' + (i % 2 ? "w45" : "w70") + '"></span><span class="l w20 fin"></span></div>').join("") + "</div>";
+function entrChargement() {
+  $("entr-count").textContent = "";
+  $("entr-mes").hidden = false; $("entr-mes-vide").hidden = true; $("entr-mes-list").innerHTML = entrSquelette(1);
+  $("entr-list").innerHTML = entrSquelette(3);
+  $("entr-aides-sec").hidden = false; $("entr-aides").innerHTML = entrSquelette(2);
+}
 async function loadEntraide() {
-  const seq = ++entrSeq;
-  if (!entrLoaded) $("entr-count").textContent = "Chargement…";
+  const seq = ++entrSeq, premier = !entrLoaded;
+  // Mes demandes et mes conversations d'aidant : pour reconnaître mes demandes et afficher mes fils (sans bloquer le fil si erreur)
+  const pList = api.entraide(), pAidees = api.entraidePourvues(),
+    pMes = api.entraideMesDemandes().catch(() => null), pAides = api.entraideMesAides().catch(() => null);
+  if (premier) {
+    entrChargement();
+    pMes.then(mes => {
+      if (seq !== entrSeq || entrLoaded) return;
+      if (mes) { entrMajMes(mes); renderMesDemandes(mes); entrTronquer($("entr-mes")); } else $("entr-mes").hidden = true;
+    });
+    pAidees.then(aidees => { if (seq === entrSeq && !entrLoaded) { renderAidees(aidees); entrTronquer($("entr-aides-sec")); } }, () => {});
+  }
   try {
-    // Mes demandes et mes conversations d'aidant : pour reconnaître mes demandes et afficher mes fils (sans bloquer le fil si erreur)
-    const [list, aidees, mes, aides] = await Promise.all([api.entraide(), api.entraidePourvues(),
-      api.entraideMesDemandes().catch(() => null), api.entraideMesAides().catch(() => null)]);
+    const [list, aidees, mes, aides] = await Promise.all([pList, pAidees, pMes, pAides]);
     if (seq !== entrSeq) return;
     if (aides) entrMajAides(aides);
     // La réponse en cours de rédaction survit au réaffichage : mise de côté, puis replacée dans son fil
@@ -411,7 +430,13 @@ async function loadEntraide() {
     }
     refocus();
   }
-  catch { if (!entrLoaded) { $("entr-count").textContent = ""; $("entr-list").innerHTML = '<p class="empty">Impossible de charger les demandes pour le moment.</p>'; } }
+  catch {
+    if (seq !== entrSeq || entrLoaded) return;
+    $("entr-count").textContent = ""; $("entr-list").innerHTML = '<p class="empty">Impossible de charger les demandes pour le moment.</p>';
+    // sections encore en chargement : masquées (Mes demandes garde son bouton « Faire une demande »)
+    if ($("entr-aides").querySelector(".entr-charge")) $("entr-aides-sec").hidden = true;
+    if ($("entr-mes-list").querySelector(".entr-charge")) $("entr-mes-list").innerHTML = "";
+  }
 }
 
 // --- En direct : un signal de la base à chaque changement, la vue affichée se recharge ---
