@@ -722,7 +722,7 @@ test("version de test : un nouveau message ne reprend pas l'identifiant d'un mes
   expect(Number(id.slice(1))).toBeGreaterThan(900);
 });
 
-test("premier chargement : les trois sections s'affichent tout de suite avec des skeletons, remplis au fur et à mesure @mobile", async ({ open, page }) => {
+test("premier chargement : les sections s'affichent tout de suite avec des skeletons, remplis au fur et à mesure @mobile", async ({ open, page }) => {
   // Réponses du faux serveur retenues jusqu'à window.__lacher(nom)
   await page.addInitScript(() => {
     const retenues = ["entraide", "entraidePourvues", "entraideMesDemandes", "entraideMesAides"], attente = {};
@@ -734,10 +734,11 @@ test("premier chargement : les trois sections s'affichent tout de suite avec des
     } });
   });
   await open({ user: VOIR, hash: "#entraide", acces: ACCES });
-  for (const s of ["#entr-mes-list", "#entr-list", "#entr-aides"]) await expect(page.locator(s + " .entr-charge .entr-sq").first()).toBeVisible();
-  await expect(page.locator("#entr-mes-vide")).toBeHidden();
+  for (const s of ["#entr-list", "#entr-aides"]) await expect(page.locator(s + " .entr-charge .entr-sq").first()).toBeVisible();
+  await expect(page.locator("#entr-mes-list .entr-charge")).toHaveCount(1); // onglet Mes demandes, pas affiché
+  await expect(page.locator("#entr-mes-vide")).toHaveAttribute("hidden", "");
   await page.evaluate(() => window.__lacher("entraideMesDemandes"));
-  await expect(page.locator("#entr-mes-vide")).toBeVisible();
+  await expect(page.locator("#entr-mes-vide")).not.toHaveAttribute("hidden", "");
   await expect(page.locator("#entr-mes .entr-charge")).toHaveCount(0);
   await expect(page.locator("#entr-list .entr-charge")).toBeVisible(); // le fil attend encore
   await page.evaluate(() => window.__lacher("entraidePourvues"));

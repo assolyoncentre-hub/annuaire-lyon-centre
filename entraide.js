@@ -434,7 +434,7 @@ async function loadEntraide() {
   catch {
     if (seq !== entrSeq || entrLoaded) return;
     $("entr-count").textContent = ""; $("entr-list").innerHTML = '<p class="empty">Impossible de charger les demandes pour le moment.</p>';
-    // sections encore en chargement : masquées (Mes demandes garde son bouton « Faire une demande »)
+    // sections encore en chargement : masquées (Mes demandes garde sa phrase si elle est vide)
     if ($("entr-aides").querySelector(".entr-charge")) $("entr-aides-sec").hidden = true;
     if ($("entr-mes-list").querySelector(".entr-charge")) $("entr-mes-list").innerHTML = "";
   }
