@@ -189,6 +189,11 @@ test("demander de l'aide : deux écrans qui se remplacent, sans téléphone, pui
   await expect(page.locator("#e-done .e-ok")).toBeVisible();
   expect((await calls(page, "entraideDemander"))[0].arg).toMatchObject({ p_besoin: "Un trajet pour un rendez-vous", p_quand: "Jeudi 14 h", p_quartier: "", p_prenom: "Zoé", p_telephone: "", p_accord: true });
   await page.click("#e-close");
+  // Après l'envoi : onglet Mes demandes, avec la nouvelle demande en attente de validation
+  await expect(page).toHaveURL(/#entraide\/mes-demandes$/);
+  await expect(page.locator("#entr-tab-mes")).toHaveAttribute("aria-current", "page");
+  await expect(page.locator("#entr-mes-list .entr-mienne").filter({ hasText: "Un trajet pour un rendez-vous" })).toContainText("En attente de validation");
+  await expect(page.locator("#entr-ask")).toBeFocused();
   await expect(page.locator("#entr-list")).not.toContainText("Zoé"); // à valider par un modérateur
   expect(await page.evaluate(() => window.__S.entraide.at(-1).telephone)).toBeNull();
 });

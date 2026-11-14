@@ -709,7 +709,8 @@ eForm.addEventListener("submit", async e => {
   try {
     await api.entraideDemander({ p_besoin: f.besoin.value, p_quand: f.quand.value, p_quartier: f.quartier.value,
       p_prenom: f.prenom.value, p_telephone: "", p_accord: f.accord.checked, p_site: f.site.value });
-    if (entrPage(location.hash)) loadEntraide(); // ma nouvelle demande apparaît dans « Mes demandes »
+    // Ma nouvelle demande apparaît dans « Mes demandes », affiché derrière la fenêtre de remerciement
+    if (location.hash === "#entraide/mes-demandes") loadEntraide(); else location.hash = "#entraide/mes-demandes";
     $("e-done-title").textContent = "Merci " + f.prenom.value.trim() + " !";
     eForm.hidden = $("e-head").hidden = true;
     $("entr-modal").querySelector("[role=dialog]").setAttribute("aria-labelledby", "e-done-title");
