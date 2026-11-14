@@ -621,7 +621,8 @@ function renderMesDemandes(list) {
   $("entr-mes-vide").hidden = !!list.length;
   $("entr-mes-list").innerHTML = [...list].sort((a, b) => b.created_at.localeCompare(a.created_at)).map(d => {
     const [label, cls] = ENTR_MON_STATUT[d.statut] || ENTR_MON_STATUT.a_valider;
-    const convs = d.conversations.filter(c => c.messages.length), echanges = convs.length > 0;
+    // conversations déclinées en bas de la liste (tri stable : l'ordre est gardé sinon)
+    const convs = d.conversations.filter(c => c.messages.length).sort((a, b) => !!a.declinee - !!b.declinee), echanges = convs.length > 0;
     return '<article class="entr-msg entr-mienne" data-demande="' + esc(d.id) + '" tabindex="-1">' +
       '<div class="who">Moi' + (d.quartier ? ' <span class="where">· ' + esc(d.quartier) + "</span>" : "") + "</div>" +
       '<p class="need">' + esc(d.besoin) + "</p>" + (d.quand ? '<div class="when">' + ENTR_CAL + "<span>" + esc(d.quand) + "</span></div>" : "") +

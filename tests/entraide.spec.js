@@ -673,8 +673,13 @@ test("Mes demandes : propositions en cours dépliées, déclinées repliées, m�
   const r = page.locator(".entr-mienne:has-text('escabeau') + .entr-convs");
   const damien = r.locator('details:has(.entr-reps[data-prenom="Damien"])');
   await expect(damien).toHaveAttribute("open", "");
+  const prenoms = () => r.locator(".entr-reps").evaluateAll(gs => gs.map(g => g.dataset.prenom));
+  const avant = await prenoms();
+  expect(avant[0]).toBe("Damien");
   await page.evaluate(() => { window.__S.entraideConversations.find(c => c.id === "c1").declinee = true; window.__entraideSignal(); });
   await expect(damien.locator("summary")).toHaveText(/déclinée/);
+  // déclinée : passe en bas de la liste, les autres gardent leur ordre
+  expect(await prenoms()).toEqual([...avant.slice(1), "Damien"]);
   await expect(damien).not.toHaveAttribute("open", "");
   await expect(r.locator('details:has(.entr-reps[data-prenom="Claire"])')).toHaveAttribute("open", "");
 });
