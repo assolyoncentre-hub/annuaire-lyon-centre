@@ -193,12 +193,20 @@ function render() {
 }
 
 let toastTimer;
-function toast(msg) {
+// action (facultative) : { label, fn }, un bouton dans le message (« Annuler »), qui reste alors affiché plus longtemps
+function toast(msg, action = null) {
   const t = $("toast");
   t.textContent = msg;
+  t.classList.toggle("avec-action", !!action);
+  if (action) {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "toast-action"; b.textContent = action.label;
+    b.addEventListener("click", () => { t.classList.remove("show"); action.fn(); });
+    t.append(" ", b);
+  }
   t.classList.add("show");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove("show"), 3500);
+  toastTimer = setTimeout(() => t.classList.remove("show"), action ? 6000 : 3500);
 }
 
 // Formulaire de contact : envoyé par la fonction serveur « envoyer-message »

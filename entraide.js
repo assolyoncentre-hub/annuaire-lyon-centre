@@ -462,8 +462,11 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 
 // --- Modération ---
 let entrDemandes = null, entrFiltre = "a_valider", entrBusy = false;
-const ENTR_FILTRES = [["a_valider", "À valider"], ["publiee", "Publiées"], ["terminees", "Terminées"]];
-const entrDans = (d, f) => f === "terminees" ? d.statut === "pourvue" || d.statut === "refusee" : d.statut === f;
+// « Masquées » : demandes (publiées ou terminées) retirées de la vue de tous, conversations comprises ; gélule affichée s'il y en a
+const ENTR_FILTRES = [["a_valider", "À valider"], ["publiee", "Publiées"], ["terminees", "Terminées"], ["masquees", "Masquées"]];
+const entrDans = (d, f) => f === "masquees" ? !!d.masquee_le
+  : !d.masquee_le && (f === "terminees" ? d.statut === "pourvue" || d.statut === "refusee" : d.statut === f);
+const ENTR_OEIL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>';
 
 // Pastilles rouges des onglets : « Modération » s'il y a des demandes à valider ; « Mes demandes » si une personne qui
 // propose son aide sur ma demande attend ma réponse ; « Demandes d'aide » si l'auteur d'une demande que j'aide attend la
@@ -505,9 +508,10 @@ async function loadModeration() {
 function renderModeration() {
   const all = entrDemandes || [];
   const n = f => all.filter(d => entrDans(d, f)).length;
-  $("entr-filters").innerHTML = ENTR_FILTRES.map(([k, label]) =>
+  if (entrFiltre === "masquees" && entrDemandes !== null && !n("masquees")) entrFiltre = "publiee"; // plus aucune masquée
+  $("entr-filters").innerHTML = ENTR_FILTRES.filter(([k]) => k !== "masquees" || n(k)).map(([k, label]) =>
     // en cours de chargement : filtres sans leur nombre
-    '<button type="button" class="afilter" data-filter="' + k + '" aria-pressed="' + (entrFiltre === k) + '">' + label + (entrDemandes === null ? "" : " (" + n(k) + ")") +
+    '<button type="button" class="afilter" data-filter="' + k + '" aria-pressed="' + (entrFiltre === k) + '">' + (k === "masquees" ? EYE_OFF : "") + label + (entrDemandes === null ? "" : " (" + n(k) + ")") +
     (k === "a_valider" && n(k) ? '<span class="entr-pastille" aria-hidden="true"></span>' : "") + "</button>").join("");
   if (entrDemandes !== null) entrPastille("#entraide/moderation", n("a_valider"));
   // en cours de chargement : lignes fantômes (skeleton) de la forme des demandes
@@ -520,29 +524,34 @@ function renderModeration() {
 
   const list = all.filter(d => entrDans(d, entrFiltre));
   const btn = (act, label, cls = "btn-ghost") => '<button type="button" class="btn ' + cls + ' btn-sm" data-act="' + act + '"' + (entrBusy ? " disabled" : "") + ">" + label + "</button>";
-  const ops = d => ({
-    a_valider: btn("publier", "Publier", "btn-primary") + btn("modifier", "Modifier") + btn("refuser", "Refuser") + btn("supprimer", "Supprimer"),
-    publiee: btn("pourvue", "C'est pourvu", "btn-primary") + btn("modifier", "Modifier") + btn("supprimer", "Supprimer"),
-    pourvue: btn("rouvrir", "Rouvrir") + btn("supprimer", "Supprimer"),
-    refusee: btn("rouvrir", "Rouvrir") + btn("supprimer", "Supprimer"),
+  // Supprimer : contour et texte rouges ; Masquer (œil barré) sur les demandes déjà visibles (publiées, terminées)
+  const suppr = btn("supprimer", "Supprimer", "btn-ghost btn-suppr"), masquer = btn("masquer", EYE_OFF + "Masquer", "btn-ghost btn-ico");
+  const ops = d => d.masquee_le ? btn("reafficher", ENTR_OEIL + "Réafficher", "btn-ghost btn-ico") + suppr : ({
+    a_valider: btn("publier", "Publier", "btn-primary") + btn("modifier", "Modifier") + btn("refuser", "Refuser") + suppr,
+    publiee: btn("pourvue", "C'est pourvu", "btn-primary") + btn("modifier", "Modifier") + masquer + suppr,
+    pourvue: btn("rouvrir", "Rouvrir") + masquer + suppr,
+    refusee: btn("rouvrir", "Rouvrir") + masquer + suppr,
   })[d.statut];
   $("entr-mod-list").innerHTML = list.map(d => {
-    const [label, cls] = ENTR_STATUT[d.statut];
+    const [label, cls] = d.masquee_le ? ["Masquée", "none"] : ENTR_STATUT[d.statut];
     return '<div class="entr-mod-row" data-id="' + esc(d.id) + '"><div class="head"><strong>' + esc(d.prenom) + "</strong>" +
       (d.quartier ? '<span class="meta">' + esc(d.quartier) + "</span>" : "") +
       (d.telephone ? '<a href="' + esc(telHref(d.telephone)) + '">' + esc(entrTel(d.telephone)) + "</a>" : "") + // anciennes demandes seulement
       '<span class="meta">Reçue le ' + entrDate(d.created_at) + "</span>" + '<span class="badge ' + cls + '">' + label + "</span></div>" +
       '<p class="need">' + esc(d.besoin) + "</p>" + (d.quand ? '<div class="when">Quand : ' + esc(d.quand) + "</div>" : "") +
+      (d.masquee_le ? '<p class="entr-masquee-info">Masquée le ' + entrDate(d.masquee_le) + " · invisible pour tout le monde, conversations comprises</p>" : "") +
       '<div class="ops">' + ops(d) + "</div></div>";
-  }).join("") || '<div class="empty">' + { a_valider: "Aucune demande à valider.", publiee: "Aucune demande publiée.", terminees: "Aucune demande terminée." }[entrFiltre] + "</div>";
+  }).join("") || '<div class="empty">' + { a_valider: "Aucune demande à valider.", publiee: "Aucune demande publiée.", terminees: "Aucune demande terminée.", masquees: "Aucune demande masquée." }[entrFiltre] + "</div>";
   entrTronquer($("entr-mod-list"));
 }
 
-async function entrModifier(d, champs, msg) {
+// champs : modifications (entraide_modifier), ou fonction qui fait l'appel et renvoie la demande à jour ;
+// action : bouton facultatif du message (« Annuler »)
+async function entrModifier(d, champs, msg, action = null) {
   entrBusy = true; renderModeration();
   try {
-    const r = await api.entraideModifier(d.id, champs);
-    if (msg) toast(msg);
+    const r = typeof champs === "function" ? await champs() : await api.entraideModifier(d.id, champs);
+    if (msg) toast(msg, action);
     // La demande quitte la liste affichée (pourvue, publiée, refusée, rouverte) : elle s'efface en se repliant
     const row = $("entr-mod-list").querySelector('[data-id="' + CSS.escape(d.id) + '"]');
     if (row && !entrDans(r, entrFiltre) && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
@@ -552,6 +561,12 @@ async function entrModifier(d, champs, msg) {
     entrDemandes = entrDemandes.map(x => x.id === d.id ? r : x);
   } catch (err) { toast("Enregistrement impossible : " + (err?.message || "erreur inconnue")); }
   finally { entrBusy = false; renderModeration(); }
+}
+
+function entrMasquer(d, masquer) {
+  const annuler = () => { const x = entrDemandes.find(y => y.id === d.id); if (x) entrMasquer(x, !masquer); };
+  entrModifier(d, () => api.entraideMasquer(d.id, masquer),
+    masquer ? "Demande de " + d.prenom + " masquée." : "Demande de " + d.prenom + " réaffichée.", { label: "Annuler", fn: annuler });
 }
 
 function entrEditer(d) {
@@ -584,6 +599,8 @@ $("entr-mod-list").addEventListener("click", e => {
   else if (act === "refuser") entrModifier(d, { p_statut: "refusee" }, "Demande refusée.");
   else if (act === "pourvue") entrModifier(d, { p_statut: "pourvue" }, "Demande marquée pourvue : elle n'apparaît plus publiquement.");
   else if (act === "rouvrir") entrModifier(d, { p_statut: d.publiee_le ? "publiee" : "a_valider" }, "Demande rouverte.");
+  // Masquer / Réafficher : réversible, sans confirmation ; le message propose d'annuler
+  else if (act === "masquer" || act === "reafficher") entrMasquer(d, act === "masquer");
   else if (act === "supprimer") openEditor("Entraide", "Supprimer la demande de " + d.prenom + " ?",
     '<p style="margin:0">La demande' + (d.statut === "a_valider" ? "" : ", ses conversations") + " et le numéro de téléphone seront effacés définitivement.</p>", async () => {
       await api.entraideSupprimer(d.id);

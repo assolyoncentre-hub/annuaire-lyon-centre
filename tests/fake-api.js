@@ -48,9 +48,13 @@ module.exports = function installFakeApi({ data, user, acces }) {
     .map(m => ({ id: m.id, texte: m.texte, le: m.le, moi: m.auteur === moi, modifie: !!m.modifie }));
   const entrPrenom = e => S.acces.find(a => a.email === e)?.prenom || [...S.contacts, ...S.responsables].find(r => (r.email || "").toLowerCase() === e)?.prenom
     || e.split("@")[0].replace(/^./, x => x.toUpperCase());
+  // Demande masquée par la modération : invisible de tous (sauf modération), conversations comprises
+  const entrMasquee = id => !!S.entraide.find(d => d.id === id)?.masquee;
+  const entrConvMasquee = c => entrMasquee(c?.demande);
   const entrMonMessage = id => {
     const m = S.entraideMessages.find(x => x.id === id && x.auteur === entrEmail());
-    if (!m || S.entraideConversations.find(c => c.id === m.conversation)?.declinee) throw new Error("Message introuvable.");
+    const c = m && S.entraideConversations.find(x => x.id === m.conversation);
+    if (!m || c?.declinee || entrConvMasquee(c)) throw new Error("Message introuvable.");
     return m;
   };
   const ago = j => new Date(Date.now() - j * 86400000).toISOString();
@@ -63,7 +67,8 @@ module.exports = function installFakeApi({ data, user, acces }) {
   }
   const entrRow = d => ({ id: d.id, created_at: d.cree ? new Date(d.cree).toISOString() : ago(d.jours || 0), prenom: d.prenom, telephone: d.telephone, besoin: d.besoin,
     quand: d.quand, quartier: d.quartier, statut: d.statut, publiee_le: d.jamaisPubliee ? null : d.publieAt ? new Date(d.publieAt).toISOString() : d.statut !== "a_valider" && d.statut !== "refusee" ? ago(d.publie ?? d.jours) : null,
-    close_le: d.close ? new Date(d.close).toISOString() : d.statut === "pourvue" ? ago(d.jours - 1) : null });
+    close_le: d.close ? new Date(d.close).toISOString() : d.statut === "pourvue" ? ago(d.jours - 1) : null,
+    masquee_le: d.masquee ? new Date(d.masquee).toISOString() : null });
   const norm = s => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
   // Annuaire public : seule la civilité « Père » apparaît, devant le prénom
   const publicName = r => ({ prenom: (r.civilite === "Père" ? "Père " : "") + r.prenom, nom: r.nom });
@@ -76,12 +81,12 @@ module.exports = function installFakeApi({ data, user, acces }) {
     // Entraide : mêmes règles que les fonctions entraide_* de la base
     async entraide() {
       guardVoir(); log("entraide");
-      return S.entraide.filter(d => d.statut === "publiee").map(d => ({ id: d.id, prenom: d.prenom, quartier: d.quartier, besoin: d.besoin, quand: d.quand, publie_le: entrRow(d).publiee_le }))
+      return S.entraide.filter(d => d.statut === "publiee" && !d.masquee).map(d => ({ id: d.id, prenom: d.prenom, quartier: d.quartier, besoin: d.besoin, quand: d.quand, publie_le: entrRow(d).publiee_le }))
         .sort((a, b) => b.publie_le.localeCompare(a.publie_le));
     },
     async entraidePourvues() {
       guardVoir(); log("entraidePourvues");
-      return S.entraide.filter(d => d.statut === "pourvue").map(entrRow).filter(d => d.publiee_le && Date.now() - new Date(d.close_le) < 30 * 86400000)
+      return S.entraide.filter(d => d.statut === "pourvue" && !d.masquee).map(entrRow).filter(d => d.publiee_le && Date.now() - new Date(d.close_le) < 30 * 86400000)
         .map(d => ({ id: d.id, prenom: d.prenom, quartier: d.quartier, besoin: d.besoin, quand: d.quand, publie_le: d.publiee_le, close_le: d.close_le }))
         .sort((a, b) => b.close_le.localeCompare(a.close_le));
     },
@@ -107,7 +112,7 @@ module.exports = function installFakeApi({ data, user, acces }) {
     async entraideRetirer(id) {
       guardVoir(); log("entraideRetirer", id);
       const d = S.entraide.find(x => x.id === id);
-      if (!d || d.auteur !== entrEmail()) throw new Error("Demande introuvable.");
+      if (!d || d.auteur !== entrEmail() || d.masquee) throw new Error("Demande introuvable.");
       if (!["a_valider", "publiee"].includes(d.statut)) throw new Error("Cette demande n'est plus en cours.");
       const convs = S.entraideConversations.filter(c => c.demande === id).map(c => c.id);
       if (S.entraideMessages.some(m => convs.includes(m.conversation))) throw new Error("Quelqu'un vous a déjà répondu : utilisez « C'est réglé ».");
@@ -119,7 +124,7 @@ module.exports = function installFakeApi({ data, user, acces }) {
     async entraideRegler(id) {
       guardVoir(); log("entraideRegler", id);
       const d = S.entraide.find(x => x.id === id);
-      if (!d || d.auteur !== entrEmail()) throw new Error("Demande introuvable.");
+      if (!d || d.auteur !== entrEmail() || d.masquee) throw new Error("Demande introuvable.");
       if (d.statut !== "publiee") throw new Error("Cette demande n'est plus en cours.");
       d.publieAt = new Date(entrRow(d).publiee_le).getTime(); // garde sa date de publication
       d.statut = "pourvue"; d.close = Date.now();
@@ -138,7 +143,7 @@ module.exports = function installFakeApi({ data, user, acces }) {
     async entraideMesDemandes() {
       guardVoir(); log("entraideMesDemandes");
       const moi = entrEmail();
-      return S.entraide.filter(d => d.auteur === moi).map(d => { const r = entrRow(d); return {
+      return S.entraide.filter(d => d.auteur === moi && !d.masquee).map(d => { const r = entrRow(d); return {
         id: d.id, prenom: d.prenom, besoin: d.besoin, quand: d.quand, quartier: d.quartier, statut: d.statut, created_at: r.created_at,
         conversations: S.entraideConversations.filter(c => c.demande === d.id).sort((a, b) => a.le.localeCompare(b.le))
           .map(c => ({ id: c.id, prenom: c.prenom, declinee: !!c.declinee, messages: entrMsgs(c.id, moi) })) }; })
@@ -147,7 +152,7 @@ module.exports = function installFakeApi({ data, user, acces }) {
     async entraideMesAides() {
       guardVoir(); log("entraideMesAides");
       const moi = entrEmail();
-      return S.entraideConversations.filter(c => c.aidant === moi).sort((a, b) => a.le.localeCompare(b.le))
+      return S.entraideConversations.filter(c => c.aidant === moi && !entrConvMasquee(c)).sort((a, b) => a.le.localeCompare(b.le))
         .map(c => ({ id: c.id, demande_id: c.demande, declinee: !!c.declinee, messages: entrMsgs(c.id, moi) }));
     },
     async entraideEcrire(texte, cible) {
@@ -158,13 +163,13 @@ module.exports = function installFakeApi({ data, user, acces }) {
       let c;
       if (!cible.p_conversation) {
         const d = S.entraide.find(x => x.id === cible.p_demande);
-        if (!d || d.statut !== "publiee") throw new Error("Cette demande n'est plus en cours.");
+        if (!d || d.statut !== "publiee" || d.masquee) throw new Error("Cette demande n'est plus en cours.");
         if (d.auteur === moi) throw new Error("Vous ne pouvez pas proposer votre aide sur votre propre demande.");
         c = S.entraideConversations.find(x => x.demande === d.id && x.aidant === moi);
         if (!c) S.entraideConversations.push(c = { id: "c" + n++, demande: d.id, aidant: moi, prenom: entrPrenom(moi), le: new Date().toISOString() });
       } else {
         c = S.entraideConversations.find(x => x.id === cible.p_conversation);
-        if (!c || ![c.aidant, entrAuteurConv(c)].includes(moi)) throw new Error("Conversation introuvable.");
+        if (!c || ![c.aidant, entrAuteurConv(c)].includes(moi) || entrConvMasquee(c)) throw new Error("Conversation introuvable.");
       }
       if (c.declinee) throw new Error("Cette conversation est terminée.");
       const id = "m" + n++;
@@ -189,7 +194,7 @@ module.exports = function installFakeApi({ data, user, acces }) {
     async entraideDecliner(conv, declinee) {
       guardVoir(); log("entraideDecliner", { conv, declinee });
       const c = S.entraideConversations.find(x => x.id === conv);
-      if (!c || entrAuteurConv(c) !== entrEmail()) throw new Error("Conversation introuvable.");
+      if (!c || entrAuteurConv(c) !== entrEmail() || entrConvMasquee(c)) throw new Error("Conversation introuvable.");
       c.declinee = !!declinee; signal();
     },
     async entraideModeration() { guardRef(); return S.entraide.map(entrRow).sort((a, b) => b.created_at.localeCompare(a.created_at)); },
@@ -205,6 +210,16 @@ module.exports = function installFakeApi({ data, user, acces }) {
       for (const [k, f] of [["p_prenom", "prenom"], ["p_besoin", "besoin"], ["p_quand", "quand"], ["p_quartier", "quartier"]]) {
         if (c[k] != null && (String(c[k]).trim() || (f !== "prenom" && f !== "besoin"))) d[f] = String(c[k]).trim();
       }
+      signal();
+      return entrRow(d);
+    },
+    // Comme entraide_masquer : la modération masque (ou réaffiche) une demande déjà visible (publiée ou terminée)
+    async entraideMasquer(id, masquee) {
+      guardRef(); log("entraideMasquer", { id, masquee });
+      const d = S.entraide.find(x => x.id === id);
+      if (!d) throw new Error("Demande introuvable.");
+      if (masquee && d.statut === "a_valider") throw new Error("Une demande à valider n'est visible de personne.");
+      d.masquee = masquee ? d.masquee || Date.now() : null;
       signal();
       return entrRow(d);
     },

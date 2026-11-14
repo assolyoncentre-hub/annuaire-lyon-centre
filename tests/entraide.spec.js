@@ -776,3 +776,61 @@ test("modération : lignes skeleton et filtres sans nombre pendant le chargement
   await expect(page.locator("#entr-filters .afilter").first()).toContainText(/\(\d+\)/);
   await expect(page.locator(".entr-mod-row").first()).toBeVisible();
 });
+
+test("modération : masquer une demande la cache à tout le monde, conversations comprises, puis la réafficher @mobile", async ({ open, page }) => {
+  const MODO = [{ email: "admin@example.org", droit: "admin", prenom: "", nom: "", entraide_voir: true, entraide_moderer: true }];
+  await open({ user: ADMIN, hash: "#entraide/moderation", acces: MODO });
+  await page.click("[data-filter=publiee]");
+  await expect(page.locator("[data-filter=masquees]")).toHaveCount(0); // aucune masquée : pas de gélule
+  const paul = row(page, "Paul");
+  // Supprimer : contour et texte rouges, fond transparent
+  await expect(paul.locator("[data-act=supprimer]")).toHaveCSS("color", "rgb(198, 40, 40)");
+  await expect(paul.locator("[data-act=supprimer]")).toHaveCSS("border-color", "rgb(198, 40, 40)");
+  await expect(paul.locator("[data-act=supprimer]")).toHaveCSS("background-color", "rgb(255, 255, 255)");
+  await expect(paul.locator("[data-act=masquer] svg")).toBeVisible(); // œil barré
+  await paul.locator("[data-act=masquer]").click();
+  await expect(page.locator("#toast")).toContainText("Demande de Paul masquée.");
+  await expect(paul).toHaveCount(0);
+  await expect(page.locator("[data-filter=masquees]")).toHaveText("Masquées (1)");
+  await row(page, "Marie").locator("[data-act=masquer]").click(); // demande sur laquelle j'aide
+  await expect(page.locator("[data-filter=masquees]")).toHaveText("Masquées (2)");
+  await expect(page.locator("[data-filter=publiee]")).toHaveText("Publiées (3)");
+  // Terminées : masquables aussi ; à valider : non
+  await page.click("[data-filter=terminees]");
+  await expect(row(page, "Gérard").locator("[data-act=masquer]")).toBeVisible();
+  await page.click("[data-filter=a_valider]");
+  await expect(page.locator("#entr-mod-list [data-act=masquer]")).toHaveCount(0);
+  await expect(row(page, "Henri").locator("[data-act=supprimer]")).toHaveClass(/btn-suppr/);
+
+  // Pour tout le monde : ni dans le fil, ni dans « Mes demandes », ni ma conversation d'aidant
+  await page.click("#entr-tab-pub");
+  await expect(page.locator("#entr-count")).toHaveText("3 demandes en cours");
+  await expect(page.locator("#entr-pub")).not.toContainText("Paul");
+  await expect(page.locator("#entr-pub")).not.toContainText("Porter des courses");
+  await expect(page.locator("#entr-pub")).not.toContainText("Je passe au marché samedi");
+  await page.goto(page.url().replace(/#.*/, "#entraide/mes-demandes"));
+  await expect(page.locator("#entr-mes")).not.toContainText("Changer une ampoule");
+  await expect(page.locator("#entr-mes")).toContainText("Réparer un robinet"); // mes autres demandes restent
+  // La base refuse aussi d'écrire dans une conversation d'une demande masquée
+  const err = await page.evaluate(() => window.__api.entraideEcrire("Toujours là ?", { p_conversation: "c4" }).then(() => "", e => e.message));
+  expect(err).toBe("Conversation introuvable.");
+
+  // Réafficher, annuler, puis réafficher : elle revient avec ses conversations
+  await page.goto(page.url().replace(/#.*/, "#entraide/moderation"));
+  await page.click("[data-filter=masquees]");
+  const paulM = row(page, "Paul");
+  await expect(paulM.locator(".badge")).toHaveText("Masquée");
+  await expect(paulM).toContainText("invisible pour tout le monde, conversations comprises");
+  await expect(paulM.locator("[data-act=pourvue]")).toHaveCount(0);
+  await paulM.locator("[data-act=reafficher]").click();
+  await expect(page.locator("#toast")).toContainText("Demande de Paul réaffichée.");
+  await page.locator("#toast .toast-action").click(); // Annuler : de nouveau masquée
+  await expect(page.locator("[data-filter=masquees]")).toHaveText("Masquées (2)");
+  await row(page, "Paul").locator("[data-act=reafficher]").click();
+  await row(page, "Marie").locator("[data-act=reafficher]").click();
+  await expect(page.locator("[data-filter=masquees]")).toHaveCount(0); // plus aucune : gélule retirée, retour aux publiées
+  await expect(page.locator("#entr-filters [aria-pressed=true]")).toHaveText("Publiées (5)");
+  await page.goto(page.url().replace(/#.*/, "#entraide/mes-demandes"));
+  await expect(page.locator("#entr-mes")).toContainText("Changer une ampoule");
+  await expect(page.locator("#entr-mes")).toContainText("Damien");
+});

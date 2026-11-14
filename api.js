@@ -59,6 +59,7 @@ window.makeApi = function () {
     // champs : { p_statut, p_prenom, p_besoin, p_quand, p_quartier } (absent = inchangé)
     entraideModifier: (id, champs) => sbRpc("entraide_modifier", { p_id: id, ...champs }),
     entraideSupprimer: id => sbRpc("entraide_supprimer", { p_id: id }),
+    entraideMasquer: (id, masquee) => sbRpc("entraide_masquer", { p_id: id, p_masquee: masquee }),
     // Messagerie : mes demandes avec une conversation par personne qui a proposé son aide, et les conversations que
     // j'ai ouvertes en proposant la mienne (messages : { id, texte, le, moi, modifie }). Seuls les deux comptes concernés les voient.
     entraideMesDemandes: () => sbRpc("entraide_mes_demandes"),
