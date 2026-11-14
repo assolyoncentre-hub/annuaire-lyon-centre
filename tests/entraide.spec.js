@@ -853,11 +853,23 @@ test("modération : déplier les propositions d'une demande et masquer un messag
   await vers18.locator("[data-msg-masquer]").click();
   await expect(page.locator("#toast")).toContainText("Message de Damien masqué.");
   await expect(vers18).toHaveClass(/masque/);
-  await expect(vers18.locator(".entr-tag-masque")).toHaveText("Masqué"); // toujours lisible pour la modération, marqué masqué
+  await expect(vers18.locator(".entr-tag-masque")).toHaveText("Ce message a été masqué par les modérateurs"); // toujours lisible pour la modération
   await expect(vers18.locator("[data-msg-masquer]")).toHaveText("Réafficher");
   await expect(vers18.locator("[data-msg-masquer]")).toBeFocused();
   await expect(replis).toHaveAttribute("open", ""); // reste déplié
   await expect(replis.locator("summary")).toContainText("1 masqué");
+  // Mon propre message (je propose mon aide à Marie) masqué : à sa place, la mention, sans texte ni actions
+  const marie = row(page, "Marie").locator(".entr-mod-convs");
+  await marie.locator("summary").click();
+  await marie.locator(".msg", { hasText: "Je passe au marché samedi" }).locator("[data-msg-masquer]").click();
+  await page.goto(page.url().replace(/#.*/, "#entraide"));
+  const masque = page.locator(".entr-moi-masque");
+  await expect(masque).toHaveText(/Moi\s*Votre message a été masqué par les modérateurs\./);
+  await expect(masque.locator("[data-modifier], [data-supprimer]")).toHaveCount(0);
+  await expect(page.locator("#entr-pub")).not.toContainText("Je passe au marché samedi");
+  await expect(page.locator("#entr-pub")).toContainText("Rendez-vous à 10 h"); // la réponse de Marie reste
+  await page.goto(page.url().replace(/#.*/, "#entraide/moderation"));
+  await page.click("[data-filter=publiee]");
   // Terminées : dépliables aussi ; masquées : pas de repli (tout est déjà invisible)
   await page.click("[data-filter=terminees]");
   await expect(row(page, "Gérard").locator(".entr-mod-convs summary")).toHaveText("1 proposition · 1 message");

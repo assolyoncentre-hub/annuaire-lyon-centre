@@ -44,9 +44,9 @@ module.exports = function installFakeApi({ data, user, acces }) {
   // Messagerie : seuls l'auteur de la demande et la personne qui propose son aide voient la conversation
   const entrEmail = () => session.user.email.toLowerCase();
   const entrAuteurConv = c => S.entraide.find(d => d.id === c.demande)?.auteur || "";
-  // Messages masqués par la modération : absents pour les participants
-  const entrMsgs = (conv, moi) => S.entraideMessages.filter(m => m.conversation === conv && !m.masque).sort((a, b) => a.le.localeCompare(b.le))
-    .map(m => ({ id: m.id, texte: m.texte, le: m.le, moi: m.auteur === moi, modifie: !!m.modifie }));
+  // Messages masqués par la modération : absents pour l'autre participant ; leur auteur les reçoit sans texte (masque: true)
+  const entrMsgs = (conv, moi) => S.entraideMessages.filter(m => m.conversation === conv && (!m.masque || m.auteur === moi)).sort((a, b) => a.le.localeCompare(b.le))
+    .map(m => ({ id: m.id, texte: m.masque ? "" : m.texte, le: m.le, moi: m.auteur === moi, modifie: !!m.modifie, masque: !!m.masque }));
   const entrPrenom = e => S.acces.find(a => a.email === e)?.prenom || [...S.contacts, ...S.responsables].find(r => (r.email || "").toLowerCase() === e)?.prenom
     || e.split("@")[0].replace(/^./, x => x.toUpperCase());
   // Demande masquée par la modération : invisible de tous (sauf modération), conversations comprises

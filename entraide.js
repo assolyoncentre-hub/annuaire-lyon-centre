@@ -113,6 +113,9 @@ function entrFilHtml(id, prenom) {
       ? '<div class="entr-recue" tabindex="-1" data-msg="' + esc(r.id) + '" style="--c:' + entrCouleur(prenom) + '"><div class="who">' + esc(prenom) + "</div>" +
         '<p class="txt">' + esc(r.texte) + '</p><time class="time" datetime="' + esc(r.le) + '">' + (r.modifie ? "Modifié · " : "") + esc(entrJour(r.le)) + ", " + entrHeure(r.le) + "</time></div>"
       // mes messages : la poubelle et « Modifier » en haut à droite, à côté de « Moi »
+      : r.masque // masqué par la modération : seule la mention reste, sans texte ni actions
+      ? '<div class="entr-moi entr-moi-masque" data-rep="' + esc(r.id) + '"><div class="entr-moi-tete"><div class="who">Moi</div></div>' +
+        '<p class="txt">Votre message a été masqué par les modérateurs.</p></div>'
       : '<div class="entr-moi" data-rep="' + esc(r.id) + '"><div class="entr-moi-tete"><div class="who">Moi</div>' +
         (fini ? "" : '<span class="entr-moi-act"><button type="button" class="entr-moi-suppr" data-supprimer aria-label="Supprimer ce message" title="Supprimer ce message">' +
           TRASH + '</button><button type="button" data-modifier>Modifier</button></span>') + '</div><p class="txt">' + esc(r.texte) + "</p>" +
@@ -566,7 +569,7 @@ function entrModConvsHtml(d) {
       ' <span class="etat' + (c.declinee ? " fin" : "") + '">' + (c.declinee ? "déclinée" : "en cours") + "</span></p>" +
       '<ul class="msgs">' + c.messages.map(m => '<li class="msg' + (m.masque ? " masque" : "") + '" style="--c:' + entrCouleur(m.prenom) + '">' +
         '<span class="qui" title="' + esc(m.prenom) + '">' + esc(m.prenom) + "</span>" +
-        '<p class="txt">' + (m.masque ? '<span class="entr-tag-masque">' + EYE_OFF + "Masqué</span>" : "") + '<span class="t">' + esc(m.texte) + "</span>" +
+        '<p class="txt">' + (m.masque ? '<span class="entr-tag-masque">' + EYE_OFF + "Ce message a été masqué par les modérateurs</span>" : "") + '<span class="t">' + esc(m.texte) + "</span>" +
         '<time datetime="' + esc(m.le) + '">' + (m.modifie ? "Modifié · " : "") + esc(entrJour(m.le)) + ", " + entrHeure(m.le) + "</time></p>" +
         '<button type="button" class="mini" data-msg-masquer="' + esc(m.id) + '" data-masque="' + (m.masque ? "0" : "1") + '"' + (entrBusy ? " disabled" : "") +
         ' aria-label="' + (m.masque ? "Réafficher" : "Masquer") + " le message de " + esc(m.prenom) + '">' + (m.masque ? ENTR_OEIL + "Réafficher" : EYE_OFF + "Masquer") + "</button></li>").join("") +
