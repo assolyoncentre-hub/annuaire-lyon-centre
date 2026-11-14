@@ -257,7 +257,7 @@ test("photo d'un contact : envoyée depuis la fiche, en noir et blanc dans l'ann
   const avatar = page.locator(".serv-card", { hasText: "BRUNET" }).locator(".avatar");
   await expect(avatar).toHaveJSProperty("tagName", "IMG");
   await expect(avatar).toHaveCSS("filter", "grayscale(1)");
-  // Clic sur la photo : agrandie, ronde, en couleur (version grande) ; Échap la referme
+  // Clic sur la photo : agrandie, ronde, en couleur (version grande)
   await page.locator(".serv-card", { hasText: "BRUNET" }).locator(".avatar-btn").click();
   const zoom = page.locator(".ph-zoom img");
   await expect(zoom).toBeVisible();
@@ -266,10 +266,16 @@ test("photo d'un contact : envoyée depuis la fiche, en noir et blanc dans l'ann
   await expect(zoom).toHaveAttribute("src", sent.grand);
   await expect(page.locator(".ph-zoom figcaption")).toHaveText("Jean BRUNET");
   await page.keyboard.press("Escape"); // Échap ne ferme pas la photo
-  await page.mouse.click(4, 4); // ni un clic sur le fond
+  await zoom.click(); // ni un clic sur la photo
   await expect(page.locator(".ph-zoom")).toHaveCount(1);
   await page.click(".ph-zoom-x");
   await expect(page.locator(".ph-zoom")).toHaveCount(0);
+  // Clic dans le fond : la photo se referme, le focus revient sur la photo de la carte
+  await page.locator(".serv-card", { hasText: "BRUNET" }).locator(".avatar-btn").click();
+  await expect(zoom).toBeVisible();
+  await page.mouse.click(4, 4);
+  await expect(page.locator(".ph-zoom")).toHaveCount(0);
+  await expect(page.locator(".serv-card", { hasText: "BRUNET" }).locator(".avatar-btn")).toBeFocused();
   // Retirer la photo : retour aux initiales
   await page.click("#sw-admin");
   await page.click("#tab-contacts");

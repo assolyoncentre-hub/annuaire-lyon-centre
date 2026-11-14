@@ -1219,6 +1219,8 @@ function zoomPhoto(x, from) {
     '<button type="button" class="ph-zoom-x" aria-label="Fermer">×</button>';
   const close = () => { z.remove(); from.focus(); };
   z.querySelector(".ph-zoom-x").addEventListener("click", close);
+  // Clic dans le fond (hors de la photo et de son nom) : la photo se referme
+  z.addEventListener("click", e => { if (!e.target.closest("figure")) close(); });
   document.body.append(z);
   z.querySelector(".ph-zoom-x").focus();
   api.photoGrande(x.p.email).then(src => {

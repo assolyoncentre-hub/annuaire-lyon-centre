@@ -513,7 +513,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 /* Photo agrandie : ronde, en couleur */
 .ph-zoom { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 24px; background: rgba(8, 20, 34, .82); cursor: zoom-out;
   animation: ph-fade .18s ease-out; }
-.ph-zoom figure { margin: 0; display: grid; justify-items: center; gap: 16px; animation: ph-pop .22s cubic-bezier(.2, .8, .3, 1.1); }
+.ph-zoom figure { cursor: default; margin: 0; display: grid; justify-items: center; gap: 16px; animation: ph-pop .22s cubic-bezier(.2, .8, .3, 1.1); }
 .ph-zoom img { width: min(420px, 80vw, 70vh); aspect-ratio: 1; border-radius: 50%; object-fit: cover; background: #33414f;
   box-shadow: 0 0 0 6px rgba(255, 255, 255, .9), 0 30px 60px -20px rgba(0, 0, 0, .6); }
 .ph-zoom figcaption { color: #fff; font: 700 20px/1.2 "DM Sans", system-ui, sans-serif; text-align: center; }
