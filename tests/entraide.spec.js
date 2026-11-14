@@ -834,3 +834,50 @@ test("modération : masquer une demande la cache à tout le monde, conversations
   await expect(page.locator("#entr-mes")).toContainText("Changer une ampoule");
   await expect(page.locator("#entr-mes")).toContainText("Damien");
 });
+
+test("modération : déplier les propositions d'une demande et masquer un message, absent pour les participants @mobile", async ({ open, page }) => {
+  const MODO = [{ email: "admin@example.org", droit: "admin", prenom: "", nom: "", entraide_voir: true, entraide_moderer: true }];
+  await open({ user: ADMIN, hash: "#entraide/moderation", acces: MODO });
+  await page.click("[data-filter=publiee]");
+  const paul = row(page, "Paul"), replis = paul.locator(".entr-mod-convs");
+  await expect(row(page, "Bernard").locator(".entr-mod-convs")).toHaveCount(0); // sans proposition : pas de repli
+  await expect(replis.locator("summary")).toHaveText("2 propositions · 3 messages");
+  // Sous les boutons, replié par défaut
+  expect((await replis.boundingBox()).y).toBeGreaterThan((await paul.locator(".ops").boundingBox()).y);
+  await expect(replis).not.toHaveAttribute("open");
+  await replis.locator("summary").click();
+  await expect(replis.locator(".conv-t").first()).toContainText("Proposition de Damien");
+  await expect(replis.locator(".msg")).toHaveCount(3);
+  const vers18 = replis.locator(".msg", { hasText: "Vers 18 h" });
+  await expect(vers18.locator(".qui")).toHaveText("Damien");
+  await vers18.locator("[data-msg-masquer]").click();
+  await expect(page.locator("#toast")).toContainText("Message de Damien masqué.");
+  await expect(vers18).toHaveClass(/masque/);
+  await expect(vers18.locator(".entr-tag-masque")).toHaveText("Masqué"); // toujours lisible pour la modération, marqué masqué
+  await expect(vers18.locator("[data-msg-masquer]")).toHaveText("Réafficher");
+  await expect(vers18.locator("[data-msg-masquer]")).toBeFocused();
+  await expect(replis).toHaveAttribute("open", ""); // reste déplié
+  await expect(replis.locator("summary")).toContainText("1 masqué");
+  // Terminées : dépliables aussi ; masquées : pas de repli (tout est déjà invisible)
+  await page.click("[data-filter=terminees]");
+  await expect(row(page, "Gérard").locator(".entr-mod-convs summary")).toHaveText("1 proposition · 1 message");
+  await page.click("[data-filter=publiee]");
+  await row(page, "Marie").locator("[data-act=masquer]").click();
+  await page.click("[data-filter=masquees]");
+  await expect(row(page, "Marie").locator(".entr-mod-convs")).toHaveCount(0);
+
+  // Pour l'auteur de la demande : le message n'apparaît pas du tout
+  await page.goto(page.url().replace(/#.*/, "#entraide/mes-demandes"));
+  await expect(page.locator("#entr-mes")).toContainText("J'ai un escabeau");
+  await expect(page.locator("#entr-mes")).not.toContainText("Vers 18 h");
+  await expect(page.locator("#entr-mes")).not.toContainText("Masqué");
+
+  // Réafficher : il revient
+  await page.goto(page.url().replace(/#.*/, "#entraide/moderation"));
+  await page.click("[data-filter=publiee]");
+  await expect(row(page, "Paul").locator(".entr-mod-convs")).toHaveAttribute("open", ""); // le repli ouvert le reste
+  await row(page, "Paul").locator(".msg", { hasText: "Vers 18 h" }).locator("[data-msg-masquer]").click();
+  await expect(page.locator("#toast")).toContainText("Message de Damien réaffiché.");
+  await page.goto(page.url().replace(/#.*/, "#entraide/mes-demandes"));
+  await expect(page.locator("#entr-mes")).toContainText("Vers 18 h");
+});

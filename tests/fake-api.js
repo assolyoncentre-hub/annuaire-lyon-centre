@@ -44,7 +44,8 @@ module.exports = function installFakeApi({ data, user, acces }) {
   // Messagerie : seuls l'auteur de la demande et la personne qui propose son aide voient la conversation
   const entrEmail = () => session.user.email.toLowerCase();
   const entrAuteurConv = c => S.entraide.find(d => d.id === c.demande)?.auteur || "";
-  const entrMsgs = (conv, moi) => S.entraideMessages.filter(m => m.conversation === conv).sort((a, b) => a.le.localeCompare(b.le))
+  // Messages masqués par la modération : absents pour les participants
+  const entrMsgs = (conv, moi) => S.entraideMessages.filter(m => m.conversation === conv && !m.masque).sort((a, b) => a.le.localeCompare(b.le))
     .map(m => ({ id: m.id, texte: m.texte, le: m.le, moi: m.auteur === moi, modifie: !!m.modifie }));
   const entrPrenom = e => S.acces.find(a => a.email === e)?.prenom || [...S.contacts, ...S.responsables].find(r => (r.email || "").toLowerCase() === e)?.prenom
     || e.split("@")[0].replace(/^./, x => x.toUpperCase());
@@ -54,7 +55,7 @@ module.exports = function installFakeApi({ data, user, acces }) {
   const entrMonMessage = id => {
     const m = S.entraideMessages.find(x => x.id === id && x.auteur === entrEmail());
     const c = m && S.entraideConversations.find(x => x.id === m.conversation);
-    if (!m || c?.declinee || entrConvMasquee(c)) throw new Error("Message introuvable.");
+    if (!m || m.masque || c?.declinee || entrConvMasquee(c)) throw new Error("Message introuvable.");
     return m;
   };
   const ago = j => new Date(Date.now() - j * 86400000).toISOString();
@@ -212,6 +213,24 @@ module.exports = function installFakeApi({ data, user, acces }) {
       }
       signal();
       return entrRow(d);
+    },
+    // Comme entraide_moderation_conversations : toutes les conversations et leurs messages, masqués compris
+    async entraideModerationConversations() {
+      guardRef(); log("entraideModerationConversations");
+      return [...S.entraideConversations].sort((a, b) => a.le.localeCompare(b.le)).map(c => {
+        const d = S.entraide.find(x => x.id === c.demande);
+        return { id: c.id, demande_id: c.demande, prenom: c.prenom, declinee: !!c.declinee,
+          messages: S.entraideMessages.filter(m => m.conversation === c.id).sort((a, b) => a.le.localeCompare(b.le))
+            .map(m => ({ id: m.id, prenom: m.auteur === c.aidant ? c.prenom : d?.prenom || "", texte: m.texte, le: m.le, modifie: !!m.modifie, masque: !!m.masque })) };
+      });
+    },
+    // Comme entraide_masquer_message : la modération masque (ou réaffiche) un message
+    async entraideMasquerMessage(id, masque) {
+      guardRef(); log("entraideMasquerMessage", { id, masque });
+      const m = S.entraideMessages.find(x => x.id === id);
+      if (!m) throw new Error("Message introuvable.");
+      m.masque = masque ? m.masque || Date.now() : null;
+      signal();
     },
     // Comme entraide_masquer : la modération masque (ou réaffiche) une demande déjà visible (publiée ou terminée)
     async entraideMasquer(id, masquee) {

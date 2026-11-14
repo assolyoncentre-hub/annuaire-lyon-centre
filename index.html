@@ -615,7 +615,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .entr-sq .w20 { width: 20%; } .entr-sq .w30 { width: 30%; height: 14px; } .entr-sq .w45 { width: 45%; } .entr-sq .w70 { width: 70%; }
 .entr-sq .fin { justify-self: end; height: 10px; }
 @keyframes entr-sq { from { background-position: 100% 0; } to { background-position: 0 0; } }
-.entr-mod-charge { gap: 0; padding: 0; }
+.entr-mod-charge { gap: 12px; padding: 0; }
 .entr-sq-mod .head { align-items: center; }
 .entr-sq-mod .w12 { width: 12%; } .entr-sq-mod .w20 { width: 20%; height: 16px; }
 .entr-sq-mod .b { width: 90px; height: 32px; border-radius: 8px; }
@@ -841,11 +841,14 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .entr-mienne .who { color: var(--brand); }
 #entr-mod .admin-tools { margin-top: 0; }
 .entr-filters { margin-left: 0; justify-content: flex-start; }
-.entr-mod-row { padding: 16px 18px; border-top: 1px solid var(--border); display: grid; gap: 8px; }
+/* Modération : une carte par demande, espacées */
+#entr-mod-list { display: grid; gap: 12px; background: none; border: 0; border-radius: 0; overflow: visible; }
+#entr-mod-list > .empty { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+.entr-mod-row { padding: 16px 18px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); display: grid; gap: 8px; }
 /* Demande qui quitte la liste (changement de statut) : glisse, s'estompe et se replie */
-.entr-mod-row.sort { overflow: hidden; height: 0 !important; padding-top: 0; padding-bottom: 0; opacity: 0; transform: translateX(24px);
+.entr-mod-row.sort { overflow: hidden; height: 0 !important; padding-top: 0; padding-bottom: 0; border-width: 0; margin-bottom: -12px; opacity: 0; transform: translateX(24px);
   transition: opacity .2s ease-in, transform .2s ease-in, height .25s ease-in .15s, padding .25s ease-in .15s; }
-.entr-mod-row:first-child { border-top: 0; }
+
 .entr-mod-row .head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
 .entr-mod-row .head strong { font-size: 19px; }
 .entr-mod-row .head .meta { color: var(--muted); font-size: 16px; }
@@ -858,6 +861,36 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .entr-mod-row .btn-ico { display: inline-flex; align-items: center; gap: 7px; }
 .entr-mod-row .btn-ico svg { width: 17px; height: 17px; flex: none; }
 .entr-masquee-info { margin: 0; color: var(--muted); font-size: 15px; }
+/* Conversations d'une demande (modération) : repli compact sous les boutons, une ligne par message */
+.entr-mod-convs { margin-top: 6px; border: 1px solid var(--border); border-radius: 10px; background: #fbfcfe; }
+.entr-mod-convs > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 8px 12px; font: 600 14px/1.2 Montserrat, sans-serif; color: var(--brand); }
+.entr-mod-convs > summary::-webkit-details-marker { display: none; }
+.entr-mod-convs > summary::before { content: ""; flex: none; width: 7px; height: 7px; margin-right: 2px; border: solid currentColor; border-width: 0 2px 2px 0; rotate: -45deg; transition: rotate .15s; }
+.entr-mod-convs[open] > summary::before { rotate: 45deg; translate: 0 -2px; }
+.entr-mod-convs > summary .nb { color: var(--muted); font-weight: 500; }
+.entr-mod-convs > summary .masq-nb { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; color: var(--muted); font-weight: 500; font-size: 13px; }
+.entr-mod-convs svg { width: 14px; height: 14px; flex: none; }
+.entr-mod-conv { border-top: 1px solid var(--border); padding: 8px 12px 10px; }
+.entr-mod-conv .conv-t { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; margin: 0 0 4px; font: 700 13px/1.3 Montserrat, sans-serif; }
+.entr-mod-conv .conv-t .etat { font-weight: 600; color: var(--muted); }
+.entr-mod-conv .conv-t .etat.fin { color: #b0451f; }
+.entr-mod-conv .msgs { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.entr-mod-conv .msg { display: grid; grid-template-columns: 74px minmax(0, 1fr) auto; align-items: start; gap: 2px 10px; padding: 5px 6px; border-radius: 6px; font-size: 15px; line-height: 1.4; }
+.entr-mod-conv .msg:hover { background: var(--tint); }
+.entr-mod-conv .qui { font: 700 13px/1.5 Montserrat, sans-serif; color: var(--c); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.entr-mod-conv .txt { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+.entr-mod-conv time { display: block; color: var(--muted); font-size: 12px; white-space: normal; }
+#entr-mod .entr-mod-conv .mini { display: inline-flex; align-items: center; gap: 5px; min-height: 32px; padding: 4px 9px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); font: 600 12px/1 Montserrat, sans-serif; cursor: pointer; white-space: nowrap; }
+#entr-mod .entr-mod-conv .mini:hover { border-color: var(--text); }
+.entr-mod-conv .msg.masque { background: #f1f3f5; }
+.entr-mod-conv .msg.masque .txt { color: var(--muted); }
+.entr-mod-conv .msg.masque .t { text-decoration: line-through; text-decoration-color: rgba(91, 107, 124, .5); }
+.entr-tag-masque { display: inline-flex; align-items: center; gap: 4px; margin-right: 6px; padding: 0 7px; border-radius: 999px; background: #e3e7ec; color: var(--muted); font: 600 11px/1.6 Montserrat, sans-serif; vertical-align: 1px; }
+.entr-mod-conv .entr-tag-masque svg { width: 12px; height: 12px; }
+@media (max-width: 560px) {
+  .entr-mod-conv .msg { grid-template-columns: minmax(0, 1fr) auto; }
+  .entr-mod-conv .txt { grid-column: 1 / -1; grid-row: 2; }
+}
 #entr-filters .afilter svg { width: 15px; height: 15px; margin-right: 6px; flex: none; }
 .badge.wait { background: #fff3e0; color: #9a4b00; }
 .badge.refus { background: #fdecea; color: #b42318; }

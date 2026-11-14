@@ -462,6 +462,8 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 
 // --- Modération ---
 let entrDemandes = null, entrFiltre = "a_valider", entrBusy = false;
+// Conversations de toutes les demandes (modération), avec les messages masqués ; replis ouverts (ids des demandes)
+let entrModConvs = [], entrModOuverts = new Set();
 // « Masquées » : demandes (publiées ou terminées) retirées de la vue de tous, conversations comprises ; gélule affichée s'il y en a
 const ENTR_FILTRES = [["a_valider", "À valider"], ["publiee", "Publiées"], ["terminees", "Terminées"], ["masquees", "Masquées"]];
 const entrDans = (d, f) => f === "masquees" ? !!d.masquee_le
@@ -500,7 +502,8 @@ async function entrMajPastille() {
 
 async function loadModeration() {
   try {
-    entrDemandes = await api.entraideModeration();
+    const [demandes, convs] = await Promise.all([api.entraideModeration(), api.entraideModerationConversations().catch(() => [])]);
+    entrDemandes = demandes; entrModConvs = convs;
   } catch (err) { entrDemandes = []; toast("Impossible de charger les demandes : " + (err?.message || "erreur inconnue")); }
   renderModeration();
 }
@@ -523,6 +526,8 @@ function renderModeration() {
   }
 
   const list = all.filter(d => entrDans(d, entrFiltre));
+  // Réaffichage (en direct, ou après une action) : le focus reste sur le même bouton de message
+  const focusMsg = document.activeElement?.closest?.("#entr-mod-list [data-msg-masquer]")?.dataset.msgMasquer;
   const btn = (act, label, cls = "btn-ghost") => '<button type="button" class="btn ' + cls + ' btn-sm" data-act="' + act + '"' + (entrBusy ? " disabled" : "") + ">" + label + "</button>";
   // Supprimer : contour et texte rouges ; Masquer (œil barré) sur les demandes déjà visibles (publiées, terminées)
   const suppr = btn("supprimer", "Supprimer", "btn-ghost btn-suppr"), masquer = btn("masquer", EYE_OFF + "Masquer", "btn-ghost btn-ico");
@@ -540,9 +545,45 @@ function renderModeration() {
       '<span class="meta">Reçue le ' + entrDate(d.created_at) + "</span>" + '<span class="badge ' + cls + '">' + label + "</span></div>" +
       '<p class="need">' + esc(d.besoin) + "</p>" + (d.quand ? '<div class="when">Quand : ' + esc(d.quand) + "</div>" : "") +
       (d.masquee_le ? '<p class="entr-masquee-info">Masquée le ' + entrDate(d.masquee_le) + " · invisible pour tout le monde, conversations comprises</p>" : "") +
-      '<div class="ops">' + ops(d) + "</div></div>";
+      '<div class="ops">' + ops(d) + "</div>" + entrModConvsHtml(d) + "</div>";
   }).join("") || '<div class="empty">' + { a_valider: "Aucune demande à valider.", publiee: "Aucune demande publiée.", terminees: "Aucune demande terminée.", masquees: "Aucune demande masquée." }[entrFiltre] + "</div>";
+  if (focusMsg) $("entr-mod-list").querySelector('[data-msg-masquer="' + CSS.escape(focusMsg) + '"]')?.focus({ preventScroll: true });
   entrTronquer($("entr-mod-list"));
+}
+
+// Sous les boutons d'une demande (publiée ou terminée, non masquée) : repli « 2 propositions · 6 messages » avec toutes
+// les conversations, une ligne par message et son bouton Masquer / Réafficher ; un message masqué n'apparaît plus
+// pour les participants, la modération le voit barré
+const entrPl = (n, m) => n + " " + m + (n > 1 ? "s" : "");
+function entrModConvsHtml(d) {
+  const convs = entrModConvs.filter(c => c.demande_id === d.id && c.messages.length);
+  if (!convs.length || d.masquee_le || d.statut === "a_valider") return "";
+  const nb = convs.reduce((s, c) => s + c.messages.length, 0), nm = convs.reduce((s, c) => s + c.messages.filter(m => m.masque).length, 0);
+  return '<details class="entr-mod-convs" data-convs="' + esc(d.id) + '"' + (entrModOuverts.has(d.id) ? " open" : "") + "><summary>" +
+    entrPl(convs.length, "proposition") + ' <span class="nb">· ' + entrPl(nb, "message") + "</span>" +
+    (nm ? '<span class="masq-nb">' + EYE_OFF + entrPl(nm, "masqué") + "</span>" : "") + "</summary>" +
+    convs.map(c => '<div class="entr-mod-conv"><p class="conv-t">Proposition de ' + esc(c.prenom) +
+      ' <span class="etat' + (c.declinee ? " fin" : "") + '">' + (c.declinee ? "déclinée" : "en cours") + "</span></p>" +
+      '<ul class="msgs">' + c.messages.map(m => '<li class="msg' + (m.masque ? " masque" : "") + '" style="--c:' + entrCouleur(m.prenom) + '">' +
+        '<span class="qui" title="' + esc(m.prenom) + '">' + esc(m.prenom) + "</span>" +
+        '<p class="txt">' + (m.masque ? '<span class="entr-tag-masque">' + EYE_OFF + "Masqué</span>" : "") + '<span class="t">' + esc(m.texte) + "</span>" +
+        '<time datetime="' + esc(m.le) + '">' + (m.modifie ? "Modifié · " : "") + esc(entrJour(m.le)) + ", " + entrHeure(m.le) + "</time></p>" +
+        '<button type="button" class="mini" data-msg-masquer="' + esc(m.id) + '" data-masque="' + (m.masque ? "0" : "1") + '"' + (entrBusy ? " disabled" : "") +
+        ' aria-label="' + (m.masque ? "Réafficher" : "Masquer") + " le message de " + esc(m.prenom) + '">' + (m.masque ? ENTR_OEIL + "Réafficher" : EYE_OFF + "Masquer") + "</button></li>").join("") +
+      "</ul></div>").join("") + "</details>";
+}
+async function entrMasquerMessage(id, masque, focus = true) {
+  entrBusy = true; renderModeration();
+  try {
+    await api.entraideMasquerMessage(id, masque);
+    let m = null;
+    entrModConvs.forEach(c => c.messages.forEach(x => { if (x.id === id) { x.masque = masque; m = x; } }));
+    toast("Message de " + (m?.prenom || "") + (masque ? " masqué." : " réaffiché."), { label: "Annuler", fn: () => entrMasquerMessage(id, !masque) });
+  } catch (err) { toast("Enregistrement impossible : " + (err?.message || "erreur inconnue")); }
+  finally {
+    entrBusy = false; renderModeration();
+    if (focus) $("entr-mod-list").querySelector('[data-msg-masquer="' + CSS.escape(id) + '"]')?.focus();
+  }
 }
 
 // champs : modifications (entraide_modifier), ou fonction qui fait l'appel et renvoie la demande à jour ;
@@ -587,7 +628,13 @@ $("entr-filters").addEventListener("click", e => {
   const b = e.target.closest("[data-filter]");
   if (b) { entrFiltre = b.dataset.filter; renderModeration(); }
 });
+$("entr-mod-list").addEventListener("toggle", e => {
+  const id = e.target.dataset?.convs;
+  if (id != null) e.target.open ? entrModOuverts.add(id) : entrModOuverts.delete(id);
+}, true);
 $("entr-mod-list").addEventListener("click", e => {
+  const mb = e.target.closest("button[data-msg-masquer]");
+  if (mb) return entrMasquerMessage(mb.dataset.msgMasquer, mb.dataset.masque === "1");
   const b = e.target.closest("button[data-act]");
   if (!b) return;
   const d = entrDemandes.find(x => x.id === b.closest("[data-id]")?.dataset.id);
