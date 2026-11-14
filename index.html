@@ -460,7 +460,6 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; scroll-behavior: auto !important; }
   .card:hover { transform: none; }
-  .entr-msg:hover, .entr-recue:hover, .entr-moi:hover { transform: none; }
 }
 /* Listes déroulantes : flèche dessinée, à distance du bord droit (la flèche native de Safari est collée au bord) */
 .field select { -webkit-appearance: none; appearance: none; padding-right: 44px; background-repeat: no-repeat; background-position: right 16px center; background-size: 12px 8px;
@@ -709,7 +708,6 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 @media (max-width: 520px) { .entr-repli summary .etat { display: none; } }
 /* Conversation déclinée : grisée (ses messages restent lisibles), « Réactiver » discret en dessous */
 .entr-reps.declinee .entr-recue, .entr-reps.declinee .entr-moi { opacity: .55; filter: grayscale(1); }
-@media (hover: hover) { .entr-reps.declinee .entr-recue:hover, .entr-reps.declinee .entr-moi:hover { transform: none; box-shadow: 0 1px 1px rgba(0, 40, 80, .1); } }
 /* Le rappel « visibles seulement par… » est déjà en tête du fil : la zone de rédaction ne le répète pas,
    et sa croix devient une pastille dans le coin */
 .entr-reps:has(.entr-moi) .entr-rep { position: relative; padding-top: 10px; }
@@ -808,9 +806,6 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 #entr-pub.vue-mes > :not(#entr-mes, #entr-rep), #entr-pub:not(.vue-mes) > #entr-mes { display: none !important; }
 /* Lisibilité : sous la barre, textes plus grands que sur le reste du site, et boutons d'au moins 40 px de haut */
 #entr-pub, #entr-mes, #entr-mod { font-size: 17px; }
-/* Bulles : même survol que les cartes des propositions (légère montée et ombre) */
-.entr-msg, .entr-recue, .entr-moi { transition: transform .15s, box-shadow .15s; }
-@media (hover: hover) { .entr-msg:hover, .entr-recue:hover, .entr-moi:hover { transform: translateY(-2px); box-shadow: 0 12px 28px -16px rgba(0, 60, 110, .35); } }
 /* Bulles : nom, lieu, texte et moment à la même taille (18 px) ; seule l'heure reste discrète */
 .entr-msg, .entr-recue, .entr-moi { font-size: 18px; }
 #entr-pub .btn-sm, #entr-mes .btn-sm, #entr-mod .btn-sm { font-size: 15px; }
