@@ -552,15 +552,28 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .person .fields input[type=tel] { grid-column: 1 / -1; }
 /* Entraide : liste succincte des demandes publiées, et formulaire qui se dévoile champ après champ */
 /* Entraide : demandes publiées en conversation (bulles comme dans une messagerie, aux couleurs du site) */
-/* Barre du haut : onglets (Modération pour les modérateurs), puis « Faire une demande » juste à la suite */
-.entr-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin: 0 0 20px; }
-.entr-bar .entr-tabs { margin: 0; }
-.entr-tabs .tab[hidden] { display: none; }
-/* Téléphone : les onglets deviennent une liste déroulante, suivie du bouton sur la même ligne */
+/* Barre du haut de l'entraide : onglets soulignés sur une ligne qui court sur toute la largeur, « Faire une demande » à droite */
+.entr-bar { display: flex; align-items: flex-end; gap: 16px; margin: 0 0 24px; border-bottom: 1px solid var(--border); }
+.onglets { display: flex; gap: 28px; margin: 0; }
+.onglets .tab { display: inline-flex; align-items: center; padding: 10px 2px 12px; margin: 0 0 -1px; border: 0; border-bottom: 3px solid transparent; border-radius: 0;
+  background: none; color: var(--muted); font: 700 15px/1 Montserrat, sans-serif; text-decoration: none; white-space: nowrap; }
+.onglets .tab[hidden] { display: none; }
+.onglets .tab[aria-current="page"] { color: var(--text); border-bottom-color: var(--page, var(--brand)); }
+@media (hover: hover) { .onglets .tab:not([aria-current="page"]):hover { color: var(--text); } }
+.onglets .tab:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+.entr-bar #entr-ask { margin: 0 0 10px auto; }
+/* Téléphone : le bouton au-dessus, sur toute la largeur ; les onglets en dessous, répartis sur la ligne */
+@media (max-width: 520px) {
+  .entr-bar { flex-wrap: wrap; gap: 12px; border: 0; }
+  .entr-bar #entr-ask { order: -1; width: 100%; justify-content: center; margin: 0; }
+  .onglets { width: 100%; gap: 0; justify-content: space-between; border-bottom: 1px solid var(--border); overflow-x: auto; scrollbar-width: none; }
+  .onglets .tab { flex: none; min-width: auto; padding: 12px 2px 13px; font-size: clamp(12px, 3.6vw, 14px); }
+  .onglets .entr-pastille { margin-left: 4px; }
+}
+/* Administration, sur téléphone : les boutons accolés deviennent une liste déroulante */
 .accoles-sel { display: none; }
 @media (max-width: 520px) {
-  .entr-bar { flex-wrap: nowrap; gap: 8px; }
-  .entr-bar .entr-tabs, .admin-top .accoles { display: none; }
+  .admin-top .accoles { display: none; }
   .admin-top { flex-wrap: nowrap; }
   .admin-top #add-btn { flex: none; height: 44px; padding-left: 14px; padding-right: 14px; }
   .accoles-sel { display: block; flex: 1 1 auto; min-width: 0; height: 44px; padding: 0 34px 0 14px; border: 1px solid var(--border); border-radius: 8px;
@@ -570,7 +583,6 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
   .accoles-sel.alerte { padding-right: 48px; background-image: radial-gradient(circle, #d92d20 3.5px, transparent 4px), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
     background-position: right 32px center, right 10px center; background-size: 10px 10px, 16px; }
   .accoles-sel:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-  .entr-bar .btn { flex: none; padding-left: 14px; padding-right: 14px; }
 }
 /* Textes seulement lus par les lecteurs d'écran (nombre de demandes, destinataire de la réponse) */
 .entr-count, .entr-cache { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
@@ -588,7 +600,6 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='12'%3E%3Cpath d='M0 .5H10V12Z' fill='%23fff'/%3E%3Cpath d='M10 11.5 .9.5H10' fill='none' stroke='%23dde5ee'/%3E%3C/svg%3E") no-repeat; } /* pointe de bulle avec son contour */
 .entr-cadre .entr-day span { border: 1px solid var(--border); box-shadow: none; }
 /* « Faire une demande » en haut de la section, sous le titre (et sous la phrase quand je n'ai encore rien demandé) */
-#entr-mes #entr-ask { margin: 0 0 18px; }
 .entr-mes-vide { margin: -6px 0 14px; color: var(--muted); font-size: 16px; }
 #entr-mes-list:empty { display: none; }
 /* sur fond blanc, les messages reçus (blancs) gardent un contour pour rester lisibles */
@@ -777,7 +788,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 /* Boutons accolés (classe « accoles »), comme un interrupteur à plusieurs positions : seule la page affichée est en bleu.
    Entraide et Administration ; sur téléphone, remplacés par une liste déroulante (« accoles-sel ») */
 /* Onglets et « Faire une demande » : même hauteur (44 px sur téléphone, comme la liste déroulante) */
-.entr-bar .tab, #entr-ask { box-sizing: border-box; height: 40px; min-height: 0; margin: 0; display: inline-flex; align-items: center; }
+#entr-ask { box-sizing: border-box; height: 40px; min-height: 0; margin: 0; display: inline-flex; align-items: center; }
 @media (max-width: 520px) { #entr-ask, .accoles-sel { box-sizing: border-box; height: 44px; min-height: 0; margin: 0; } .accoles-sel { line-height: 42px; padding-top: 0; padding-bottom: 0; font-size: 16px; } }
 .accoles { gap: 0; }
 .accoles .tab { position: relative; box-sizing: border-box; height: 40px; display: inline-flex; align-items: center; margin: 0 0 0 -1.5px; border-radius: 0; text-decoration: none; }
@@ -792,7 +803,9 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 /* Filtre « À valider » de la modération : pastille rouge s'il reste au moins une demande */
 #entr-filters .afilter { display: inline-flex; align-items: center; }
 #entr-filters .afilter[aria-pressed="true"] .entr-pastille { box-shadow: 0 0 0 1.5px #fff; }
-#entr-bar[hidden], #entr-mes-vide[hidden], #entr-mod[hidden], #entr-pub[hidden], #entr-mes[hidden], #entr-tabs[hidden], #entr-nav-sel[hidden] { display: none !important; }
+#entr-bar[hidden], #entr-mes-vide[hidden], #entr-mod[hidden], #entr-pub[hidden], #entr-mes[hidden], #entr-tabs[hidden] { display: none !important; }
+/* Demandes d'aide (#entraide) ou Mes demandes (#entraide/mes-demandes) : une seule des deux vues de #entr-pub */
+#entr-pub.vue-mes > :not(#entr-mes, #entr-rep), #entr-pub:not(.vue-mes) > #entr-mes { display: none !important; }
 /* Lisibilité : sous la barre, textes plus grands que sur le reste du site, et boutons d'au moins 40 px de haut */
 #entr-pub, #entr-mes, #entr-mod { font-size: 17px; }
 /* Bulles : même survol que les cartes des propositions (légère montée et ombre) */
@@ -802,13 +815,8 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .entr-msg, .entr-recue, .entr-moi { font-size: 18px; }
 #entr-pub .btn-sm, #entr-mes .btn-sm, #entr-mod .btn-sm { font-size: 15px; }
 #entr-pub button, #entr-mes button, #entr-mod button, #entr-pub .btn, #entr-mes .btn, #entr-mod .btn { min-height: 40px; box-sizing: border-box; }
-/* Grand écran : « Mes demandes » en colonne à droite du fil public (sur téléphone et tablette, elle reste en tête de page) */
+/* Grand écran : mes demandes sur toute la largeur du cadre */
 @media (min-width: 1024px) {
-  /* sans demande : colonne étroite (420 px) ; au moins une demande : moitié chacune */
-  #entr-pub:has(> #entr-mes:not([hidden])) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 32px; align-items: start; }
-  #entr-pub:has(> #entr-mes:not([hidden]) #entr-mes-vide:not([hidden])) { grid-template-columns: minmax(0, 1fr) 420px; }
-  #entr-pub:has(> #entr-mes:not([hidden])) > :not(#entr-mes) { grid-column: 1; }
-  #entr-pub > #entr-mes { grid-column: 2; grid-row: 1 / span 12; padding: 2px 18px 4px; }
   #entr-mes .entr-msg { width: auto; max-width: none; }
   #entr-mes .entr-convs { width: auto; margin-left: 18px; }
 }
@@ -932,20 +940,20 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 </div>
 <div id="entr-view" class="view" hidden>
 <main class="wrap">
-  <!-- Navigation de l'entraide (seulement pour les modérateurs : Demandes d'aide / Modération), suivie du bouton « Faire une demande » -->
+  <!-- Navigation de l'entraide, en onglets soulignés : Demandes d'aide / Mes demandes (/ Modération pour les modérateurs),
+       et le bouton « Faire une demande » (à droite ; au-dessus, sur toute la largeur, sur téléphone) -->
   <div class="entr-bar" id="entr-bar">
-    <nav class="tabs accoles entr-tabs" id="entr-tabs" aria-label="Entraide">
-      <a class="tab" href="#entraide" id="entr-tab-pub">Demandes d'aide</a><a class="tab" href="#entraide/moderation" id="entr-tab-mod" hidden>Modération</a>
-    </nav><select class="accoles-sel" id="entr-nav-sel" aria-label="Entraide : choisir la page"></select></div>
+    <nav class="onglets entr-tabs" id="entr-tabs" aria-label="Entraide">
+      <a class="tab" href="#entraide" id="entr-tab-pub">Demandes d'aide</a><a class="tab" href="#entraide/mes-demandes" id="entr-tab-mes">Mes demandes</a><a class="tab" href="#entraide/moderation" id="entr-tab-mod" hidden>Modération</a>
+    </nav><button type="button" class="btn btn-primary" id="entr-ask">Faire une demande</button></div>
   <div id="entr-mod" hidden>
     <div class="admin-tools"><div class="afilters entr-filters" id="entr-filters"></div></div>
     <div class="list" id="entr-mod-list"></div>
   </div>
   <div id="entr-pub">
-  <!-- Mes demandes (avec « Faire une demande » ; à droite du fil sur grand écran, en tête sur téléphone) : chacune avec ses conversations, en direct -->
+  <!-- Mes demandes (onglet « Mes demandes », #entraide/mes-demandes) : chacune avec ses conversations, en direct -->
   <section class="entr-cadre" id="entr-mes" aria-labelledby="entr-mes-t" hidden><h2 class="entr-titre" id="entr-mes-t">Mes demandes</h2>
     <p class="entr-mes-vide" id="entr-mes-vide" hidden>Vous n'avez pas encore formulé de demande d'aide.</p>
-    <button type="button" class="btn btn-primary" id="entr-ask">Faire une demande</button>
     <div class="entr-thread" id="entr-mes-list"></div></section>
   <!-- Demandes publiées, présentées comme une conversation (les plus récentes en haut), mises à jour en direct -->
   <section class="entr-cadre" id="entr-besoin-sec" aria-labelledby="entr-besoin-t">

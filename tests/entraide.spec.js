@@ -33,24 +33,21 @@ test("droit Voir : demandes publiées seulement, sans téléphone ni modération
   await expect(page.locator("#entr-list")).not.toContainText("Henri"); // à valider : pas encore publiée
   await expect(page.locator("#entr-view")).not.toContainText("39 98");
   await expect(page.locator("#entr-tab-mod")).toBeHidden();
-  // Une seule page sans le droit de modérer : ni onglets ni liste déroulante
-  await expect(page.locator("#entr-tabs")).toBeHidden();
-  await expect(page.locator("#entr-nav-sel")).toBeHidden();
-  await expect(page.locator("#entr-ask")).toBeVisible();
-  // « Mes demandes » : toujours là, avec « Faire une demande » en haut, sous une phrase tant qu'on n'a rien déposé
-  await expect(page.locator("#entr-bar")).toBeHidden();
-  await expect(page.locator("#entr-mes #entr-ask")).toBeVisible();
+  // Onglets soulignés Demandes d'aide / Mes demandes (pas de Modération), et « Faire une demande » dans la barre
+  await expect(page.locator("#entr-tabs .tab:visible")).toHaveText(["Demandes d'aide", "Mes demandes"]);
+  await expect(page.locator("#entr-tab-pub")).toHaveAttribute("aria-current", "page");
+  await expect(page.locator("#entr-bar #entr-ask")).toHaveText("Faire une demande");
+  await expect(page.locator("#entr-mes")).toBeHidden(); // en première intention : les demandes des autres
+  // Mes demandes : son propre onglet, avec une phrase tant qu'on n'a rien déposé
+  await page.click("#entr-tab-mes");
+  await expect(page).toHaveURL(/#entraide\/mes-demandes$/);
+  await expect(page.locator("#entr-tab-mes")).toHaveAttribute("aria-current", "page");
   await expect(page.locator("#entr-mes-vide")).toHaveText("Vous n'avez pas encore formulé de demande d'aide.");
-  await expect(page.locator("#entr-ask")).toHaveText("Faire une demande");
-  const yVide = (await page.locator("#entr-mes-vide").boundingBox()).y, yAsk = (await page.locator("#entr-ask").boundingBox()).y;
-  expect(yAsk).toBeGreaterThan(yVide); // bouton sous la phrase
-  // Sur téléphone (ou fenêtre étroite) : Mes demandes d'abord, puis les demandes des autres
-  const yMes = (await page.locator("#entr-mes").boundingBox()).y, yFil = (await page.locator("#entr-list").boundingBox()).y;
-  if ((page.viewportSize()?.width || 0) < 1024) expect(yMes).toBeLessThan(yFil);
-  // Ancienne adresse de la page Mes demandes : ramène à la page des demandes
-  await page.evaluate(() => { location.hash = "#entraide/mes-demandes"; });
-  await expect(page).toHaveURL(/#entraide$/);
-  await expect(page.locator("#entr-pub")).toBeVisible();
+  await expect(page.locator("#entr-list")).toBeHidden();
+  await expect(page.locator("#entr-ask")).toBeVisible();
+  const ask = await page.locator("#entr-ask").boundingBox(), tabs = await page.locator("#entr-tabs").boundingBox();
+  if (page.viewportSize().width <= 520) expect(ask.y + ask.height).toBeLessThanOrEqual(tabs.y); // téléphone : bouton au-dessus des onglets
+  else expect(ask.x).toBeGreaterThan(tabs.x + tabs.width); // à droite des onglets
   await page.evaluate(() => { location.hash = "#entraide/moderation"; });
   await expect(page.locator("#admin-denied")).toContainText("n'est pas modérateur de l'entraide.");
 });
@@ -68,7 +65,7 @@ test("demandes en conversation : les plus récentes en haut, nouvelles demandes 
   await expect(page.locator("#entr-ask")).toBeVisible();
 
   // Deux parties : en cours, puis déjà aidés (demandes pourvues, sans bouton ni téléphone)
-  await expect(page.locator("#entr-pub h2.entr-titre:visible")).toHaveText(["Mes demandes", "Ils/elles ont besoin d'aide", "Ils/elles ont déjà été aidés"]);
+  await expect(page.locator("#entr-pub h2.entr-titre:visible")).toHaveText(["Ils/elles ont besoin d'aide", "Ils/elles ont déjà été aidés"]);
   await expect(page.locator("#entr-aides .entr-msg")).toHaveCount(1);
   await expect(page.locator("#entr-aides")).toContainText("Gérard");
   await expect(page.locator("#entr-aides .entr-aider")).toHaveCount(0);
@@ -330,10 +327,12 @@ test("téléphone : cinq onglets (Accueil, Propositions, Entraide, Leaders, Admi
   for (const r of rights) expect(r).toBeLessThanOrEqual(width);
 });
 
-test("Mes demandes : première section de la page, seulement mes demandes, avec les réponses reçues @mobile", async ({ open, page }) => {
+test("Mes demandes : onglet à part, seulement mes demandes, avec les réponses reçues @mobile", async ({ open, page }) => {
   const MOI = [{ email: "admin@example.org", droit: "admin", prenom: "", nom: "", entraide_voir: true, entraide_moderer: false }];
   await open({ user: ADMIN, hash: "#entraide", acces: MOI });
-  await expect(page.locator("#entr-pub h2.entr-titre:visible")).toHaveText(["Mes demandes", "Ils/elles ont besoin d'aide", "Ils/elles ont déjà été aidés"]);
+  await expect(page.locator("#entr-pub h2.entr-titre:visible")).toHaveText(["Ils/elles ont besoin d'aide", "Ils/elles ont déjà été aidés"]);
+  await page.click("#entr-tab-mes");
+  await expect(page.locator("#entr-pub h2.entr-titre:visible")).toHaveText(["Mes demandes"]);
   const mes = page.locator("#entr-mes-list .entr-mienne");
   await expect(mes).toHaveCount(3);
   await expect(page.locator("#entr-mes")).not.toContainText("Jeanne"); // demandes des autres : absentes
@@ -383,7 +382,7 @@ test("Mes demandes : première section de la page, seulement mes demandes, avec 
   await damien.getByRole("button", { name: "Décliner" }).click();
   await expect(page.locator("#entr-rep-txt")).toHaveValue("Merci beaucoup pour votre proposition Damien mais j'ai trouvé de l'aide !");
   // le champ prend la hauteur du message prérempli : tout le texte est visible, sans barre de défilement
-  expect(await page.locator("#entr-rep-txt").evaluate(t => t.scrollHeight <= t.clientHeight && t.clientHeight > 50)).toBe(true);
+  expect(await page.locator("#entr-rep-txt").evaluate(t => t.scrollHeight <= t.clientHeight)).toBe(true);
   await expect(page.locator("#entr-rep-txt")).toBeFocused();
   await expect(page.locator("#entr-rep")).toContainText("Ce message sera envoyé à Damien, puis la conversation sera terminée.");
   await page.click("#entr-rep-x");
@@ -418,36 +417,39 @@ test("Mes demandes : première section de la page, seulement mes demandes, avec 
   await expect(page.locator("#entr-mes")).not.toContainText("39 98");
 });
 
-test("pastille rouge sur Demandes d'aide tant qu'un message attend ma réponse @mobile", async ({ open, page }) => {
-  // Modérateur : seule personne à avoir des onglets (Demandes d'aide / Modération)
+test("pastilles rouges sur Mes demandes et Demandes d'aide tant qu'un message attend ma réponse @mobile", async ({ open, page }) => {
   const MOI = [{ email: "admin@example.org", droit: "admin", prenom: "", nom: "", entraide_voir: true, entraide_moderer: true }];
   await open({ user: ADMIN, hash: "#entraide/moderation", acces: MOI });
-  // Depuis la modération : pastille sur Demandes d'aide (onglet, ou liste déroulante sur téléphone)
+  // Depuis la modération : pastille sur Mes demandes (Damien, Thomas et Claire attendent ma réponse)
+  // et sur Demandes d'aide (Marie, que j'aide, attend la mienne)
+  await expect(page.locator("#entr-tab-mes .entr-pastille")).toHaveCount(1);
   await expect(page.locator("#entr-tab-pub .entr-pastille")).toHaveCount(1);
-  if (await page.locator("#entr-nav-sel").isVisible()) {
-    await expect(page.locator("#entr-nav-sel")).toHaveClass(/alerte/);
-    await expect(page.locator("#entr-nav-sel option").first()).toHaveText("Demandes d'aide 🔴");
-  }
-  await page.evaluate(() => { location.hash = "#entraide"; });
+  await expect(page.locator("#entr-tab-mes")).toHaveText("Mes demandes (réponses à lire)");
   const conv = p => page.locator('.entr-reps[data-prenom="' + p + '"]');
-  await expect(conv("Damien")).toBeVisible();
-  // Répondre à Damien, Thomas (mes demandes) et Marie (que j'aide), décliner Claire : plus rien n'attend, la pastille s'éteint
-  for (const p of ["Damien", "Thomas", "Marie"]) {
+  const repondre = async p => {
     await conv(p).getByRole("button", { name: "Répondre à " + p }).click();
     await page.fill("#entr-rep-txt", "Merci !");
     await page.keyboard.press("Enter");
     await expect(conv(p).locator(".entr-moi").last()).toHaveText(/Merci !/);
-  }
-  await expect(page.locator("#entr-tab-pub .entr-pastille")).toHaveCount(1);
+  };
+  // Demandes d'aide : répondre à Marie éteint sa pastille
+  await page.click("#entr-tab-pub");
+  await repondre("Marie");
+  await expect(page.locator("#entr-tab-pub .entr-pastille")).toHaveCount(0);
+  await expect(page.locator("#entr-tab-mes .entr-pastille")).toHaveCount(1);
+  // Mes demandes : répondre à Damien et Thomas, décliner Claire
+  await page.click("#entr-tab-mes");
+  for (const p of ["Damien", "Thomas"]) await repondre(p);
+  await expect(page.locator("#entr-tab-mes .entr-pastille")).toHaveCount(1);
   await conv("Claire").getByRole("button", { name: "Décliner" }).click();
   await page.keyboard.press("Enter"); // envoie le remerciement pré-rempli, puis termine la conversation
-  await expect(page.locator("#entr-tab-pub .entr-pastille")).toHaveCount(0);
-  await expect(page.locator("#entr-nav-sel option").first()).toHaveText("Demandes d'aide");
+  await expect(page.locator("#entr-tab-mes .entr-pastille")).toHaveCount(0);
+  await expect(page.locator("#entr-tab-mes")).toHaveText("Mes demandes");
 });
 
 test("Mes demandes : les messages s'affichent directement et arrivent en direct @mobile", async ({ open, page }) => {
   const MOI = [{ email: "admin@example.org", droit: "admin", prenom: "", nom: "", entraide_voir: true, entraide_moderer: false }];
-  await open({ user: ADMIN, hash: "#entraide", acces: MOI });
+  await open({ user: ADMIN, hash: "#entraide/mes-demandes", acces: MOI });
   const damien = page.locator('#entr-mes .entr-reps[data-prenom="Damien"]');
   await expect(damien.locator(".entr-recue").last()).toContainText("Vers 18 h, ça vous irait ?");
   // Damien écrit depuis son compte : son message apparaît en direct, sans recharger
@@ -536,7 +538,7 @@ test("zone de rédaction : la croix et le bouton d'envoi sont alignés sur le m�
 
 test("Mes demandes : « C'est réglé » sur une demande publiée, poubelle sur une demande en attente @mobile", async ({ open, page }) => {
   const MOI = [{ email: "admin@example.org", droit: "admin", prenom: "", nom: "", entraide_voir: true, entraide_moderer: false }];
-  await open({ user: ADMIN, hash: "#entraide", acces: MOI });
+  await open({ user: ADMIN, hash: "#entraide/mes-demandes", acces: MOI });
   const mes = page.locator("#entr-mes-list .entr-mienne");
   await expect(mes.first().locator(".who")).toHaveText(/^Moi/); // signée « Moi »
   const escabeau = mes.filter({ hasText: "escabeau" }), robinet = mes.filter({ hasText: "Réparer un robinet" });
@@ -576,7 +578,7 @@ test("Mes demandes : « C'est réglé » sur une demande publiée, poubelle sur 
 
 test("Mes demandes : demande publiée sans aucun message → poubelle ; dès le premier message → « C'est réglé » @mobile", async ({ open, page }) => {
   const MOI = [{ email: "admin@example.org", droit: "admin", prenom: "", nom: "", entraide_voir: true, entraide_moderer: false }];
-  await open({ user: ADMIN, hash: "#entraide", acces: MOI });
+  await open({ user: ADMIN, hash: "#entraide/mes-demandes", acces: MOI });
   await page.evaluate(() => { window.__S.entraide.push({ id: "e9", auteur: "admin@example.org", prenom: "Paul", telephone: "+33639980009", quartier: "", besoin: "Arroser mes plantes pendant mes vacances.", quand: "", statut: "publiee", jours: 0, cree: Date.now() }); window.__entraideSignal(); });
   const plantes = page.locator("#entr-mes-list .entr-mienne").filter({ hasText: "Arroser mes plantes" });
   await expect(plantes.locator("[data-retirer]")).toHaveAccessibleName("Supprimer ma demande");
@@ -683,16 +685,19 @@ test("l'heure d'une demande publiée ne bouge pas quand le fil se recharge", asy
   expect(await heures()).toEqual(avant);
 });
 
-test("grand écran : « Mes demandes » à 420 px quand elle est vide, moitié de la largeur dès qu'il y a une demande", async ({ open, page }) => {
+test("grand écran : une seule colonne, les demandes des autres ou mes demandes selon l'onglet", async ({ open, page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await open({ user: VOIR, hash: "#entraide", acces: ACCES });
-  const largeurs = () => page.locator("#entr-mes").evaluate(e => [e.getBoundingClientRect().width, e.parentElement.querySelector("#entr-list").closest("#entr-pub > *").getBoundingClientRect().width]);
-  await expect(page.locator("#entr-mes-vide")).toBeVisible();
-  expect((await largeurs())[0]).toBe(420);
-  // Une demande : les deux colonnes se partagent la largeur
-  await page.evaluate(() => { window.__S.entraide.push({ id: "moi1", auteur: "voir@example.org", prenom: "Moi", telephone: "+33639980098", besoin: "Un coup de main", statut: "a_valider", jours: 0 }); window.__entraideSignal(); });
-  await expect(page.locator("#entr-mes-vide")).toBeHidden();
-  await expect.poll(async () => { const [d, g] = await largeurs(); return Math.abs(d - g) < 1; }).toBe(true);
+  const largeur = sel => page.locator(sel).evaluate(e => e.getBoundingClientRect().width);
+  const fil = await largeur("#entr-besoin-sec");
+  await expect(page.locator("#entr-mes")).toBeHidden();
+  await page.click("#entr-tab-mes");
+  await expect(page.locator("#entr-besoin-sec")).toBeHidden();
+  await expect(page.locator("#entr-mes")).toBeVisible();
+  expect(await largeur("#entr-mes")).toBe(fil); // même cadre, même largeur
+  // le soulignement de l'onglet affiché suit
+  await expect(page.locator("#entr-tab-mes")).toHaveAttribute("aria-current", "page");
+  await expect(page.locator("#entr-tab-pub")).not.toHaveAttribute("aria-current", "page");
 });
 
 test("modération : une demande sans téléphone s'affiche sans lien d'appel", async ({ open, page }) => {

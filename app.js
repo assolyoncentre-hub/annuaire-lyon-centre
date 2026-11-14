@@ -344,12 +344,11 @@ const TAB_OF = { staffs: "services", poles: "poles", contacts: "contacts", messa
 function route() {
   // Ancienne adresse de la page (« serviteurs ») : redirigée
   if (location.hash === "#serviteurs") history.replaceState(null, "", "#leaders");
-  // Ancienne page « Mes demandes » : désormais première section de la page des demandes
-  if (location.hash === "#entraide/mes-demandes") history.replaceState(null, "", "#entraide");
   if (!ACCUEIL) { $("sw-home").hidden = true; if (location.hash === "#accueil") history.replaceState(null, "", "#"); }
   const h = location.hash, serv = h === "#leaders", showServ = serv && canLeaders;
-  // Entraide, réservée au droit « voir » (#entraide) et « modérer » (#entraide/moderation) : sinon connexion ou refus
-  const entrMod = h === "#entraide/moderation", entrHash = h === "#entraide" || entrMod;
+  // Entraide, réservée au droit « voir » (#entraide, #entraide/mes-demandes) et « modérer » (#entraide/moderation) :
+  // sinon connexion ou refus
+  const entrMod = h === "#entraide/moderation", entrHash = h === "#entraide" || h === "#entraide/mes-demandes" || entrMod;
   const entr = (entrHash && !entrMod && canEntraide) || (entrMod && isReferent);
   // Administration : « #admin » (staffs), « #admin/poles », « #admin/contacts », « #admin/messages »
   const adminHash = h === "#admin" || h.startsWith("#admin/");
@@ -445,7 +444,7 @@ function renderHome() {
   $("home-grid").innerHTML = [
     afficheHtml("prop", ["Il existe forcément une proposition faite pour vous !"]),
     // Entraide : proposée aussi sans connexion (elle mène à la connexion), pas à une personne connectée sans ce droit
-    !session || canEntraide ? afficheHtml("entr", [canEntraide ? "Demander ou proposer son aide" : "Connexion requise"], pastille("#entraide")) : "",
+    !session || canEntraide ? afficheHtml("entr", [canEntraide ? "Demander ou proposer son aide" : "Connexion requise"], pastille("#entraide") || pastille("#entraide/mes-demandes")) : "",
     canLeaders ? afficheHtml("lead", ["Réservé aux leaders"]) : "",
     isReferent ? afficheHtml("mod", ["Réservé aux modérateurs"], pastille("#entraide/moderation")) : "",
     isAdmin ? afficheHtml("admin", ["Staffs, pôles, contacts, droits"]) : "",

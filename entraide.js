@@ -1,7 +1,8 @@
 // ---------- Entraide ----------
 // Onglet « Entraide », réservé aux comptes qui en ont le droit (fiche contact : « Voir » / « Modérer » l'entraide) :
-//   #entraide            mes demandes d'aide (avec leurs conversations), demandes publiées, demandes pourvues,
-//                        et formulaire de demande d'aide                                          droit « voir »
+//   #entraide              demandes publiées (et mes conversations d'aidant), demandes pourvues    droit « voir »
+//   #entraide/mes-demandes mes demandes d'aide avec leurs conversations                            droit « voir »
+//   (« Faire une demande », dans la barre des onglets : formulaire de demande d'aide)
 //   #entraide/moderation modération des demandes                                                    droit « modérer »
 // Utilise les outils d'app.js ($, esc, api, toast, setPageInert, openEditor, canEntraide, isReferent, telHref).
 
@@ -443,7 +444,7 @@ async function loadEntraide() {
 let entrArret = null, entrConnecte = false;
 function entrRafraichir() {
   const h = location.hash;
-  if (h === "#entraide" && canEntraide) loadEntraide();
+  if (entrPage(h) && canEntraide) loadEntraide();
   else if (h === "#entraide/moderation" && isReferent && entrModShown) loadModeration();
   entrMajPastille();
 }
@@ -464,11 +465,12 @@ let entrDemandes = null, entrFiltre = "a_valider", entrBusy = false;
 const ENTR_FILTRES = [["a_valider", "À valider"], ["publiee", "Publiées"], ["terminees", "Terminées"]];
 const entrDans = (d, f) => f === "terminees" ? d.statut === "pourvue" || d.statut === "refusee" : d.statut === f;
 
-// Pastilles rouges (onglet et liste déroulante, pour les modérateurs) : « Modération » s'il y a des demandes à valider,
-// « Demandes d'aide » si un message attend ma réponse : d'une personne qui propose son aide sur ma demande, ou de l'auteur
-// d'une demande que j'aide (conversations non terminées dont le dernier message n'est pas de moi)
+// Pastilles rouges des onglets : « Modération » s'il y a des demandes à valider ; « Mes demandes » si une personne qui
+// propose son aide sur ma demande attend ma réponse ; « Demandes d'aide » si l'auteur d'une demande que j'aide attend la
+// mienne (conversations non terminées dont le dernier message n'est pas de moi)
 const ENTR_PASTILLES = {
   "#entraide": { tab: "entr-tab-pub", label: "Demandes d'aide", cache: " (réponses à lire)", on: false },
+  "#entraide/mes-demandes": { tab: "entr-tab-mes", label: "Mes demandes", cache: " (réponses à lire)", on: false },
   "#entraide/moderation": { tab: "entr-tab-mod", label: "Modération", cache: " (demandes à modérer)", on: false },
 };
 // on : vrai/faux, ou le nombre de demandes à valider (écrit dans la pastille de l'affiche de l'accueil)
@@ -477,26 +479,18 @@ function entrPastille(hash, on) {
   p.on = !!on;
   p.n = typeof on === "number" ? on : 0;
   $(p.tab).innerHTML = esc(p.label) + (on ? '<span class="entr-pastille" aria-hidden="true"></span><span class="entr-cache">' + esc(p.cache) + "</span>" : "");
-  const opt = $("entr-nav-sel").querySelector('option[value="' + hash + '"]');
-  if (opt) opt.textContent = entrLibelle(hash);
-  entrAlerteSel();
   if (location.hash === "#accueil") renderHome(); // pastille sur l'affiche de l'accueil
 }
-const entrLibelle = hash => ENTR_PASTILLES[hash].label + (ENTR_PASTILLES[hash].on ? " 🔴" : "");
-// Téléphone : la liste fermée montre aussi la pastille d'une autre page que celle affichée
-const entrAlerteSel = () => $("entr-nav-sel").classList.toggle("alerte",
-  Object.entries(ENTR_PASTILLES).some(([h, p]) => p.on && location.hash !== h));
 let entrMesListe = [], entrAidesListe = [];
-const entrMajPub = () => entrPastille("#entraide", entrMesListe.some(d => d.conversations.some(entrAttend)) || entrAidesListe.some(entrAttend));
-function entrMajMes(list) { entrMesListe = list; entrMajPub(); }
-function entrMajAides(list) { entrAidesListe = list; entrMajPub(); }
+function entrMajMes(list) { entrMesListe = list; entrPastille("#entraide/mes-demandes", list.some(d => d.conversations.some(entrAttend))); }
+function entrMajAides(list) { entrAidesListe = list; entrPastille("#entraide", list.some(entrAttend)); }
 // Données des pastilles que la vue affichée ne recharge pas elle-même
 let entrPastilleSeq = 0;
 async function entrMajPastille() {
   const seq = ++entrPastilleSeq, h = location.hash, ok = f => l => { if (seq === entrPastilleSeq) f(l); };
   if (isReferent && h !== "#entraide/moderation")
     api.entraideModeration().then(ok(l => entrPastille("#entraide/moderation", l.filter(d => d.statut === "a_valider").length))).catch(() => {});
-  if (!canEntraide || h === "#entraide") return; // la page des demandes recharge déjà mes demandes et mes aides
+  if (!canEntraide || entrPage(h)) return; // la page des demandes recharge déjà mes demandes et mes aides
   api.entraideMesDemandes().then(ok(entrMajMes)).catch(() => {});
   api.entraideMesAides().then(ok(entrMajAides)).catch(() => {});
 }
@@ -598,38 +592,32 @@ $("entr-mod-list").addEventListener("click", e => {
     }, "Supprimer", true);
 });
 // Appelé par route() (app.js) à chaque changement de vue ou de connexion (rien à afficher sans le droit)
-let entrModShown = false;
+// Pages des demandes : Demandes d'aide (#entraide) et Mes demandes (#entraide/mes-demandes), deux vues de #entr-pub
+const entrPage = h => h === "#entraide" || h === "#entraide/mes-demandes";
+let entrModShown = false, entrVue = null;
 function onEntraideRoute() {
   const h = location.hash, mod = h === "#entraide/moderation" && isReferent;
   entrEcouter(canEntraide);
-  if (h !== "#entraide") entrFermerReponse();
+  if (h !== entrVue) { entrFermerReponse(); entrVue = h; } // la réponse en cours ne suit pas d'un onglet à l'autre
   if (h === "#accueil") entrMajPastille(); // pastilles des affiches Entraide et Modération
-  if (!(h === "#entraide" && canEntraide) && !mod) { entrModShown = false; return; }
-  // Une seule page sans le droit de modérer : pas de barre de navigation (« Faire une demande » est dans Mes demandes)
-  $("entr-bar").hidden = $("entr-tabs").hidden = $("entr-nav-sel").hidden = !isReferent;
+  if (!(entrPage(h) && canEntraide) && !mod) { entrModShown = false; return; }
   $("entr-tab-mod").hidden = !isReferent;
   $("entr-pub").hidden = mod;
+  $("entr-pub").classList.toggle("vue-mes", h === "#entraide/mes-demandes");
   $("entr-mod").hidden = !mod;
-  for (const [id, on] of [["entr-tab-pub", !mod], ["entr-tab-mod", mod]]) {
-    if (on) $(id).setAttribute("aria-current", "page"); else $(id).removeAttribute("aria-current");
+  for (const t of $("entr-tabs").querySelectorAll(".tab")) {
+    if (t.getAttribute("href") === h) t.setAttribute("aria-current", "page"); else t.removeAttribute("aria-current");
   }
-  // Téléphone : même navigation en liste déroulante
-  const sel = $("entr-nav-sel");
-  sel.innerHTML = [["#entraide", entrLibelle("#entraide")], ...(isReferent ? [["#entraide/moderation", entrLibelle("#entraide/moderation")]] : [])]
-    .map(([v, l]) => '<option value="' + v + '">' + esc(l) + "</option>").join("");
-  sel.value = mod ? "#entraide/moderation" : "#entraide";
-  entrAlerteSel();
   entrMajPastille();
   if (!mod) { entrModShown = false; loadEntraide(); }
   else if (!entrModShown) { entrModShown = true; entrDemandes = null; renderModeration(); loadModeration(); }
 }
-$("entr-nav-sel").addEventListener("change", e => { location.hash = e.target.value; });
-// « Mes demandes » (première section de la page, seulement si j'en ai déposé) : mes demandes (reliées à mon compte
+// « Mes demandes » (onglet Mes demandes) : mes demandes (reliées à mon compte
 // par la base) et, pour chacune, une conversation par personne qui a proposé son aide, que nous sommes seules à voir ;
 // les messages s'affichent directement et se mettent à jour en direct avec le reste de la page.
 const ENTR_MON_STATUT = { a_valider: ["En attente de validation", "wait"], publiee: ["Publiée", "lead"], pourvue: ["C'est réglé ✓", "ok"], refusee: ["Non publiée", "refus"] };
 function renderMesDemandes(list) {
-  $("entr-mes").hidden = false; // toujours là : elle porte le bouton « Faire une demande »
+  $("entr-mes").hidden = false;
   $("entr-mes-vide").hidden = !!list.length;
   $("entr-mes-list").innerHTML = [...list].sort((a, b) => b.created_at.localeCompare(a.created_at)).map(d => {
     const [label, cls] = ENTR_MON_STATUT[d.statut] || ENTR_MON_STATUT.a_valider;
@@ -721,7 +709,7 @@ eForm.addEventListener("submit", async e => {
   try {
     await api.entraideDemander({ p_besoin: f.besoin.value, p_quand: f.quand.value, p_quartier: f.quartier.value,
       p_prenom: f.prenom.value, p_telephone: "", p_accord: f.accord.checked, p_site: f.site.value });
-    if (location.hash === "#entraide") loadEntraide(); // ma nouvelle demande apparaît dans « Mes demandes »
+    if (entrPage(location.hash)) loadEntraide(); // ma nouvelle demande apparaît dans « Mes demandes »
     $("e-done-title").textContent = "Merci " + f.prenom.value.trim() + " !";
     eForm.hidden = $("e-head").hidden = true;
     $("entr-modal").querySelector("[role=dialog]").setAttribute("aria-labelledby", "e-done-title");
