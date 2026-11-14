@@ -1217,9 +1217,11 @@ function zoomPhoto(x, from) {
   z.className = "ph-zoom"; z.setAttribute("role", "dialog"); z.setAttribute("aria-modal", "true"); z.setAttribute("aria-label", "Photo de " + fullName(x.p));
   z.innerHTML = '<figure><img src="' + esc(photoFor(x.p)) + '" alt="Photo de ' + esc(fullName(x.p)) + '"><figcaption>' + esc(servName(x.p)) + "</figcaption></figure>" +
     '<button type="button" class="ph-zoom-x" aria-label="Fermer">×</button>';
-  const close = () => { z.remove(); from.focus(); };
+  // Échap (où que soit le focus), clic dans le fond (hors de la photo et de son nom) ou × : la photo se referme
+  const esc_ = e => { if (e.key === "Escape") { e.preventDefault(); e.stopImmediatePropagation(); close(); } };
+  const close = () => { document.removeEventListener("keydown", esc_, true); z.remove(); from.focus(); };
+  document.addEventListener("keydown", esc_, true);
   z.querySelector(".ph-zoom-x").addEventListener("click", close);
-  // Clic dans le fond (hors de la photo et de son nom) : la photo se referme
   z.addEventListener("click", e => { if (!e.target.closest("figure")) close(); });
   document.body.append(z);
   z.querySelector(".ph-zoom-x").focus();
