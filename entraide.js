@@ -531,9 +531,9 @@ function renderModeration() {
   const list = all.filter(d => entrDans(d, entrFiltre));
   // Réaffichage (en direct, ou après une action) : le focus reste sur le même bouton de message
   const focusMsg = document.activeElement?.closest?.("#entr-mod-list [data-msg-masquer]")?.dataset.msgMasquer;
-  const btn = (act, label, cls = "btn-ghost") => '<button type="button" class="btn ' + cls + ' btn-sm" data-act="' + act + '"' + (entrBusy ? " disabled" : "") + ">" + label + "</button>";
-  // Supprimer : contour et texte rouges ; Masquer (œil barré) sur les demandes déjà visibles (publiées, terminées)
-  const suppr = btn("supprimer", "Supprimer", "btn-ghost btn-suppr"), masquer = btn("masquer", EYE_OFF + "Masquer", "btn-ghost btn-ico");
+  const btn = (act, label, cls = "btn-ghost", attr = "") => '<button type="button" class="btn ' + cls + ' btn-sm" data-act="' + act + '"' + attr + (entrBusy ? " disabled" : "") + ">" + label + "</button>";
+  // Supprimer : poubelle seule, contour rouge ; Masquer (œil barré) sur les demandes déjà visibles (publiées, terminées)
+  const suppr = btn("supprimer", TRASH, "btn-ghost btn-suppr", ' aria-label="Supprimer la demande" title="Supprimer la demande"'), masquer = btn("masquer", EYE_OFF + "Masquer", "btn-ghost btn-ico");
   const ops = d => d.masquee_le ? btn("reafficher", ENTR_OEIL + "Réafficher", "btn-ghost btn-ico") + suppr : ({
     a_valider: btn("publier", "Publier", "btn-primary") + btn("modifier", "Modifier") + btn("refuser", "Refuser") + suppr,
     publiee: btn("pourvue", "C'est pourvu", "btn-primary") + btn("modifier", "Modifier") + masquer + suppr,

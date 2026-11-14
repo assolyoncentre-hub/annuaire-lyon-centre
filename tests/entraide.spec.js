@@ -215,7 +215,7 @@ test("modération : publier, modifier, pourvue, refuser, supprimer", async ({ op
   await page.click("#ed-form [type=submit]");
   await expect(henri.locator(".need")).toHaveText("M'accompagner à la messe du dimanche");
   await expect(henri.locator("[data-act=publier]")).toHaveText("Publier");
-  await expect(henri.locator("[data-act=supprimer]")).toHaveText("Supprimer"); // à valider : supprimable aussi
+  await expect(henri.locator("[data-act=supprimer]")).toHaveAttribute("aria-label", "Supprimer la demande"); // à valider : supprimable aussi (poubelle seule)
   await henri.locator("[data-act=publier]").click();
   await expect(page.locator("#toast")).toContainText("Demande publiée.");
   await expect(page.locator("#entr-filters")).toContainText("Publiées (6)");
