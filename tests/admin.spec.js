@@ -294,3 +294,50 @@ test("photo d'un contact : envoyée depuis la fiche, en noir et blanc dans l'ann
   await page.click("#sw-serv");
   await expect(page.locator(".serv-card", { hasText: "BRUNET" }).locator(".avatar")).toHaveText("JB");
 });
+
+test("désactiver un compte : effet immédiat, pastille et filtre, connexion refusée comme une adresse inconnue, puis réactiver @mobile", async ({ open, page }) => {
+  await open({ user: ADMIN, hash: "#admin/contacts" });
+  await editRow(page, "Laforêt");
+  const desact = page.locator("#pe-compte [data-compte=desactiver]");
+  await expect(desact).toHaveText("Désactiver le compte");
+  await expect(desact).toHaveCSS("color", "rgb(198, 40, 40)");
+  await desact.click();
+  await expect(page.locator("#toast")).toContainText("Compte de Damien désactivé.");
+  expect((await calls(page, "desactiverCompte"))[0].arg).toEqual({ email: "damien@example.org", oui: true });
+  // Bandeau en haut, section « Compte » retirée, droits estompés ; focus sur « Réactiver »
+  await expect(page.locator(".pe-bandeau")).toContainText("Compte désactivé le");
+  await expect(page.locator(".pe-bandeau")).toContainText("Damien ne peut plus se connecter.");
+  await expect(page.locator("#pe-compte")).toBeHidden();
+  await expect(page.locator("[data-compte=reactiver]")).toBeFocused();
+  await expect(page.locator(".ed-sec.droits").first()).toHaveClass(/estompe/);
+  await page.locator("#ed-form [data-close]").click();
+  // Liste : pastille, filtre « Comptes désactivés »
+  await expect(page.locator("#admin-list .row.is-off .badge.off")).toHaveText("Désactivé");
+  await page.fill("#aq", "");
+  await expect(page.locator("#cfilters")).toContainText("Comptes désactivés");
+  expect(await page.evaluate(() => window.__api.canSignIn("damien@example.org"))).toBe(false);
+  // Réactiver depuis la fiche : tout revient
+  await editRow(page, "Laforêt");
+  await page.locator("[data-compte=reactiver]").click();
+  await expect(page.locator("#toast")).toContainText("Compte de Damien réactivé.");
+  await expect(page.locator("#pe-compte [data-compte=desactiver]")).toBeFocused();
+  await expect(page.locator(".pe-bandeau")).toHaveCount(0);
+  expect(await page.evaluate(() => window.__api.canSignIn("damien@example.org"))).toBe(true);
+  // « Annuler » dans le message : désactivé de nouveau
+  await page.locator("#toast .toast-action").click();
+  await expect(page.locator(".pe-bandeau")).toBeVisible();
+});
+
+test("compte désactivé : à la connexion, traité comme une adresse inconnue", async ({ open, page }) => {
+  await open({ hash: "#admin", desactives: ["damien@example.org"] });
+  await page.fill("#otp-email", "damien@example.org");
+  await page.press("#otp-email", "Enter");
+  await expect(page.locator("#login-error")).toHaveText("Vous n'êtes pas autorisé à accéder à cette page.");
+  expect(await calls(page, "sendCode")).toHaveLength(0);
+});
+
+test("compte désactivé déjà connecté : déconnecté comme un compte sans accès", async ({ open, page }) => {
+  await open({ user: { email: "damien@example.org" }, hash: "#admin", desactives: ["damien@example.org"] });
+  await expect(page.locator("#login-error")).toContainText("n'a pas accès à l'annuaire");
+  await expect(page.locator("#admin-body")).toBeHidden();
+});

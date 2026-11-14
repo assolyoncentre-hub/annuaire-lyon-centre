@@ -147,6 +147,10 @@ function contact(s) {
 
 // Icône « œil barré » du badge « Masqué »
 const EYE_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.7 5.1A10.9 10.9 0 0 1 12 5c6.5 0 10 7 10 7a17.6 17.6 0 0 1-2.2 3.2M6.6 6.6C3.9 8.4 2 12 2 12s3.5 7 10 7a10 10 0 0 0 5.4-1.6"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/><path d="M2 2l20 20"/></svg>';
+// Compte désactivé (cercle barré), réactivation (cercle coché) ; date courte « 14 nov. »
+const BAN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg>';
+const CHECK_ROND = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.6 2.5L16 9.5"/></svg>';
+const dateCourte = d => new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
 // Staffs visibles dans les annuaires (un staff masqué ne figure que dans l'administration)
 const shownServices = () => services.filter(s => !s.masque);
 function render() {
@@ -336,7 +340,12 @@ async function loadAdmin() {
   respOf = group(responsables, "pole_id");
   contactRows = contacts; respRows = responsables;
 }
-const loadAcces = () => api.acces().then(a => { acces = a; }, () => {});
+// Comptes désactivés (e-mail → date) : connexion impossible, droits gardés
+let desactives = new Map();
+const loadAcces = () => Promise.all([
+  api.acces().then(a => { acces = a; }, () => {}),
+  (api.comptesDesactives ? api.comptesDesactives() : Promise.resolve([])).then(l => { desactives = new Map(l.map(d => [d.email, d.desactive_le])); }, () => {}),
+]);
 // Après un enregistrement : annuaire et données d'administration rechargés en parallèle
 async function refresh() {
   await Promise.all([loadPublic(), canLeaders && loadAdmin(), isAdmin && loadAcces()]);
@@ -527,6 +536,7 @@ const CONTACT_FILTERS = [
   ["entr-voir", "Voir l'entraide", "#e08a1e", p => p.entraide !== "aucun"],
   ["entr-mod", "Modérer l'entraide", "#9a4b00", p => p.entraide === "moderer"],
   ["hors", "Hors annuaire", "#6b4fbb", p => p.hors],
+  ["desactives", "Comptes désactivés", "#c62828", p => !!p.desactive_le],
 ];
 function renderAdmin() {
   if ($("admin-body").hidden) return;
@@ -551,7 +561,8 @@ function renderAdmin() {
     const badgeEntr = p => p.entraide === "moderer" ? ' <span class="badge entr">Entraide : modération</span>' : p.entraide === "voir" ? ' <span class="badge entr">Entraide</span>' : "";
     const row = p => {
       const roles = p.hors ? ["Ni staff ni pôle"] : personRoles(p);
-      return '<div class="row" data-id="' + esc(p.key) + '"><span></span><div><div class="title">' + esc(nomPrenom(p) || p.email) + badge(p) + badgeEntr(p) + "</div>" +
+      return '<div class="row' + (p.desactive_le ? " is-off" : "") + '" data-id="' + esc(p.key) + '"><span></span><div><div class="title"><span class="nm">' + esc(nomPrenom(p) || p.email) + "</span>" +
+        (p.desactive_le ? ' <span class="badge off">' + BAN + "Désactivé</span>" : "") + badge(p) + badgeEntr(p) + "</div>" +
         '<div class="meta"><span>' + (p.email ? esc(p.email) : "Pas d'e-mail") + "</span>" + (p.telephone ? "<span>" + esc(p.telephone) + "</span>" : "") + '<span class="ell" title="' + esc(roles.join(", ")) + '">' + esc(roles.join(", ")) + "</span></div></div>" +
         '<div class="ops"><button type="button" class="btn btn-ghost btn-sm" data-act="edit">Modifier</button>' +
         '<button type="button" class="btn btn-ghost btn-sm" data-act="del">Supprimer</button></div></div>';
@@ -959,11 +970,11 @@ function fiches() {
   const droits = new Map(acces.map(a => [a.email, a]));
   const list = persons().map(p => {
     const e = p.email.toLowerCase();
-    return { ...p, hors: false, droit: e ? droits.get(e)?.droit || "leaders" : null, entraide: entraideDe(droits.get(e)) };
+    return { ...p, hors: false, droit: e ? droits.get(e)?.droit || "leaders" : null, entraide: entraideDe(droits.get(e)), desactive_le: e ? desactives.get(e) || null : null };
   });
   const known = new Set(list.map(p => p.email.toLowerCase()).filter(Boolean));
   for (const a of acces) if (!known.has(a.email)) list.push({ key: "@" + a.email, civilite: a.civilite || "", prenom: a.prenom || "", nom: a.nom || "",
-    email: a.email, telephone: a.telephone || "", contacts: [], responsables: [], hors: true, droit: a.droit, entraide: entraideDe(a) });
+    email: a.email, telephone: a.telephone || "", contacts: [], responsables: [], hors: true, droit: a.droit, entraide: entraideDe(a), desactive_le: desactives.get(a.email) || null });
   return list.sort((a, b) => byName(a.nom || "", b.nom || "") || byName(a.prenom || "", b.prenom || "") || byName(a.email, b.email));
 }
 const svcById = id => services.find(s => s._id === id);
@@ -997,6 +1008,7 @@ function editPerson(p) {
   const poleBoxes = poleNames().map(n => box("pole", poles[n]._id, n, myPoles.has(poles[n]._id))).join("");
   const self = !!p?.email && p.email.toLowerCase() === myEmail(), droit = p?.droit || "leaders";
   openEditor(p ? "Modifier le contact" : "Ajouter un contact", p ? fullName(p) : "Nouveau contact",
+    '<div id="pe-bandeau" hidden></div>' +
     // En haut : civilité à gauche, photo ronde à droite (clic : changer ou supprimer)
     '<section class="ed-sec"><div class="pe-top"><div class="field w-fit"><label for="pe-civ">Civilité</label>' + civSelect("pe-civ", p?.civilite) + "</div>" +
       '<div class="ph-wrap"><button type="button" class="ph-btn" id="pe-photo-btn" aria-haspopup="menu" aria-expanded="false" title="Photo, affichée en noir et blanc dans l\'annuaire des leaders">' +
@@ -1017,7 +1029,8 @@ function editPerson(p) {
     '<section class="ed-sec droits" role="radiogroup" aria-labelledby="pe-entr-t"><h3 class="ed-sec-title" id="pe-entr-t">Entraide</h3><div class="seg">' +
     DROITS_ENTRAIDE.map(([v, label, sub]) => '<label><input type="radio" name="pe-entr" value="' + v + '"' + ((p?.entraide || "aucun") === v ? " checked" : "") + (self ? " disabled" : "") +
       "><b>" + label + "</b><span>" + sub + "</span></label>").join("") + "</div>" +
-    (self ? '<div class="hint">Vous ne pouvez pas modifier votre propre droit.</div>' : "") + "</section>",
+    (self ? '<div class="hint">Vous ne pouvez pas modifier votre propre droit.</div>' : "") + "</section>" +
+    '<section class="ed-sec pe-compte" id="pe-compte" hidden></section>',
     async f => {
       const prenom = f.querySelector("#pe-prenom").value.trim(), nom = f.querySelector("#pe-nom").value.trim();
       const email = f.querySelector("#pe-email").value.trim().toLowerCase();
@@ -1061,6 +1074,11 @@ function editPerson(p) {
         await api.savePhoto(email, photo.data, photo.grand);
       }
       if (ancien && ancien !== email && photoFor(p)) await api.savePhoto(ancien, null);
+      // Compte désactivé dont l'adresse change : la désactivation suit la nouvelle adresse
+      if (p?.desactive_le && ancien && ancien !== email) {
+        if (email) await api.desactiverCompte(email, true);
+        await api.desactiverCompte(ancien, false);
+      }
       await refresh();
       toast(p ? "Contact enregistré." : "Contact ajouté.");
     });
@@ -1103,6 +1121,32 @@ function editPerson(p) {
       noEmail ? "Sans e-mail, cette personne ne peut pas se connecter : le droit ne s'applique qu'avec une adresse." :
       "";
   };
+  // Compte : « Désactiver le compte » en bas ; désactivé, un bandeau en haut avec « Réactiver ». Effet immédiat
+  // (indépendant d'« Enregistrer »), le message propose d'annuler. Ni sur sa propre fiche, ni sans e-mail enregistré.
+  const compteEmail = p?.email ? p.email.toLowerCase() : "";
+  const drawCompte = () => {
+    const le = desactives.get(compteEmail), qui = esc(p.prenom || fullName(p));
+    f.querySelector("#pe-bandeau").hidden = !le;
+    f.querySelector("#pe-compte").hidden = !!le;
+    f.querySelectorAll(".ed-sec.droits").forEach(x => x.classList.toggle("estompe", !!le));
+    f.querySelector("#pe-bandeau").innerHTML = le ? '<div class="pe-bandeau">' + BAN + '<div><b>Compte désactivé le ' + esc(dateCourte(le)) + "</b>" + qui +
+      ' ne peut plus se connecter.</div><button type="button" class="btn btn-ghost btn-sm" data-compte="reactiver">' + CHECK_ROND + "Réactiver</button></div>" : "";
+    f.querySelector("#pe-compte").innerHTML = le ? "" : '<h3 class="ed-sec-title">Compte</h3><div class="pe-compte-l"><p>' + qui +
+      " ne pourra plus se connecter, ni par code e-mail ni avec Google. Ses droits sont gardés pour une réactivation.</p>" +
+      '<button type="button" class="btn btn-ghost btn-sm btn-desact" data-compte="desactiver">' + BAN + "Désactiver le compte</button></div>";
+  };
+  const setCompte = async (oui, focus = true) => {
+    try { await api.desactiverCompte(compteEmail, oui); }
+    catch (err) { return toast((oui ? "Désactivation" : "Réactivation") + " impossible : " + (err?.message || "erreur inconnue")); }
+    await loadAcces();
+    renderAdmin();
+    if (f.isConnected && !$("editor").hidden && $("ed-form") === f) { drawCompte(); if (focus) f.querySelector("[data-compte]")?.focus(); }
+    toast("Compte de " + (p.prenom || fullName(p)) + (oui ? " désactivé." : " réactivé."), { label: "Annuler", fn: () => setCompte(!oui, false) });
+  };
+  if (compteEmail && !self) {
+    drawCompte();
+    f.addEventListener("click", e => { const b = e.target.closest("[data-compte]"); if (b) setCompte(b.dataset.compte === "desactiver"); });
+  }
   mselSync(f);
   f.addEventListener("change", sync);
   f.querySelector("#pe-email").addEventListener("input", sync);
@@ -1146,6 +1190,7 @@ function deletePerson(p) {
       if (p.contacts.length || p.responsables.length)
         await api.savePerson({}, { contacts: { del: p.contacts.map(r => r.id) }, responsables: { del: p.responsables.map(r => r.id) } });
       if (e && !self && acces.some(a => a.email === e)) await api.saveAcces(e, null);
+      if (e && !self && desactives.has(e)) await api.desactiverCompte(e, false); // fiche supprimée : plus de désactivation en attente
       await refresh();
       toast("Contact supprimé.");
     }, "Supprimer", true);

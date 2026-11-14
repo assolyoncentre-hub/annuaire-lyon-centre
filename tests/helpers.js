@@ -8,13 +8,13 @@ const SITE = "file://" + path.resolve(__dirname, "..", "index.html");
 const ADMIN = { email: "admin@example.org", admin: true };
 
 const test = base.extend({
-  // open({ user, hash, acces, accueil }) : charge le site, éventuellement connecté (user) et sur une vue (« #admin ») ;
-  // accueil : active l'accueil (mis de côté, absent du site)
+  // open({ user, hash, acces, accueil, desactives }) : charge le site, éventuellement connecté (user) et sur une vue (« #admin ») ;
+  // accueil : active l'accueil (mis de côté, absent du site) ; desactives : e-mails des comptes désactivés
   open: async ({ page }, use) => {
     await page.route(/^https?:\/\//, route => route.abort()); // polices et CDN : inutiles pour les tests
-    await use(async ({ user = null, hash = "", acces = null, accueil = false } = {}) => {
+    await use(async ({ user = null, hash = "", acces = null, accueil = false, desactives = null } = {}) => {
       if (accueil) await page.addInitScript(() => { window.__avecAccueil = true; });
-      await page.addInitScript(installFakeApi, { data, user, acces });
+      await page.addInitScript(installFakeApi, { data, user, acces, desactives });
       await page.goto(SITE + hash);
       await expect(page.locator("#count")).not.toHaveText(/Chargement/);
       return page;

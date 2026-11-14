@@ -170,5 +170,8 @@ window.makeApi = function () {
     // Droits par e-mail et fiches hors annuaire ; saveAcces(email, null) supprime la ligne
     acces: async () => (await getSb()).from("acces").select("email, droit, civilite, prenom, nom, telephone, entraide_voir, entraide_moderer").order("email").then(ok),
     saveAcces: (email, droit) => sbRpc("admin_save_acces", { p_email: email, p_droit: droit }),
+    // Comptes désactivés : connexion impossible (traités comme inconnus), droits gardés pour la réactivation
+    comptesDesactives: () => sbRpc("admin_comptes_desactives"),
+    desactiverCompte: (email, oui) => sbRpc("admin_desactiver_compte", { p_email: email, p_desactive: oui }),
   };
 };

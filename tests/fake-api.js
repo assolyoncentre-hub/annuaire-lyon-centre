@@ -1,7 +1,7 @@
 // Faux serveur injecté dans la page avant ses scripts (window.__api, utilisé à la place de Supabase).
 // Il reproduit les réponses de la base : lectures publiques sans e-mails, règles d'accès, enregistrements.
 // window.__S contient les données (modifiables par les tests), window.__calls la liste des appels.
-module.exports = function installFakeApi({ data, user, acces }) {
+module.exports = function installFakeApi({ data, user, acces, desactives }) {
   const S = JSON.parse(JSON.stringify(data));
   let n = 0;
   for (const r of [...S.contacts, ...S.responsables]) r.id = "r" + n++;
@@ -18,7 +18,11 @@ module.exports = function installFakeApi({ data, user, acces }) {
   // tout contact de l'annuaire, sinon aucun
   S.acces = acces || (user && user.admin ? [{ email: user.email.toLowerCase(), droit: "admin", prenom: "", nom: "" }] : []);
   const isContact = e => [...S.contacts, ...S.responsables].some(r => (r.email || "").toLowerCase() === e);
+  // Comptes désactivés (comme la table comptes_desactives) : plus aucun droit, donc plus de connexion
+  S.desactives ||= (desactives || []).map(email => ({ email, desactive_le: new Date().toISOString() }));
+  const desactive = e => S.desactives.some(d => d.email === e);
   const droitDe = e => {
+    if (desactive(e)) return null;
     const a = S.acces.find(x => x.email === e);
     if (a) return a.droit === "aucun" ? null : a.droit;
     return isContact(e) ? "leaders" : null;
@@ -33,7 +37,7 @@ module.exports = function installFakeApi({ data, user, acces }) {
   S.entraideMessages ||= [];
   delete S.entraideReponses; // ancienne maquette
   for (const x of [...S.entraideConversations, ...S.entraideMessages]) if (!x.le) x.le = new Date(Date.now() - (x.heures || 0) * 3600000).toISOString();
-  const entrDe = e => { const a = S.acces.find(x => x.email === e); return a?.entraide_moderer ? "moderer" : a?.entraide_voir ? "voir" : null; };
+  const entrDe = e => { if (desactive(e)) return null; const a = S.acces.find(x => x.email === e); return a?.entraide_moderer ? "moderer" : a?.entraide_voir ? "voir" : null; };
   const entrMoi = () => session ? entrDe(session.user.email.toLowerCase()) : null;
   const guardVoir = () => { if (!entrMoi()) throw new Error("Accès réservé."); };
   const guardRef = () => { if (entrMoi() !== "moderer") throw new Error("Accès réservé aux modérateurs de l'entraide."); };
@@ -349,6 +353,16 @@ module.exports = function installFakeApi({ data, user, acces }) {
       if (email === session.user.email.toLowerCase()) throw new Error("Vous ne pouvez pas modifier votre propre accès.");
       if (d) throw new Error("Réglez les droits depuis la fiche du contact.");
       S.acces = S.acces.filter(a => a.email !== email);
+    },
+    // Comme admin_comptes_desactives / admin_desactiver_compte
+    async comptesDesactives() { guard(); return clone(S.desactives).sort((a, b) => a.email.localeCompare(b.email)); },
+    async desactiverCompte(email, oui) {
+      guard(); log("desactiverCompte", { email, oui });
+      const e = (email || "").trim().toLowerCase();
+      if (!e) throw new Error("Ce contact n'a pas d'adresse e-mail.");
+      if (e === session.user.email.toLowerCase()) throw new Error("Vous ne pouvez pas désactiver votre propre compte.");
+      if (oui) { if (!desactive(e)) S.desactives.push({ email: e, desactive_le: new Date().toISOString() }); }
+      else S.desactives = S.desactives.filter(d => d.email !== e);
     },
     async reorder(kind, rows) { guard(); log("reorder", { kind, rows }); for (const r of rows) S[kind].find(x => x.id === r.id).ordre = r.ordre; },
   };
