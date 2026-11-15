@@ -25,8 +25,10 @@ jobs:
             exit 1
           fi
           auth=(-H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN")
+          # pannes passagères de l'API Supabase (ex. erreur 544) : jusqu'à 3 nouvelles tentatives
+          retry=(--retry 3 --retry-all-errors --retry-delay 10)
 
-          projects=$(curl -fsS "${auth[@]}" "$API/projects")
+          projects=$(curl -fsS "${retry[@]}" "${auth[@]}" "$API/projects")
           echo "$projects" | jq -r '.[] | "\(.ref)\t\(.status)\t\(.name)"' > projects.tsv
           [ -s projects.tsv ] || { echo "::warning::Aucun projet Supabase trouvé."; exit 0; }
 
@@ -38,7 +40,7 @@ jobs:
             fi
 
             # 1. Requête SQL réelle sur la base
-            if curl -fsS "${auth[@]}" -H "Content-Type: application/json" \
+            if curl -fsS "${retry[@]}" "${auth[@]}" -H "Content-Type: application/json" \
                  -d '{"query":"select now()"}' "$API/projects/$ref/database/query" > /dev/null; then
               sql=ok
             else
@@ -46,10 +48,10 @@ jobs:
             fi
 
             # 2. Appel public avec la clé anon (la racine REST est réservée à la clé de service)
-            key=$(curl -fsS "${auth[@]}" "$API/projects/$ref/api-keys" 2>/dev/null \
+            key=$(curl -fsS "${retry[@]}" "${auth[@]}" "$API/projects/$ref/api-keys" 2>/dev/null \
                     | jq -r '[.[] | select(.name == "anon")][0].api_key // empty' || true)
             if [ -n "$key" ]; then
-              rest=$(curl -sS -o /dev/null -w '%{http_code}' -H "apikey: $key" \
+              rest=$(curl -sS "${retry[@]}" -o /dev/null -w '%{http_code}' -H "apikey: $key" \
                        "https://$ref.supabase.co/auth/v1/health" || echo "injoignable")
               [ "$rest" = "200" ] || failed=1
             else
