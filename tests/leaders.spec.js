@@ -1,12 +1,11 @@
 // Annuaire des leaders : réservé aux administrateurs, une carte par personne avec téléphone et e-mail.
 const { test, expect, ADMIN, calls, pickPole } = require("./helpers");
 
-test("visiteur : onglets visibles, « Leaders » demande de se connecter", async ({ open, page }) => {
+test("visiteur : pas d'onglet Leaders ; l'adresse #leaders demande de se connecter", async ({ open, page }) => {
   await open();
-  await expect(page.locator("#switch")).toBeVisible();
-  await expect(page.locator("#sw-prop")).toHaveAttribute("aria-current", "page");
-  await page.click("#sw-serv");
-  await expect(page.locator("#sw-serv")).toHaveAttribute("aria-current", "page");
+  await expect(page.locator("#sw-serv")).toBeHidden();
+  await expect(page.locator("#sw-prop")).toBeVisible(); // Propositions reste, pour revenir depuis la connexion
+  await page.goto(page.url().replace(/#.*$/, "") + "#leaders");
   await expect(page.locator("#admin-login")).toBeVisible();
   await expect(page.locator("#login-title")).toHaveText("Accès réservé");
   await expect(page.locator("#login-text")).toHaveText("Seules les personnes explicitement désignées peuvent y accéder.");

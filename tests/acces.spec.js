@@ -27,7 +27,7 @@ test("compte absent des contacts : déconnecté aussitôt, avec un message", asy
   await expect(page.locator("#login-error")).toContainText("inconnu@example.org n'a pas accès à l'annuaire");
   expect(await calls(page, "signOut")).toHaveLength(1);
   await expect(page.locator("#sw-admin")).toBeHidden();
-  await page.click("#sw-serv");
+  await expect(page.locator("#sw-serv")).toBeHidden();
   await expect(page.locator("#admin-login")).toBeVisible();
 });
 

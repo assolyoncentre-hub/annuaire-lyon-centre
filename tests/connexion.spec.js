@@ -78,7 +78,7 @@ test("connexion depuis le bouton du haut : arrivée sur l'accueil @mobile", asyn
 test("connexion depuis l'onglet Leaders : on reste sur les leaders, même après un passage par le bouton du haut", async ({ open, page }) => {
   await open({ hash: "#" });
   await page.click("#admin-link");
-  await page.click("#sw-serv"); // on quitte l'écran de connexion sans se connecter
+  await page.evaluate(() => { location.hash = "#leaders"; }); // on quitte l'écran de connexion sans se connecter
   await page.fill("#otp-email", "damien@example.org");
   await page.click("#otp-send");
   await page.fill("#otp-code", "123456");
