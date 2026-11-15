@@ -309,6 +309,8 @@ $("m-form").addEventListener("submit", async e => {
 // (consultation de l'annuaire des leaders). Les administrateurs (table « acces ») ont en plus l'administration.
 // Un autre compte est déconnecté aussitôt ; la base refuse de toute façon toute lecture au-delà de ces droits.
 let profilOuvert = false, profilSeq = 0, profilPrenom = ""; // Mon profil : page affichée, chargement en cours, mon prénom (une fois lu)
+// « Annuler » du profil : page du site d'où l'on vient (null : arrivée directe sur #profil), dernière page hors profil
+let profilRetour = null, vueAvant = null;
 let isAdmin = false, canLeaders = false, canEntraide = false, isReferent = false, session = null, adminTab = "services", adminTerms = [], messages = [], acces = [], contactFilter = new Set();
 let authStarted = null, authLoaded = false, lastViewAdmin = null;
 
@@ -407,8 +409,9 @@ function route() {
   $("login-title").textContent = serv || entrHash ? "Accès réservé" : "Connexion";
   if (admin || serv) ensureAuth();
   // Mon profil : rechargé à chaque arrivée sur la page
-  if (profil && !profilOuvert) chargerProfil();
+  if (profil && !profilOuvert) { profilRetour = vueAvant; chargerProfil(); }
   profilOuvert = profil;
+  if (!profilHash) vueAvant = h;
   $("admin-login").hidden = !admin || !!session || !authLoaded;
   $("admin-denied").hidden = !admin || !session || (serv ? canLeaders : entrHash ? entr : isAdmin);
   $("denied-what").textContent = serv ? "n'a pas accès à l'annuaire des leaders." : entrMod ? "n'est pas modérateur de l'entraide." : entrHash ? "n'a pas accès à l'entraide." : "n'est pas administrateur de l'annuaire.";
@@ -1241,7 +1244,9 @@ function afficherProfil(p) {
       '<div class="field w-tel"><label for="pf-tel">Téléphone <span class="opt">(privé)</span></label><input id="pf-tel" class="tel-masque" type="tel" inputmode="tel" autocomplete="tel" value="' + esc(telMasquer(p.telephone || "")) + '"></div></section>' +
     (resp ? '<section class="ed-sec" aria-labelledby="pf-re-t"><h2 class="ed-sec-title" id="pf-re-t">Mes responsabilités</h2><ul class="pf-li">' + resp + "</ul>" +
       '<div class="hint">Réglées par les administrateurs.</div></section>' : "") +
-    '<div class="pf-actions"><button type="submit" class="btn btn-primary" id="pf-save">Enregistrer</button></div>';
+    // « Enregistrer » grisé tant que rien n'a changé ; « Annuler » revient à la page précédente sans rien enregistrer
+    '<div class="pf-actions"><button type="button" class="btn btn-ghost" id="pf-annuler">Annuler</button>' +
+    '<button type="submit" class="btn btn-primary" id="pf-save" disabled>Enregistrer</button></div>';
   // Photo : recadrée et réduite dans le navigateur, enregistrée avec « Enregistrer »
   const photo = { data: p.photo || "", grand: "", changed: false };
   const nomAff = () => {
@@ -1249,7 +1254,13 @@ function afficherProfil(p) {
     f.querySelector("#pf-nom-aff").innerHTML = esc([pr, no].filter(Boolean).join(" ")) + (v ? VERIFIE : "");
     return { prenom: pr, nom: no };
   };
+  const etat = () => JSON.stringify(["#pf-civ", "#pf-prenom", "#pf-nom"].map(id => f.querySelector(id).value.trim()).concat(telMasquer(f.querySelector("#pf-tel").value.trim())));
+  const initial = etat();
+  const majSave = () => { f.querySelector("#pf-save").disabled = etat() === initial && !photo.changed; };
+  f.oninput = f.onchange = majSave;
+  f.querySelector("#pf-annuler").onclick = () => profilRetour !== null ? history.back() : goHome();
   const drawPhoto = () => {
+    majSave();
     f.querySelector("#pf-photo-prev").innerHTML = photo.data ? '<img src="' + esc(photo.data) + '" alt="">' : esc(initials(nomAff()).toUpperCase());
     f.querySelector("#pf-photo-rm").hidden = !photo.data;
     f.querySelector("#pf-photo-pick").textContent = photo.data ? "Changer la photo" : "Choisir une photo";
@@ -1285,7 +1296,6 @@ function afficherProfil(p) {
     await refresh().catch(() => {}); // annuaire et leaders à jour
     await chargerProfil();
     route(); // prénom en haut à droite
-    $("pf-save")?.focus();
   };
 }
 

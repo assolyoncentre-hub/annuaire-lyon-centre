@@ -26,6 +26,12 @@ test("menu du compte → Mon profil : informations, responsabilités, e-mail en 
   await expect(page.locator("#pf-email-h")).toHaveText("Pour le changer, contactez un administrateur.");
   await expect(page.locator(".pf-li li")).toHaveText([/Leader du staff\s*Sacristie/, /Responsable du pôle\s*Solidarité/]);
   await expect(page.locator(".pf-nom .verifie")).toHaveCount(0);
+  // Rien de modifié : « Enregistrer » grisé ; revenir à la valeur d'origine le grise de nouveau
+  await expect(page.locator("#pf-save")).toBeDisabled();
+  await page.fill("#pf-nom", "Brunette");
+  await expect(page.locator("#pf-save")).toBeEnabled();
+  await page.fill("#pf-nom", "Brunet");
+  await expect(page.locator("#pf-save")).toBeDisabled();
   // Téléphone incomplet : erreur sous le champ, rien n'est envoyé
   await page.fill("#pf-tel", "06 39 98");
   await page.click("#pf-save");
@@ -44,6 +50,27 @@ test("menu du compte → Mon profil : informations, responsabilités, e-mail en 
   expect(new Set(lignes)).toEqual(new Set(["Jean-Marc|06 39 98 77 66"]));
   await expect(page.locator("#admin-label")).toHaveText("Jean-Marc");
   await expect(page.locator("#pf-nom-aff")).toHaveText("Jean-Marc Brunet");
+  await expect(page.locator("#pf-save")).toBeDisabled(); // enregistré : plus rien à enregistrer
+  // Annuler : retour à la page d'où l'on vient (l'annuaire des propositions), sans rien enregistrer
+  await page.fill("#pf-nom", "Autre");
+  await page.click("#pf-annuler");
+  await expect(page.locator("#dir-view")).toBeVisible();
+  await expect(page).not.toHaveURL(/#profil/);
+  expect(await calls(page, "monProfilEnregistrer")).toHaveLength(1);
+});
+
+test("Annuler après une arrivée directe sur #profil : retour à l'annuaire ; depuis les leaders : retour aux leaders", async ({ open, page }) => {
+  await open({ user: JEAN, hash: "#profil" });
+  await page.click("#pf-annuler");
+  await expect(page.locator("#dir-view")).toBeVisible();
+  await page.click("#sw-serv");
+  await expect(page.locator("#serv-view")).toBeVisible();
+  await page.click("#admin-link");
+  await page.click("#acct-profil");
+  await expect(page.locator("#pf-save")).toBeVisible();
+  await page.click("#pf-annuler");
+  await expect(page).toHaveURL(/#leaders$/);
+  await expect(page.locator("#serv-view")).toBeVisible();
 });
 
 test("personne vérifiée : badge, prénom et nom verrouillés avec une explication, refusés par le serveur @mobile", async ({ open, page }) => {
@@ -57,7 +84,7 @@ test("personne vérifiée : badge, prénom et nom verrouillés avec une explicat
   await page.click("#pf-save");
   await expect(page.locator("#toast")).toHaveText("Profil enregistré.");
   // Même en forçant le champ, le serveur refuse le changement de nom
-  await page.evaluate(() => { const i = document.getElementById("pf-prenom"); i.readOnly = false; i.value = "Autre"; });
+  await page.evaluate(() => { const i = document.getElementById("pf-prenom"); i.readOnly = false; i.value = "Autre"; i.dispatchEvent(new Event("input", { bubbles: true })); });
   await page.click("#pf-save");
   await expect(page.locator("#toast")).toContainText("Votre identité a été vérifiée");
 });
