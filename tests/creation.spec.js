@@ -12,8 +12,8 @@ async function codeNouveau(page, email = "claire.nouvelle@example.org") {
 test("nouvelle adresse depuis l'entraide : code, profil obligatoire, bienvenue animée, puis l'entraide @mobile", async ({ open, page }) => {
   await open({ hash: "#entraide" });
   await codeNouveau(page);
-  await expect(page.locator("#h1")).toHaveText("Créer un compte");
-  await expect(page.locator("#cr-titre")).toHaveText("Créez votre profil");
+  await expect(page.locator("#h1")).toHaveText("Mon profil");
+  await expect(page.locator("#cr-titre")).toHaveText("Mon profil");
   await expect(page.locator(".cr-mail")).toContainText("claire.nouvelle@example.org");
   await expect(page.locator(".cr-mail")).toContainText("Vérifiée");
   await expect(page.locator(".cr-photo .cr-fac")).toHaveText("Facultative");
@@ -64,5 +64,5 @@ test("profil abandonné : à la connexion suivante, retour à l'écran de créat
   await open({ user: { email: "revenu@example.org" }, hash: "#" });
   await expect(page.locator("#creation-view")).toBeVisible();
   await expect(page.locator("#dir-view")).toBeHidden();
-  await expect(page.locator("#cr-titre")).toHaveText("Créez votre profil");
+  await expect(page.locator("#cr-titre")).toHaveText("Mon profil");
 });

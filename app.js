@@ -443,7 +443,7 @@ function route() {
   if (creation) {
     for (const v of document.querySelectorAll(".view")) if (v.id !== "creation-view") v.hidden = true;
     $("switch").hidden = true;
-    $("h1").textContent = bienvenue ? "Bienvenue" : "Créer un compte";
+    $("h1").textContent = bienvenue ? "Bienvenue" : "Mon profil";
     document.body.style.setProperty("--page", ""); // titres en bleu, quelle que soit la page demandée
     afficherCreation();
   } else creationAffichee = null;
@@ -1337,7 +1337,7 @@ function afficherCreation() {
   const m = session?.user?.user_metadata || {}, email = session?.user?.email || "";
   // Avec Google : prénom et nom pré-remplis
   const prenom0 = m.given_name || "", nom0 = m.family_name || "";
-  c.innerHTML = '<h2 id="cr-titre" tabindex="-1">Créez votre profil</h2><p>Votre adresse est vérifiée. Dernière étape : présentez-vous pour accéder au site.</p>' +
+  c.innerHTML = '<h2 id="cr-titre" tabindex="-1">Mon profil</h2><p>Votre adresse est vérifiée. Dernière étape : présentez-vous pour accéder au site.</p>' +
     '<form class="otp" id="cr-form" novalidate>' +
       '<div class="cr-photo"><div class="ph-wrap"><button type="button" class="ph-btn" id="cr-photo-btn" aria-haspopup="menu" aria-expanded="false">' +
         '<span class="ph-prev" id="cr-photo-prev"></span><span class="ph-cam" aria-hidden="true">' + CAMERA + "</span></button>" +

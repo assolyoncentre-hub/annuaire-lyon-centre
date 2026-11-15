@@ -29,7 +29,7 @@ test("prénom en capitales : affiché avec seulement les initiales en majuscule"
 test("adresse vérifiée sans fiche : écran de création du compte, rien d'autre d'accessible", async ({ open, page }) => {
   await open({ user: { email: "inconnu@example.org" }, hash: "#admin" });
   await expect(page.locator("#creation-view")).toBeVisible();
-  await expect(page.locator("#h1")).toHaveText("Créer un compte");
+  await expect(page.locator("#h1")).toHaveText("Mon profil");
   expect(await calls(page, "signOut")).toHaveLength(0);
   await expect(page.locator("#switch")).toBeHidden();
   await expect(page.locator("#admin-view")).toBeHidden();
