@@ -432,6 +432,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .ed-sec-title { margin: 0; font: 700 18px/1.1 Phudu, Montserrat, sans-serif; letter-spacing: .02em; text-transform: uppercase; color: var(--brand); }
 .ed-sec .hint { margin-top: -6px; font-size: 13px; color: var(--muted); }
 .ed-sec .hint:empty { display: none; }
+.ed-sec .field .hint { margin-top: 6px; } /* sous un champ : détachée du champ (le -6px ne vaut que pour une aide de section) */
 .ed-sec .hors-warn { margin: 0; }
 /* Prénom et nom : largeur réduite sur ordinateur, pleine largeur sur mobile */
 @media (min-width: 521px) { .row2.names { grid-template-columns: repeat(2, minmax(0, 15em)); } }
