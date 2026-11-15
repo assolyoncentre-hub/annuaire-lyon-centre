@@ -1030,7 +1030,7 @@ function editPerson(p) {
     '<div class="field w-tel"><label for="pe-tel">Téléphone <span class="opt">(privé : visible seulement des leaders)</span></label><input id="pe-tel" class="tel-masque" type="tel" inputmode="tel" autocomplete="off" value="' + esc(telMasquer(p?.telephone || "")) + '"></div>' +
     // Paroissien·ne vérifié·e : badge à côté de son prénom dans l'entraide (repéré par son e-mail)
     '<div class="field"><label class="check" for="pe-verifie"><input type="checkbox" id="pe-verifie"' + (p?.verifie ? " checked" : "") + ">Paroissien·ne vérifié·e" + VERIFIE + "</label>" +
-    '<div class="hint" id="pe-verifie-hint">Badge à côté de son prénom dans l\'entraide.</div></div></section>' +
+    '<div class="hint" id="pe-verifie-hint"></div></div></section>' +
     '<section class="ed-sec"><h3 class="ed-sec-title">Responsabilités</h3><div class="row2">' + msel("pe-svc", "Leader des staffs…", "Aucun staff", svcBoxes) + msel("pe-pole", "Responsable des pôles…", "Aucun pôle", poleBoxes) + "</div>" +
     '<p class="hors-warn" id="pe-hors" hidden>Ni staff ni pôle : cette personne n\'apparaîtra pas dans l\'annuaire, elle pourra seulement se connecter.</p></section>' +
     '<section class="ed-sec droits" role="radiogroup" aria-labelledby="pe-droits-t"><h3 class="ed-sec-title" id="pe-droits-t">Droits</h3><div class="seg">' +
@@ -1134,7 +1134,7 @@ function editPerson(p) {
     if (hors && aucun.checked && !entrVoir) f.querySelector('input[name="pe-droit"][value="leaders"]').checked = true;
     const verif = f.querySelector("#pe-verifie");
     verif.disabled = noEmail;
-    f.querySelector("#pe-verifie-hint").textContent = noEmail ? "Ajoutez une adresse e-mail pour la vérifier : c'est elle qui la reconnaît dans l'entraide." : "Badge à côté de son prénom dans l'entraide.";
+    f.querySelector("#pe-verifie-hint").textContent = noEmail ? "Ajoutez une adresse e-mail pour la vérifier : c'est elle qui la reconnaît dans l'entraide." : "";
     f.querySelector("#pe-droit-hint").textContent = self ? "Vous ne pouvez pas modifier votre propre droit." :
       noEmail ? "Sans e-mail, cette personne ne peut pas se connecter : le droit ne s'applique qu'avec une adresse." :
       "";
