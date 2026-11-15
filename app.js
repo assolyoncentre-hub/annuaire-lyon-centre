@@ -1239,7 +1239,7 @@ function afficherProfil(p) {
       '<div class="row2 names"><div class="field"><label for="pf-prenom">Prénom</label><input id="pf-prenom" maxlength="60" autocomplete="given-name" value="' + esc(p.prenom) + '"' + (v ? ' readonly aria-describedby="pf-lock"' : "") + "></div>" +
       '<div class="field"><label for="pf-nom">Nom</label><input id="pf-nom" maxlength="60" autocomplete="family-name" value="' + esc(p.nom) + '"' + (v ? ' readonly aria-describedby="pf-lock"' : "") + "></div></div></section>" +
     '<section class="ed-sec" aria-labelledby="pf-co-t"><h2 class="ed-sec-title" id="pf-co-t">Coordonnées</h2>' +
-      '<div class="field"><label for="pf-email">E-mail <span class="opt">(sert à vous connecter)</span></label><input id="pf-email" type="email" readonly value="' + esc(p.email) + '" aria-describedby="pf-email-h">' +
+      '<div class="field"><label for="pf-email">E-mail <span class="opt">(privé, sert à vous connecter)</span></label><input id="pf-email" type="email" readonly value="' + esc(p.email) + '" aria-describedby="pf-email-h">' +
       '<div class="hint" id="pf-email-h">Pour le changer, contactez un administrateur.</div></div>' +
       '<div class="field w-tel"><label for="pf-tel">Téléphone <span class="opt">(privé)</span></label><input id="pf-tel" class="tel-masque" type="tel" inputmode="tel" autocomplete="tel" value="' + esc(telMasquer(p.telephone || "")) + '"></div></section>' +
     (resp ? '<section class="ed-sec" aria-labelledby="pf-re-t"><h2 class="ed-sec-title" id="pf-re-t">Mes responsabilités</h2><ul class="pf-li">' + resp + "</ul>" +
