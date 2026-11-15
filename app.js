@@ -579,7 +579,9 @@ function renderAdmin() {
       adminMatch([p.prenom, p.nom, p.email, p.telephone, ...personRoles(p)].join(" ")));
     const badge = p => p.droit === "admin" ? ' <span class="badge admin">Admin</span>' : p.droit === "aucun" ? ' <span class="badge none">Sans accès</span>' :
       p.hors && p.droit !== "aucun" ? ' <span class="badge lead">Leader</span>' : "";
-    const badgeEntr = p => p.entraide === "moderer" ? ' <span class="badge entr">Entraide : modération</span>' : p.entraide === "voir" ? ' <span class="badge entr">Entraide</span>' : "";
+    // « Voir l'entraide » est la règle (toutes les fiches l'ont) : badge seulement pour la modération, ou pour une fiche
+    // avec e-mail remise à « Aucun »
+    const badgeEntr = p => p.entraide === "moderer" ? ' <span class="badge entr">Entraide : modération</span>' : p.entraide === "aucun" && p.email ? ' <span class="badge none">Sans entraide</span>' : "";
     const row = p => {
       const roles = p.hors ? ["Ni staff ni pôle"] : personRoles(p);
       return '<div class="row' + (p.desactive_le ? " is-off" : "") + '" data-id="' + esc(p.key) + '"><span></span><div><div class="title"><span class="nm">' + esc(nomPrenom(p) || p.email) + (p.verifie ? VERIFIE : "") + "</span>" +
@@ -1051,7 +1053,7 @@ function editPerson(p) {
       "><b>" + label + "</b><span>" + sub + "</span></label>").join("") + "</div>" +
     '<div class="hint" id="pe-droit-hint"></div></section>' +
     '<section class="ed-sec droits" role="radiogroup" aria-labelledby="pe-entr-t"><h3 class="ed-sec-title" id="pe-entr-t">Entraide</h3><div class="seg">' +
-    DROITS_ENTRAIDE.map(([v, label, sub]) => '<label><input type="radio" name="pe-entr" value="' + v + '"' + ((p?.entraide || "aucun") === v ? " checked" : "") + (self ? " disabled" : "") +
+    DROITS_ENTRAIDE.map(([v, label, sub]) => '<label><input type="radio" name="pe-entr" value="' + v + '"' + ((p ? p.entraide : "voir") === v ? " checked" : "") + (self ? " disabled" : "") +
       "><b>" + label + "</b><span>" + sub + "</span></label>").join("") + "</div>" +
     (self ? '<div class="hint">Vous ne pouvez pas modifier votre propre droit.</div>' : "") + "</section>" +
     '<section class="ed-sec pe-compte" id="pe-compte" hidden></section>',

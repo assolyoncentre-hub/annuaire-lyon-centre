@@ -41,7 +41,7 @@ test("administrateur : droits réglés sur la fiche contact, sans onglet Admins"
   await page.click("#tab-contacts");
   // Sa propre fiche (hors annuaire) : badge Admin, droit non modifiable
   const moi = page.locator("#admin-list .row", { hasText: "admin@example.org" });
-  await expect(moi.locator(".badge")).toHaveText("Admin");
+  await expect(moi.locator(".badge.admin")).toHaveText("Admin");
   await expect(page.locator("#admin-list .group-head")).toContainText("Hors annuaire");
   await moi.locator("[data-act=edit]").click();
   await expect(page.locator('input[name="pe-droit"][value="admin"]')).toBeChecked();
@@ -51,7 +51,7 @@ test("administrateur : droits réglés sur la fiche contact, sans onglet Admins"
 
   // Un contact passe administrateur, puis sans accès
   const magali = () => page.locator("#admin-list .row", { hasText: "magali@example.org" });
-  await expect(magali().locator(".badge")).toHaveCount(0);
+  await expect(magali().locator(".badge", { hasNotText: "Sans entraide" })).toHaveCount(0);
   await magali().locator("[data-act=edit]").click();
   await expect(page.locator('input[name="pe-droit"][value="leaders"]')).toBeChecked();
   await expect(page.locator("#pe-hors")).toBeHidden();
@@ -61,7 +61,7 @@ test("administrateur : droits réglés sur la fiche contact, sans onglet Admins"
   const save = (await calls(page, "savePerson"))[0].arg;
   expect(save.droit).toBe("admin");
   expect(save.fields.ancien_email).toBe("magali@example.org");
-  await expect(magali().locator(".badge")).toHaveText("Admin");
+  await expect(magali().locator(".badge", { hasNotText: "Sans entraide" })).toHaveText("Admin");
   // Filtre par droit : liste déroulante à choix multiple
   const droits = page.locator("#admin-filters .filt-toggle");
   await expect(droits).toHaveAttribute("aria-expanded", "false");
@@ -83,7 +83,7 @@ test("administrateur : droits réglés sur la fiche contact, sans onglet Admins"
   await magali().locator("[data-act=edit]").click();
   await page.locator("#pe-droits-t + .seg label", { hasText: "Aucun" }).click();
   await page.locator("#ed-form [type=submit]").click();
-  await expect(magali().locator(".badge")).toHaveText("Sans accès");
+  await expect(magali().locator(".badge", { hasNotText: "Sans entraide" })).toHaveText("Sans accès");
   expect(await page.evaluate(() => window.__S.acces.find(a => a.email === "magali@example.org").droit)).toBe("aucun");
 });
 
@@ -93,9 +93,10 @@ test("personne hors annuaire : fiche sans staff ni pôle, avec un droit", async 
   await page.click("#add-btn");
   await page.fill("#pe-prenom", "Hugo");
   await page.fill("#pe-nom", "Lambert");
-  // Ni staff ni pôle : avertissement, droit « Aucun » impossible, e-mail obligatoire
+  // Ni staff ni pôle : avertissement, e-mail obligatoire ; « Voir l'entraide » coché d'office, donc droit « Aucun » possible
   await expect(page.locator("#pe-hors")).toBeVisible();
-  await expect(page.locator('input[name="pe-droit"][value="aucun"]')).toBeDisabled();
+  await expect(page.locator('input[name="pe-entr"][value="voir"]')).toBeChecked();
+  await expect(page.locator('input[name="pe-droit"][value="aucun"]')).toBeEnabled();
   await page.locator("#ed-form [type=submit]").click();
   await expect(page.locator("#editor")).toBeVisible();
   await page.fill("#pe-email", "Hugo.Lambert@example.org");

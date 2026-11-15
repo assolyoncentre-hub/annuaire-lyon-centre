@@ -101,7 +101,7 @@ test("contacts : personne regroupée sur ses staffs, civilité « Père » affic
   await page.mouse.click(4, 4); // ni un clic sur le fond
   await expect(page.locator("#editor")).toBeVisible();
   await save(page);
-  await expect(page.locator("#admin-list .title")).toHaveText("BRUNET Jean (Père)");
+  await expect(page.locator("#admin-list .title .nm")).toHaveText("BRUNET Jean (Père)");
   expect((await calls(page, "savePerson"))[0].arg.fields).toMatchObject({ civilite: "Père", prenom: "Jean" });
 });
 

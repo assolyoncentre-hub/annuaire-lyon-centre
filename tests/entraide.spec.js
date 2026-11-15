@@ -282,6 +282,7 @@ test("fiche contact : droit Entraide Aucun / Voir / Modérer", async ({ open, pa
   await page.locator("#pe-entr-t + .seg label", { hasText: "Aucun" }).click();
   await page.locator("#ed-form [type=submit]").click();
   await expect(magali().locator(".badge.entr")).toHaveCount(0);
+  await expect(magali().locator(".badge", { hasText: "Sans entraide" })).toBeVisible(); // l'exception est signalée
   expect(await page.evaluate(() => window.__S.acces.some(a => a.email === "magali@example.org"))).toBe(false);
 });
 
@@ -290,6 +291,10 @@ test("fiche hors annuaire avec seulement le droit Voir l'entraide", async ({ ope
   await page.click("#add-btn");
   await page.fill("#pe-prenom", "Inès");
   await page.fill("#pe-email", "ines@example.org");
+  // Nouvelle fiche : « Voir l'entraide » coché d'office ; avec Aucun, le droit Aucun sur l'annuaire n'est plus possible
+  await expect(page.locator('input[name="pe-entr"][value="voir"]')).toBeChecked();
+  await expect(page.locator('input[name="pe-droit"][value="aucun"]')).toBeEnabled();
+  await page.locator("#pe-entr-t + .seg label", { hasText: "Aucun" }).click();
   await expect(page.locator('input[name="pe-droit"][value="aucun"]')).toBeDisabled();
   await page.locator("#pe-entr-t + .seg label", { hasText: /^Voir/ }).click();
   await expect(page.locator('input[name="pe-droit"][value="aucun"]')).toBeEnabled();
