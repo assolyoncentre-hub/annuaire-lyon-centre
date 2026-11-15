@@ -386,11 +386,13 @@ function route() {
   if (session) $("admin-link").setAttribute("aria-expanded", String(!$("acct-menu").hidden)); else { $("admin-link").removeAttribute("aria-expanded"); $("acct-menu").hidden = true; }
   // Onglets : Propositions pour tous ; Leaders seulement pour une personne connectée qui en a le droit (un visiteur
   // non connecté ne le voit pas : l'adresse #leaders mène toujours à la connexion) ; Administration seulement pour
-  // un administrateur connecté
+  // un administrateur connecté ; barre masquée s'il ne reste qu'un onglet (visiteur non connecté : l'écran de
+  // connexion a alors son lien « Retour à l'annuaire »)
   $("sw-serv").hidden = !canLeaders;
   $("sw-admin").hidden = !isAdmin;
   for (const k of ["sw-home", "sw-prop", "sw-serv", "sw-entr", "sw-admin"]) $(k).removeAttribute("aria-current");
   $("sw-entr").hidden = !canEntraide;
+  $("switch").hidden = $("switch").querySelectorAll("a:not([hidden])").length < 2;
   const cur = home ? "sw-home" : entrHash ? "sw-entr" : serv ? "sw-serv" : adminHash ? (isAdmin ? "sw-admin" : null) : "sw-prop";
   if (cur) $(cur).setAttribute("aria-current", "page");
   $("login-title").textContent = serv || entrHash ? "Accès réservé" : "Connexion";

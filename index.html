@@ -263,7 +263,7 @@ body { min-height: 100vh; display: flex; flex-direction: column; }
   .admin-link span { display: none; }
   .admin-link svg { width: 20px; height: 20px; }
 }
-.back-link { margin: 20px 0 0; padding: 0; border: 0; background: none; color: var(--brand); font: 600 14px/1 Montserrat, sans-serif; cursor: pointer; }
+.back-link { display: inline-block; margin: 20px 0 0; text-decoration: none; padding: 0; border: 0; background: none; color: var(--brand); font: 600 14px/1 Montserrat, sans-serif; cursor: pointer; }
 .view[hidden] { display: none; }
 .admin-top { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 20px 0 8px; }
 #add-btn { margin-left: auto; box-sizing: border-box; height: 40px; }
@@ -1048,6 +1048,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
       <div class="login-or" id="login-or">ou</div>
       <div id="gsi-btn" class="gsi-btn"></div>
       <p id="gsi-error" class="login-error" hidden>Le bouton de connexion Google n'a pas pu se charger. Vérifiez votre connexion ou désactivez le bloqueur de publicités pour ce site, puis rechargez la page.</p>
+      <a href="#" class="back-link" id="login-back">← Retour à l'annuaire</a>
     </div>
     <div id="admin-denied" class="denied" hidden>
       <strong>Accès réservé.</strong> Le compte <span id="denied-email"></span> <span id="denied-what">n'est pas administrateur de l'annuaire.</span>

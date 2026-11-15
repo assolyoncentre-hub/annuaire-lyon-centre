@@ -4,7 +4,7 @@ const { test, expect, ADMIN, calls, pickPole } = require("./helpers");
 test("visiteur : pas d'onglet Leaders ; l'adresse #leaders demande de se connecter", async ({ open, page }) => {
   await open();
   await expect(page.locator("#sw-serv")).toBeHidden();
-  await expect(page.locator("#sw-prop")).toBeVisible(); // Propositions reste, pour revenir depuis la connexion
+  await expect(page.locator("#switch")).toBeHidden(); // Propositions seul : pas de barre d'onglets
   await page.goto(page.url().replace(/#.*$/, "") + "#leaders");
   await expect(page.locator("#admin-login")).toBeVisible();
   await expect(page.locator("#login-title")).toHaveText("Accès réservé");
@@ -13,7 +13,7 @@ test("visiteur : pas d'onglet Leaders ; l'adresse #leaders demande de se connect
   await expect(page.locator("#h1")).toHaveText("Annuaire des leaders");
   await page.click("#gsi-btn button");
   expect(await calls(page, "signIn")).toHaveLength(1);
-  await page.click("#sw-prop");
+  await page.click("#login-back");
   await expect(page.locator("#dir-view")).toBeVisible();
   // Bouton « Connexion » : écran de connexion habituel ; pas d'onglet Administration sans être administrateur
   await expect(page.locator("#sw-admin")).toBeHidden();
