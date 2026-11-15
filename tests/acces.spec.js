@@ -9,9 +9,13 @@ test("contact de l'annuaire : annuaire des leaders, sans onglet Administration",
   await expect(page.locator("#admin-label")).toHaveText("Damien");
   // Prénom en casse normale, pas en capitales comme « Connexion »
   expect(await page.locator("#admin-link").evaluate(e => getComputedStyle(e).textTransform)).toBe("none");
-  // Menu du compte : seulement « Se déconnecter »
+  // Menu du compte : prénom et e-mail, puis « Mon profil » (focus) et « Se déconnecter » (en rouge)
   await page.click("#admin-link");
-  await expect(page.locator("#acct-menu")).toHaveText("Se déconnecter");
+  await expect(page.locator("#acct-nom")).toHaveText("Damien");
+  await expect(page.locator("#acct-mail")).toHaveText("Damien@example.org");
+  await expect(page.locator("#acct-menu .acct-item")).toHaveText(["Mon profil", "Se déconnecter"]);
+  await expect(page.locator("#acct-profil")).toBeFocused();
+  await expect(page.locator("#logout")).toHaveCSS("color", "rgb(198, 40, 40)");
   await page.goto(page.url().replace(/#.*/, "") + "#admin");
   await expect(page.locator("#admin-denied")).toContainText("n'est pas administrateur");
   await expect(page.locator("#admin-body")).toBeHidden();

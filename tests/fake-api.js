@@ -24,6 +24,12 @@ module.exports = function installFakeApi({ data, user, acces, desactives }) {
   // Paroissiens vérifiés (comme la table paroissiens_verifies et _paroissien_verifie)
   S.verifies = (S.verifies || []).map(v => typeof v === "string" ? { email: v, verifie_le: new Date().toISOString() } : v);
   const verifie = e => !!e && S.verifies.some(v => v.email === String(e).trim().toLowerCase());
+  // Mon profil : toute personne connectée qui a un droit (annuaire ou entraide), comme acces_autorise
+  const profilMoi = () => {
+    const e = session?.user.email.toLowerCase();
+    if (!e || desactive(e) || (!droitDe(e) && !S.acces.find(x => x.email === e && (x.entraide_voir || x.entraide_moderer)))) throw new Error("Accès refusé.");
+    return e;
+  };
   const droitDe = e => {
     if (desactive(e)) return null;
     const a = S.acces.find(x => x.email === e);
@@ -368,6 +374,37 @@ module.exports = function installFakeApi({ data, user, acces, desactives }) {
       if (e === session.user.email.toLowerCase()) throw new Error("Vous ne pouvez pas désactiver votre propre compte.");
       if (oui) { if (!desactive(e)) S.desactives.push({ email: e, desactive_le: new Date().toISOString() }); }
       else S.desactives = S.desactives.filter(d => d.email !== e);
+    },
+    // Comme mon_profil / mon_profil_enregistrer / mon_profil_photo : mes propres informations, sur toutes mes lignes
+    // (staffs, pôles, fiche « acces ») ; e-mail, droits, responsabilités et vérification ne se changent pas ici
+    async monProfil() {
+      log("monProfil");
+      const e = profilMoi(), a = S.acces.find(x => x.email === e);
+      const mes = l => l.filter(r => (r.email || "").toLowerCase() === e).sort((x, y) => (x.position ?? 0) - (y.position ?? 0));
+      const c = mes(S.contacts), r = mes(S.responsables);
+      const champ = k => [a, c[0], r[0]].map(x => String(x?.[k] ?? "").trim()).find(Boolean) || "";
+      const noms = (l, k, src) => l.map(x => src.find(s => s.id === x[k])?.name).filter(Boolean).sort((x, y) => x.localeCompare(y, "fr"));
+      return { email: e, civilite: champ("civilite") || null, prenom: champ("prenom"), nom: champ("nom"), telephone: champ("telephone"), verifie: verifie(e),
+        staffs: noms(c, "service_id", S.services), poles: noms(r, "pole_id", S.poles), photo: (S.photos || {})[e] || null };
+    },
+    async monProfilEnregistrer(f) {
+      log("monProfilEnregistrer", f);
+      const e = profilMoi(), actuel = await window.__api.monProfil();
+      const civ = (f.civilite || "").trim() || null, pr = (f.prenom || "").trim(), no = (f.nom || "").trim(), tel = (f.telephone || "").trim() || null;
+      if (civ && !["Madame", "Monsieur", "Père"].includes(civ)) throw new Error("Civilité inconnue.");
+      if (!pr && !no) throw new Error("Indiquez au moins un prénom ou un nom.");
+      if (pr.length > 60 || no.length > 60) throw new Error("Prénom ou nom trop long.");
+      if (tel && !/^[+0-9 .()\/-]{6,30}$/.test(tel)) throw new Error("Numéro de téléphone invalide.");
+      if (actuel.verifie && (pr !== actuel.prenom || no !== actuel.nom))
+        throw new Error("Votre identité a été vérifiée : pour corriger votre prénom ou votre nom, contactez un administrateur.");
+      for (const r of [...S.contacts, ...S.responsables, ...S.acces]) if ((r.email || "").toLowerCase() === e) Object.assign(r, { civilite: civ, prenom: pr, nom: no, telephone: tel });
+    },
+    async monProfilPhoto(data, grand) {
+      const e = profilMoi(); log("monProfilPhoto", { data, grand });
+      S.photos ||= {}; S.grandes ||= {};
+      if (!data) { delete S.photos[e]; delete S.grandes[e]; return; }
+      if (!/^data:image\/(jpeg|png|webp);base64,/.test(data)) throw new Error("Format de photo non pris en charge.");
+      S.photos[e] = data; S.grandes[e] = grand || null;
     },
     // Comme admin_paroissiens_verifies / admin_verifier_paroissien
     async paroissiensVerifies() { guard(); return clone(S.verifies).sort((a, b) => a.email.localeCompare(b.email)); },

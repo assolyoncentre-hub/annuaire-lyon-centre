@@ -174,6 +174,10 @@ window.makeApi = function () {
     // Comptes désactivés : connexion impossible (traités comme inconnus), droits gardés pour la réactivation
     comptesDesactives: () => sbRpc("admin_comptes_desactives"),
     desactiverCompte: (email, oui) => sbRpc("admin_desactiver_compte", { p_email: email, p_desactive: oui }),
+    // Mon profil : mes informations (toutes mes lignes), enregistrement (prénom et nom bloqués si vérifié), ma photo
+    monProfil: () => sbRpc("mon_profil"),
+    monProfilEnregistrer: f => sbRpc("mon_profil_enregistrer", { p_civilite: f.civilite, p_prenom: f.prenom, p_nom: f.nom, p_telephone: f.telephone }),
+    monProfilPhoto: (data, grand) => sbRpc("mon_profil_photo", { p_data: data || null, p_grand: grand || null }),
     // Paroissiens vérifiés (par e-mail) : badge à côté du prénom dans l'entraide
     paroissiensVerifies: () => sbRpc("admin_paroissiens_verifies"),
     verifierParoissien: (email, oui) => sbRpc("admin_verifier_paroissien", { p_email: email, p_verifie: oui }),

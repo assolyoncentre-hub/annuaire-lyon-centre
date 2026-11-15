@@ -485,9 +485,17 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .switch .short { display: none; }
 .switch .gear { width: 1.15em; height: 1.15em; margin-right: .45em; vertical-align: -.2em; }
 @media (max-width: 520px) { .switch .long { display: none; } .switch .short { display: inline; } }
-#logout { white-space: nowrap; padding: 9px 14px; border: 1.5px solid var(--text); border-radius: 6px; background: var(--surface); color: var(--text);
-  font: 600 13px/1 Montserrat, sans-serif; cursor: pointer; }
-#logout:hover { opacity: .85; }
+/* Menu du compte : un vrai menu (lignes avec icône), « Se déconnecter » en rouge */
+.acct-menu { min-width: 220px; padding: 6px; gap: 0; }
+.acct-tete { display: grid; gap: 2px; margin-bottom: 4px; padding: 10px 12px 8px; border-bottom: 1px solid var(--border); }
+.acct-tete b { font: 700 14px/1.2 Montserrat, sans-serif; }
+.acct-tete span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; color: var(--muted); }
+.acct-item { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; padding: 10px 12px; box-sizing: border-box; border: 0; border-radius: 8px;
+  background: none; color: var(--text); font: 600 14px/1.2 Montserrat, sans-serif; text-align: left; text-decoration: none; white-space: nowrap; cursor: pointer; }
+.acct-item svg { flex: none; width: 18px; height: 18px; color: var(--muted); }
+.acct-item:hover, .acct-item:focus-visible { background: #eef3f8; outline: none; }
+.acct-item:focus-visible { box-shadow: inset 0 0 0 2px var(--brand); }
+.acct-sortir, .acct-sortir svg { color: #c62828; }
 .hero:has(.switch:not([hidden])) .wrap { padding-bottom: 0; }
 .switch a { padding: 12px 18px; border-radius: 10px 10px 0 0; color: var(--brand-ink); text-decoration: none;
   font: 600 13px/1 Montserrat, sans-serif; letter-spacing: .08em; text-transform: uppercase; opacity: .8; }
@@ -911,6 +919,25 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .pe-compte .btn-desact { border-color: #c62828; color: #c62828; }
 .ed-sec.droits.estompe { opacity: .55; }
 .ed-sec[hidden] { display: none; }
+/* Mon profil : colonne centrée de cartes blanches (styles des sections de la fiche contact) */
+.pf { max-width: 720px; margin: 28px auto 60px; display: grid; gap: 16px; }
+.pf .ed-sec { background: var(--surface); border-color: var(--border); }
+.pf-tete { display: flex; align-items: center; gap: 18px; min-width: 0; }
+.pf-tete .ph-prev { width: 88px; height: 88px; font-size: 30px; }
+.pf-tete > div:last-child { min-width: 0; }
+.pf-nom { font: 700 24px/1.15 Phudu, Montserrat, sans-serif; text-transform: uppercase; overflow-wrap: anywhere; }
+.pf-nom .verifie { width: .8em; height: .8em; }
+.pf-mail { margin-top: 4px; color: var(--muted); font-size: 14px; overflow-wrap: anywhere; }
+.pf input[readonly] { background: #eef1f4; color: var(--muted); }
+.pf-lock { display: flex; gap: 8px; align-items: flex-start; margin: 0; padding: 10px 12px; border-radius: 8px; background: #e8f4fe; color: #0b4f86; font-size: 14px; }
+.pf-lock svg { flex: none; width: 16px; height: 16px; margin-top: 2px; }
+.pf-li { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.pf-li li { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0 0; border-top: 1px solid var(--border); font-size: 15px; }
+.pf-li li:first-child { border-top: 0; padding-top: 0; }
+.pf-li b { font: 600 13px/1.5 Montserrat, sans-serif; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.pf-li span { text-align: right; }
+.pf-actions { display: flex; justify-content: flex-end; gap: 10px; }
+@media (max-width: 520px) { .pf { margin-top: 16px; } .pf-actions .btn { flex: 1; } .pf-li li { flex-direction: column; gap: 2px; } .pf-li span { text-align: left; } }
 /* Badge « Paroissien·ne vérifié·e » : à la taille du texte, collé au prénom ; texte au survol (title) */
 .verifie { display: inline-flex; flex: none; width: .9em; height: .9em; margin-left: .28em; vertical-align: -.1em; }
 .verifie svg { width: 100%; height: 100%; }
@@ -969,7 +996,10 @@ label.check .verifie { margin-left: -4px; }
   <div class="wrap">
     <div class="top"><div class="brand">Église Lyon Centre</div>
       <div class="acct"><button type="button" class="admin-link" id="admin-link" aria-label="Connexion"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg><span id="admin-label">Connexion</span></button>
-        <div class="acct-menu" id="acct-menu" hidden><button type="button" id="logout">Se déconnecter</button></div></div></div>
+        <!-- Menu du compte : nom et e-mail, « Mon profil », « Se déconnecter » (en rouge) -->
+        <div class="acct-menu" id="acct-menu" hidden><div class="acct-tete"><b id="acct-nom"></b><span id="acct-mail"></span></div>
+          <a href="#profil" class="acct-item" id="acct-profil"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>Mon profil</a>
+          <button type="button" class="acct-item acct-sortir" id="logout"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>Se déconnecter</button></div></div></div>
     <h1 id="h1">Annuaire des propositions</h1>
     <nav class="switch" id="switch" aria-label="Annuaires">
       <a href="#accueil" id="sw-home" class="sw-home" aria-label="Accueil"><svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.8 2.6 10.9h2.7V21h5.2v-6.2h3V21h5.2V10.9h2.7z"/></svg></a><a href="#" id="sw-prop">Propositions</a><a href="#entraide" id="sw-entr" hidden>Entraide</a><a href="#leaders" id="sw-serv" hidden>Leaders</a><a href="#admin" id="sw-admin" aria-label="Administration" hidden><svg class="gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span class="long">Administration</span><span class="short" aria-hidden="true">Admin</span></a>
@@ -1028,6 +1058,11 @@ label.check .verifie { margin-left: -4px; }
   </form>
   </div>
 </main>
+</div>
+<!-- Mon profil (#profil) : chaque personne connectée modifie ses propres informations ; l'e-mail et les responsabilités
+     sont en lecture seule, le prénom et le nom aussi pour une personne vérifiée -->
+<div id="profil-view" class="view" hidden>
+<main class="wrap"><form class="pf" id="pf-form" novalidate aria-label="Mon profil"><p class="count" id="pf-charge" role="status">Chargement…</p></form></main>
 </div>
 <div id="admin-view" class="view" hidden>
   <main class="wrap">

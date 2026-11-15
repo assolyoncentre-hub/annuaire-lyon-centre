@@ -42,3 +42,12 @@ test("accueil avec tous les droits @mobile", async ({ open, page }) => {
   await expect(page.locator("#home-grid .aff")).toHaveCount(5);
   expect(await audit(page)).toEqual([]);
 });
+
+test("mon profil et menu du compte (personne vérifiée) @mobile", async ({ open, page }) => {
+  await open({ user: { email: "damien@example.org" }, hash: "#profil" });
+  await expect(page.locator("#pf-lock")).toBeVisible();
+  expect(await audit(page)).toEqual([]);
+  await page.click("#admin-link");
+  await expect(page.locator("#acct-menu")).toBeVisible();
+  expect(await audit(page)).toEqual([]);
+});

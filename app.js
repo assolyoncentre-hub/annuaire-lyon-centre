@@ -308,6 +308,7 @@ $("m-form").addEventListener("submit", async e => {
 // et les fiches hors annuaire, réglés sur la fiche contact
 // (consultation de l'annuaire des leaders). Les administrateurs (table « acces ») ont en plus l'administration.
 // Un autre compte est déconnecté aussitôt ; la base refuse de toute façon toute lecture au-delà de ces droits.
+let profilOuvert = false, profilSeq = 0, profilPrenom = ""; // Mon profil : page affichée, chargement en cours, mon prénom (une fois lu)
 let isAdmin = false, canLeaders = false, canEntraide = false, isReferent = false, session = null, adminTab = "services", adminTerms = [], messages = [], acces = [], contactFilter = new Set();
 let authStarted = null, authLoaded = false, lastViewAdmin = null;
 
@@ -375,14 +376,17 @@ function route() {
   // Administration : « #admin » (staffs), « #admin/poles », « #admin/contacts », « #admin/messages »
   const adminHash = h === "#admin" || h.startsWith("#admin/");
   if (adminHash) { const t = TAB_OF[h.slice(7)] || "services"; if (t !== adminTab) showTab(t); }
-  const admin = adminHash || (serv && !canLeaders) || (entrHash && !entr);
+  // Mon profil (#profil) : toute personne connectée ; sinon connexion
+  const profilHash = h === "#profil", profil = profilHash && !!session;
+  const admin = adminHash || (serv && !canLeaders) || (entrHash && !entr) || (profilHash && !session);
   const home = h === "#accueil";
   $("home-view").hidden = !home;
-  $("dir-view").hidden = admin || serv || entr || home;
+  $("dir-view").hidden = admin || serv || entr || home || profil;
+  $("profil-view").hidden = !profil;
   $("entr-view").hidden = !entr;
   $("serv-view").hidden = !showServ;
   $("admin-view").hidden = !admin;
-  $("h1").textContent = home ? "Bienvenue" : entrHash ? "Entraide" : serv ? "Annuaire des leaders" : admin ? (session ? "Administration" : "Connexion") : "Annuaire des propositions";
+  $("h1").textContent = home ? "Bienvenue" : profil ? "Mon profil" : entrHash ? "Entraide" : serv ? "Annuaire des leaders" : admin ? (session ? "Administration" : "Connexion") : "Annuaire des propositions";
   // En haut à droite : « Connexion », ou le prénom de la personne connectée (menu avec « Se déconnecter »)
   const label = session ? firstName() : "Connexion";
   $("admin-label").textContent = label;
@@ -398,10 +402,13 @@ function route() {
   for (const k of ["sw-home", "sw-prop", "sw-serv", "sw-entr", "sw-admin"]) $(k).removeAttribute("aria-current");
   $("sw-entr").hidden = !canEntraide;
   $("switch").hidden = $("switch").querySelectorAll("a:not([hidden])").length < 2;
-  const cur = home ? "sw-home" : entrHash ? "sw-entr" : serv ? "sw-serv" : adminHash ? (isAdmin ? "sw-admin" : null) : "sw-prop";
+  const cur = profilHash ? null : home ? "sw-home" : entrHash ? "sw-entr" : serv ? "sw-serv" : adminHash ? (isAdmin ? "sw-admin" : null) : "sw-prop";
   if (cur) $(cur).setAttribute("aria-current", "page");
   $("login-title").textContent = serv || entrHash ? "Accès réservé" : "Connexion";
   if (admin || serv) ensureAuth();
+  // Mon profil : rechargé à chaque arrivée sur la page
+  if (profil && !profilOuvert) chargerProfil();
+  profilOuvert = profil;
   $("admin-login").hidden = !admin || !!session || !authLoaded;
   $("admin-denied").hidden = !admin || !session || (serv ? canLeaders : entrHash ? entr : isAdmin);
   $("denied-what").textContent = serv ? "n'a pas accès à l'annuaire des leaders." : entrMod ? "n'est pas modérateur de l'entraide." : entrHash ? "n'a pas accès à l'entraide." : "n'est pas administrateur de l'annuaire.";
@@ -482,7 +489,7 @@ $("sw-prop").addEventListener("click", e => { e.preventDefault(); goHome(); });
 const capitalize = s => s.toLocaleLowerCase("fr").replace(/(^|[\s'-])(\p{L})/gu, (_m, a, b) => a + b.toLocaleUpperCase("fr"));
 function firstName() {
   const u = session?.user, email = String(u?.email || "").toLowerCase(), m = u?.user_metadata || {};
-  const n = (email && fiches().find(x => x.email && x.email.toLowerCase() === email)?.prenom) || m.given_name ||
+  const n = profilPrenom || (email && fiches().find(x => x.email && x.email.toLowerCase() === email)?.prenom) || m.given_name ||
     String(m.full_name || m.name || "").trim().split(/\s+/)[0];
   if (n) return capitalize(n);
   const l = email.split("@")[0].split(/[._-]/)[0];
@@ -497,11 +504,14 @@ $("admin-link").addEventListener("click", () => {
   }
   $("acct-menu").hidden = !$("acct-menu").hidden;
   $("admin-link").setAttribute("aria-expanded", String(!$("acct-menu").hidden));
-  if (!$("acct-menu").hidden) $("logout").focus();
+  $("acct-nom").textContent = firstName();
+  $("acct-mail").textContent = session.user.email || "";
+  if (!$("acct-menu").hidden) $("acct-profil").focus();
 });
 document.addEventListener("click", e => { if (!$("acct-menu").hidden && !e.target.closest(".acct")) closeAcct(); });
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("acct-menu").hidden) { closeAcct(); $("admin-link").focus(); } });
-$("logout").onclick = $("logout-2").onclick = async () => { closeAcct(); resetOtp(); await api.signOut(); isAdmin = canLeaders = canEntraide = isReferent = false; session = null; acces = []; messages = []; contactsOf = {}; respOf = {}; contactRows = []; respRows = []; route(); render(); };
+$("acct-profil").addEventListener("click", () => { closeAcct(); if (location.hash === "#profil") { profilOuvert = false; route(); } });
+$("logout").onclick = $("logout-2").onclick = async () => { closeAcct(); resetOtp(); await api.signOut(); profilPrenom = ""; isAdmin = canLeaders = canEntraide = isReferent = false; session = null; acces = []; messages = []; contactsOf = {}; respOf = {}; contactRows = []; respRows = []; route(); render(); };
 
 const poleNames = () => Object.keys(poles).sort(byPole);
 const isPoleTab = () => adminTab === "poles";
@@ -1199,6 +1209,86 @@ $("ed-form").addEventListener("keydown", e => {
 $("editor").addEventListener("click", e => { if (!e.target.closest(".msel")) mselClose(); });
 const DROITS_ENTRAIDE = [["aucun", "Aucun", "Pas d'accès à l'entraide"], ["voir", "Voir", "Voit les demandes d'aide et peut en déposer une"], ["moderer", "Modérer", "Valide, publie et clôt les demandes, en plus de les voir"]];
 const DROITS = [["aucun", "Aucun", "Pas d'accès à l'annuaire des leaders"], ["leaders", "Leader", "Voit l'annuaire des leaders quand il ou elle est connecté·e"], ["admin", "Administrateur", "Peut modifier les staffs, les pôles, les contacts et les droits"]];
+// --- Mon profil (#profil) : mes informations, enregistrées sur toutes mes lignes (staffs, pôles, fiche hors annuaire).
+// E-mail et responsabilités en lecture seule ; prénom et nom aussi pour une personne vérifiée (choix des administrateurs).
+const PF_LOCK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
+async function chargerProfil() {
+  const seq = ++profilSeq, f = $("pf-form");
+  f.innerHTML = '<p class="count" role="status">Chargement…</p>';
+  try { const p = await api.monProfil(); if (seq === profilSeq) afficherProfil(p); }
+  catch { if (seq === profilSeq) f.innerHTML = '<p class="empty">Impossible de charger votre profil pour le moment.</p>'; }
+}
+function afficherProfil(p) {
+  const f = $("pf-form"), v = !!p.verifie;
+  profilPrenom = p.prenom || "";
+  const ligne = (un, plusieurs, l) => l.length ? "<li><b>" + (l.length > 1 ? plusieurs : un) + "</b><span>" + esc(l.join(", ")) + "</span></li>" : "";
+  const resp = ligne("Leader du staff", "Leader des staffs", p.staffs || []) + ligne("Responsable du pôle", "Responsable des pôles", p.poles || []);
+  f.innerHTML =
+    '<section class="ed-sec"><div class="pf-tete"><div class="ph-wrap"><button type="button" class="ph-btn" id="pf-photo-btn" aria-haspopup="menu" aria-expanded="false">' +
+      '<span class="ph-prev" id="pf-photo-prev"></span><span class="ph-cam" aria-hidden="true">' + CAMERA + "</span></button>" +
+      '<input type="file" id="pf-photo" accept="image/*" hidden>' +
+      '<div class="ph-menu" id="pf-photo-menu" role="menu" hidden><button type="button" role="menuitem" id="pf-photo-pick">Choisir une photo</button>' +
+      '<button type="button" role="menuitem" class="danger" id="pf-photo-rm">Supprimer la photo</button></div></div>' +
+      '<div><div class="pf-nom" id="pf-nom-aff"></div><div class="pf-mail">' + esc(p.email) + "</div></div></div></section>" +
+    '<section class="ed-sec" aria-labelledby="pf-id-t"><h2 class="ed-sec-title" id="pf-id-t">Identité</h2>' +
+      (v ? '<p class="pf-lock" id="pf-lock">' + PF_LOCK + "<span>Votre identité a été vérifiée : pour corriger votre prénom ou votre nom, contactez un administrateur.</span></p>" : "") +
+      '<div class="field w-fit"><label for="pf-civ">Civilité</label>' + civSelect("pf-civ", p.civilite || "") + "</div>" +
+      '<div class="row2 names"><div class="field"><label for="pf-prenom">Prénom</label><input id="pf-prenom" maxlength="60" autocomplete="given-name" value="' + esc(p.prenom) + '"' + (v ? ' readonly aria-describedby="pf-lock"' : "") + "></div>" +
+      '<div class="field"><label for="pf-nom">Nom</label><input id="pf-nom" maxlength="60" autocomplete="family-name" value="' + esc(p.nom) + '"' + (v ? ' readonly aria-describedby="pf-lock"' : "") + "></div></div></section>" +
+    '<section class="ed-sec" aria-labelledby="pf-co-t"><h2 class="ed-sec-title" id="pf-co-t">Coordonnées</h2>' +
+      '<div class="field"><label for="pf-email">E-mail <span class="opt">(sert à vous connecter)</span></label><input id="pf-email" type="email" readonly value="' + esc(p.email) + '" aria-describedby="pf-email-h">' +
+      '<div class="hint" id="pf-email-h">Pour le changer, contactez un administrateur.</div></div>' +
+      '<div class="field w-tel"><label for="pf-tel">Téléphone <span class="opt">(privé : visible seulement des leaders)</span></label><input id="pf-tel" class="tel-masque" type="tel" inputmode="tel" autocomplete="tel" value="' + esc(telMasquer(p.telephone || "")) + '"></div></section>' +
+    (resp ? '<section class="ed-sec" aria-labelledby="pf-re-t"><h2 class="ed-sec-title" id="pf-re-t">Mes responsabilités</h2><ul class="pf-li">' + resp + "</ul>" +
+      '<div class="hint">Réglées par les administrateurs.</div></section>' : "") +
+    '<div class="pf-actions"><button type="submit" class="btn btn-primary" id="pf-save">Enregistrer</button></div>';
+  // Photo : recadrée et réduite dans le navigateur, enregistrée avec « Enregistrer »
+  const photo = { data: p.photo || "", grand: "", changed: false };
+  const nomAff = () => {
+    const pr = f.querySelector("#pf-prenom").value.trim(), no = f.querySelector("#pf-nom").value.trim();
+    f.querySelector("#pf-nom-aff").innerHTML = esc([pr, no].filter(Boolean).join(" ")) + (v ? VERIFIE : "");
+    return { prenom: pr, nom: no };
+  };
+  const drawPhoto = () => {
+    f.querySelector("#pf-photo-prev").innerHTML = photo.data ? '<img src="' + esc(photo.data) + '" alt="">' : esc(initials(nomAff()).toUpperCase());
+    f.querySelector("#pf-photo-rm").hidden = !photo.data;
+    f.querySelector("#pf-photo-pick").textContent = photo.data ? "Changer la photo" : "Choisir une photo";
+    f.querySelector("#pf-photo-btn").setAttribute("aria-label", photo.data ? "Ma photo : changer ou supprimer" : "Ajouter ma photo");
+  };
+  drawPhoto();
+  const phBtn = f.querySelector("#pf-photo-btn"), phMenu = f.querySelector("#pf-photo-menu");
+  const phOpen = open => { phMenu.hidden = !open; phBtn.setAttribute("aria-expanded", String(open)); if (open) phMenu.querySelector("button:not([hidden])").focus(); };
+  phBtn.onclick = () => photo.data ? phOpen(phMenu.hidden) : f.querySelector("#pf-photo").click();
+  f.querySelector("#pf-photo-pick").onclick = () => { phOpen(false); f.querySelector("#pf-photo").click(); };
+  f.querySelector("#pf-photo-rm").onclick = () => { phOpen(false); photo.data = photo.grand = ""; photo.changed = true; drawPhoto(); phBtn.focus(); };
+  f.onclick = e => { if (!phMenu.hidden && !e.target.closest(".ph-wrap")) phOpen(false); };
+  phMenu.addEventListener("keydown", e => { if (e.key === "Escape") { e.stopPropagation(); phOpen(false); phBtn.focus(); } });
+  f.querySelector("#pf-photo").onchange = async e => {
+    const file = e.target.files[0]; e.target.value = "";
+    if (!file) return;
+    try { [photo.data, photo.grand] = await Promise.all([squarePhoto(file, 200), squarePhoto(file, 600)]); photo.changed = true; drawPhoto(); }
+    catch { toast("Cette image n'a pas pu être lue : choisissez une photo JPEG ou PNG."); }
+  };
+  for (const id of ["#pf-prenom", "#pf-nom"]) f.querySelector(id).oninput = () => { if (photo.data) nomAff(); else drawPhoto(); };
+  f.onsubmit = async e => {
+    e.preventDefault();
+    const { prenom, nom } = nomAff(), tel = f.querySelector("#pf-tel"), telephone = tel.value.trim(), err = telErreur(telephone);
+    if (!prenom && !nom) { toast("Indiquez au moins un prénom ou un nom."); return f.querySelector("#pf-prenom").focus(); }
+    if (err) { telMontrer(tel, err); return tel.focus(); }
+    const btn = f.querySelector("#pf-save");
+    btn.disabled = true;
+    try {
+      await api.monProfilEnregistrer({ civilite: f.querySelector("#pf-civ").value || null, prenom, nom, telephone: telephone || null });
+      if (photo.changed) await api.monProfilPhoto(photo.data, photo.grand);
+    } catch (x) { btn.disabled = false; return toast("Enregistrement impossible : " + (x?.message || "erreur inconnue")); }
+    toast("Profil enregistré.");
+    await refresh().catch(() => {}); // annuaire et leaders à jour
+    await chargerProfil();
+    route(); // prénom en haut à droite
+    $("pf-save")?.focus();
+  };
+}
+
 function deletePerson(p) {
   const roles = personRoles(p), e = p.email.toLowerCase(), self = e && e === myEmail();
   openEditor("Supprimer le contact", fullName(p), '<p style="margin:0">Cette personne sera retirée' +
