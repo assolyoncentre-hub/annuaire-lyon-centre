@@ -1266,6 +1266,7 @@ function afficherProfil(p) {
     f.querySelector("#pf-photo-pick").textContent = photo.data ? "Changer la photo" : "Choisir une photo";
     f.querySelector("#pf-photo-btn").setAttribute("aria-label", photo.data ? "Ma photo : changer ou supprimer" : "Ajouter ma photo");
   };
+  nomAff(); // nom affiché en tête, avec ou sans photo
   drawPhoto();
   const phBtn = f.querySelector("#pf-photo-btn"), phMenu = f.querySelector("#pf-photo-menu");
   const phOpen = open => { phMenu.hidden = !open; phBtn.setAttribute("aria-expanded", String(open)); if (open) phMenu.querySelector("button:not([hidden])").focus(); };

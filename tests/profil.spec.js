@@ -102,6 +102,7 @@ test("photo : choisie dans le profil, envoyée avec Enregistrer, puis supprimée
   expect(envoi.data).toMatch(/^data:image\/jpeg;base64,/);
   expect(envoi.grand).toMatch(/^data:image\/jpeg;base64,/);
   await expect(page.locator("#pf-photo-prev img")).toBeVisible(); // rechargé depuis le serveur
+  await expect(page.locator("#pf-nom-aff")).toHaveText("Jean Brunet"); // nom affiché aussi avec une photo
   await page.click("#pf-photo-btn");
   await page.click("#pf-photo-rm");
   await expect(page.locator("#pf-photo-prev")).toHaveText("JB");
