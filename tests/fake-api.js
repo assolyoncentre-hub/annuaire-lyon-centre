@@ -293,7 +293,8 @@ module.exports = function installFakeApi({ data, user, acces, desactives }) {
     async onAuth(cb) { window.__authCb = cb; },
     // Connexion par code : le bon code est toujours 123456
     async canSignIn(email) { const e = email.toLowerCase(); log("canSignIn", email); return !!droitDe(e) || !!entrDe(e); },
-    async sendCode(email) { log("sendCode", email); },
+    // Comme hook_avant_creation_compte : toute adresse, sauf un compte désactivé
+    async sendCode(email) { log("sendCode", email); if (desactive(email.toLowerCase())) throw new Error("Ce compte a été désactivé."); },
     // Lien de l'e-mail : l'empreinte « lien-ok » connecte damien@example.org
     async verifyLink(hash) {
       log("verifyLink", hash);
@@ -374,6 +375,26 @@ module.exports = function installFakeApi({ data, user, acces, desactives }) {
       if (e === session.user.email.toLowerCase()) throw new Error("Vous ne pouvez pas désactiver votre propre compte.");
       if (oui) { if (!desactive(e)) S.desactives.push({ email: e, desactive_le: new Date().toISOString() }); }
       else S.desactives = S.desactives.filter(d => d.email !== e);
+    },
+    // Comme mon_etat_compte / creer_mon_compte : adresse vérifiée sans fiche → profil à remplir ; la fiche créée
+    // n'a que le droit « Voir l'entraide »
+    async etatCompte() {
+      const e = session?.user.email.toLowerCase();
+      if (!e) return null;
+      if (desactive(e)) return "desactive";
+      if (droitDe(e) || entrDe(e)) return "actif";
+      if (S.acces.some(a => a.email === e) || [...S.contacts, ...S.responsables].some(r => (r.email || "").toLowerCase() === e)) return "sans_droit";
+      return "a_creer";
+    },
+    async creerMonCompte(f) {
+      log("creerMonCompte", f);
+      if (await window.__api.etatCompte() !== "a_creer") throw new Error("Ce compte existe déjà ou ne peut pas être créé.");
+      const civ = (f.civilite || "").trim() || null, pr = (f.prenom || "").trim(), no = (f.nom || "").trim(), tel = (f.telephone || "").trim() || null;
+      if (!f.accord) throw new Error("Merci d'accepter la conservation de vos informations.");
+      if (civ && !["Madame", "Monsieur", "Père"].includes(civ)) throw new Error("Civilité inconnue.");
+      if (!pr || !no) throw new Error("Indiquez votre prénom et votre nom.");
+      if (tel && !/^[+0-9 .()\/-]{6,30}$/.test(tel)) throw new Error("Numéro de téléphone invalide.");
+      S.acces.push({ email: session.user.email.toLowerCase(), droit: "aucun", civilite: civ, prenom: pr, nom: no, telephone: tel, entraide_voir: true, entraide_moderer: false, accord_donnees_le: new Date().toISOString() });
     },
     // Comme mon_profil / mon_profil_enregistrer / mon_profil_photo : mes propres informations, sur toutes mes lignes
     // (staffs, pôles, fiche « acces ») ; e-mail, droits, responsabilités et vérification ne se changent pas ici

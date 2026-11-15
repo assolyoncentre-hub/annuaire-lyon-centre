@@ -330,12 +330,12 @@ test("désactiver un compte : effet immédiat, pastille et filtre, connexion ref
   await expect(page.locator(".pe-bandeau")).toBeVisible();
 });
 
-test("compte désactivé : à la connexion, traité comme une adresse inconnue", async ({ open, page }) => {
+test("compte désactivé : à la connexion, l'envoi du code est refusé (pas de création de compte)", async ({ open, page }) => {
   await open({ hash: "#admin", desactives: ["damien@example.org"] });
   await page.fill("#otp-email", "damien@example.org");
   await page.press("#otp-email", "Enter");
-  await expect(page.locator("#login-error")).toHaveText("Vous n'êtes pas autorisé à accéder à cette page.");
-  expect(await calls(page, "sendCode")).toHaveLength(0);
+  await expect(page.locator("#login-error")).toContainText("Ce compte a été désactivé");
+  await expect(page.locator("#otp-code-form")).toBeHidden();
 });
 
 test("compte désactivé déjà connecté : déconnecté comme un compte sans accès", async ({ open, page }) => {

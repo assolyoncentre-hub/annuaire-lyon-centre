@@ -51,3 +51,13 @@ test("mon profil et menu du compte (personne vérifiée) @mobile", async ({ open
   await expect(page.locator("#acct-menu")).toBeVisible();
   expect(await audit(page)).toEqual([]);
 });
+
+test("création du compte et bienvenue @mobile", async ({ open, page }) => {
+  await open({ user: { email: "nouveau@example.org" }, hash: "#" });
+  await expect(page.locator("#cr-form")).toBeVisible();
+  expect(await audit(page)).toEqual([]);
+  await page.fill("#cr-prenom", "Nina"); await page.fill("#cr-nom", "Roy"); await page.check("#cr-accord");
+  await page.click("#cr-creer");
+  await expect(page.locator(".cr-coche")).toBeVisible();
+  expect(await audit(page)).toEqual([]);
+});

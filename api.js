@@ -124,8 +124,8 @@ window.makeApi = function () {
       });
       google.accounts.id.renderButton(el, { theme: "outline", size: "large", shape: "rectangular", text: "signin_with", logo_alignment: "left", locale: "fr", width: 280 });
     },
-    // Connexion par code reçu par e-mail (sans mot de passe). L'adresse est d'abord vérifiée : aucun code n'est
-    // envoyé à une adresse qui n'a pas accès à l'annuaire.
+    // Connexion par code reçu par e-mail (sans mot de passe). canSignIn dit si l'adresse a déjà un compte : sinon,
+    // le code sert à créer le compte (la base refuse seulement les adresses désactivées).
     canSignIn: email => rpc("acces_autorise", { p_email: email }),
     async sendCode(email) {
       const { error } = await (await getSb()).auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
@@ -174,6 +174,10 @@ window.makeApi = function () {
     // Comptes désactivés : connexion impossible (traités comme inconnus), droits gardés pour la réactivation
     comptesDesactives: () => sbRpc("admin_comptes_desactives"),
     desactiverCompte: (email, oui) => sbRpc("admin_desactiver_compte", { p_email: email, p_desactive: oui }),
+    // Création du compte : état de mon compte ("actif", "a_creer" : adresse vérifiée sans fiche, "desactive",
+    // "sans_droit"), puis création de ma fiche (droit « Voir l'entraide » seulement, accord obligatoire)
+    etatCompte: () => sbRpc("mon_etat_compte"),
+    creerMonCompte: f => sbRpc("creer_mon_compte", { p_civilite: f.civilite, p_prenom: f.prenom, p_nom: f.nom, p_telephone: f.telephone, p_accord: !!f.accord }),
     // Mon profil : mes informations (toutes mes lignes), enregistrement (prénom et nom bloqués si vérifié), ma photo
     monProfil: () => sbRpc("mon_profil"),
     monProfilEnregistrer: f => sbRpc("mon_profil_enregistrer", { p_civilite: f.civilite, p_prenom: f.prenom, p_nom: f.nom, p_telephone: f.telephone }),

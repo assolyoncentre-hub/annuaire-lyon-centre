@@ -23,19 +23,30 @@ test("code e-mail : adresse, code faux, renvoi, bon code → annuaire des leader
   expect((await calls(page, "verifyCode")).at(-1).arg).toEqual({ email: "damien@example.org", code: "123456" });
 });
 
-test("code e-mail : adresse non autorisée → message clair, aucun envoi", async ({ open, page }) => {
+test("code e-mail : adresse inconnue → code de création du compte (titre « Créer un compte », bouton Vérifier)", async ({ open, page }) => {
   await open({ hash: "#admin" });
-  await page.fill("#otp-email", "inconnu@example.org");
-  await page.press("#otp-email", "Enter");
-  await expect(page.locator("#login-error")).toHaveText("Vous n'êtes pas autorisé à accéder à cette page.");
-  await expect(page.locator("#otp-email")).toHaveClass(/bad/);
-  await expect(page.locator("#otp-code-form")).toBeHidden();
-  expect(await calls(page, "sendCode")).toHaveLength(0);
+  await expect(page.locator("#login-title")).toHaveText("Connexion ou création d'un compte");
+  await expect(page.locator("#otp-send")).toHaveText("Continuer");
   // Adresse incomplète : pas même de vérification
   await page.fill("#otp-email", "damien@");
   await page.click("#otp-send");
   await expect(page.locator("#login-error")).toContainText("adresse e-mail complète");
-  expect(await calls(page, "canSignIn")).toHaveLength(1);
+  expect(await calls(page, "canSignIn")).toHaveLength(0);
+  await page.fill("#otp-email", "inconnu@example.org");
+  await page.press("#otp-email", "Enter");
+  await expect(page.locator("#otp-code-form")).toBeVisible();
+  expect((await calls(page, "sendCode")).map(c => c.arg)).toEqual(["inconnu@example.org"]);
+  await expect(page.locator("#login-title")).toHaveText("Créer un compte");
+  await expect(page.locator("#otp-verify")).toHaveText("Vérifier");
+  // Changer d'adresse : retour au titre de départ
+  await page.click("#otp-change");
+  await expect(page.locator("#login-title")).toHaveText("Connexion ou création d'un compte");
+  // Adresse connue : code de connexion
+  await page.fill("#otp-email", "damien@example.org");
+  await page.press("#otp-email", "Enter");
+  await expect(page.locator("#otp-code-form")).toBeVisible();
+  await expect(page.locator("#login-title")).toHaveText("Connexion ou création d'un compte");
+  await expect(page.locator("#otp-verify")).toHaveText("Se connecter");
 });
 
 test("code e-mail : changer d'adresse revient à la saisie de l'adresse", async ({ open, page }) => {

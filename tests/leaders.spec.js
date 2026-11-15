@@ -7,8 +7,7 @@ test("visiteur : pas d'onglet Leaders ; l'adresse #leaders demande de se connect
   await expect(page.locator("#switch")).toBeHidden(); // Propositions seul : pas de barre d'onglets
   await page.goto(page.url().replace(/#.*$/, "") + "#leaders");
   await expect(page.locator("#admin-login")).toBeVisible();
-  await expect(page.locator("#login-title")).toHaveText("Accès réservé");
-  await expect(page.locator("#login-text")).toHaveText("Seules les personnes explicitement désignées peuvent y accéder.");
+  await expect(page.locator("#login-title")).toHaveText("Connexion ou création d'un compte");
   await expect(page.locator("#serv-view")).toBeHidden();
   await expect(page.locator("#h1")).toHaveText("Annuaire des leaders");
   await page.click("#gsi-btn button");
@@ -19,18 +18,16 @@ test("visiteur : pas d'onglet Leaders ; l'adresse #leaders demande de se connect
   await expect(page.locator("#sw-admin")).toBeHidden();
   await expect(page.locator("#admin-label")).toHaveText("Connexion");
   await page.click("#admin-link");
-  await expect(page.locator("#login-title")).toHaveText("Connexion");
+  await expect(page.locator("#login-title")).toHaveText("Connexion ou création d'un compte");
   await expect(page.locator("#h1")).toHaveText("Connexion");
-  await expect(page.locator("#login-text")).toBeVisible();
   await expect(page.locator(".switch a[aria-current]")).toHaveCount(0);
 });
 
-test("compte absent des contacts : connexion refusée", async ({ open, page }) => {
+test("compte absent des contacts : création du compte, sans accès aux leaders", async ({ open, page }) => {
   await open({ user: { email: "autre@example.org" }, hash: "#leaders" });
-  await expect(page.locator("#login-error")).toContainText("autre@example.org n'a pas accès à l'annuaire");
-  await expect(page.locator("#admin-login")).toBeVisible();
+  await expect(page.locator("#creation-view")).toBeVisible();
   await expect(page.locator("#serv-view")).toBeHidden();
-  await expect(page.locator("#admin-label")).toHaveText("Connexion");
+  expect(await calls(page, "photos")).toHaveLength(0);
 });
 
 test("administrateur : cartes par lettre, rôles, liens d'appel et d'e-mail, filtres, recherche", async ({ open, page }) => {

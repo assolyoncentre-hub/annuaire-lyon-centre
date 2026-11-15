@@ -13,7 +13,7 @@ test("visiteur non connecté : pas d'onglet Entraide, le lien direct demande une
   await expect(page.locator("#sw-entr")).toBeHidden();
   await open({ hash: "#entraide" });
   await expect(page.locator("#admin-login")).toBeVisible();
-  await expect(page.locator("#login-title")).toHaveText("Accès réservé");
+  await expect(page.locator("#login-title")).toHaveText("Connexion ou création d'un compte");
   await expect(page.locator("#entr-view")).toBeHidden();
   expect(await calls(page, "entraide")).toHaveLength(0);
 });

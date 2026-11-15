@@ -263,6 +263,9 @@ body { min-height: 100vh; display: flex; flex-direction: column; }
   .admin-link span { display: none; }
   .admin-link svg { width: 20px; height: 20px; }
 }
+.login-dehors { margin: -20px 0 40px; text-align: center; }
+.login-dehors[hidden] { display: none; }
+.login-dehors .back-link { margin: 0; }
 .back-link { display: inline-block; margin: 20px 0 0; text-decoration: none; padding: 0; border: 0; background: none; color: var(--brand); font: 600 14px/1 Montserrat, sans-serif; cursor: pointer; }
 .view[hidden] { display: none; }
 .admin-top { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 20px 0 8px; }
@@ -336,6 +339,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .otp-links .link-btn:disabled { color: var(--muted); cursor: default; }
 .field input.bad { border-color: #a12622; }
 .login-or { display: flex; align-items: center; gap: 12px; margin: 22px 0 18px; color: var(--muted); font: 600 12px/1 Montserrat, sans-serif; letter-spacing: .08em; text-transform: uppercase; }
+.login-or[hidden] { display: none; }
 .login-or::before, .login-or::after { content: ""; flex: 1; height: 1px; background: var(--border); }
 .gsi-btn[hidden] { display: none; }
 .gsi-btn { display: flex; justify-content: center; min-height: 44px; }
@@ -432,7 +436,27 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .ed-sec-title { margin: 0; font: 700 18px/1.1 Phudu, Montserrat, sans-serif; letter-spacing: .02em; text-transform: uppercase; color: var(--brand); }
 .ed-sec .hint { margin-top: -6px; font-size: 13px; color: var(--muted); }
 .ed-sec .hint:empty { display: none; }
-.ed-sec .field .hint { margin-top: 6px; } /* sous un champ : détachée du champ (le -6px ne vaut que pour une aide de section) */
+.ed-sec .field .hint { margin-top: 6px; }
+/* Création du compte : photo à côté de son texte, e-mail vérifié, accord ; coche animée de la bienvenue */
+.creation .otp + .otp-bas { margin-top: 18px; }
+.cr-photo { display: flex; align-items: center; gap: 16px; }
+.cr-photo > div:last-child { display: grid; gap: 4px; justify-items: start; }
+.cr-photo b { font: 600 15px/1.2 Montserrat, sans-serif; color: var(--text); }
+.cr-photo .cr-fac { font-size: 13px; color: var(--muted); }
+.cr-mail { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border-radius: 8px; background: #eef1f4; }
+.cr-mail span:first-child { min-width: 0; overflow-wrap: anywhere; color: var(--text); font-weight: 600; }
+.cr-ok-mini { display: inline-flex; align-items: center; gap: 4px; color: #1d6b3a; font: 600 13px/1 Montserrat, sans-serif; white-space: nowrap; }
+.cr-ok-mini svg { width: 14px; height: 14px; }
+.cr-accord { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; color: var(--muted); }
+.cr-accord input { width: 18px; height: 18px; margin: 1px 0 0; flex: none; accent-color: var(--brand); }
+.cr-accord a { color: var(--brand); }
+.cr-coche { width: 56px; height: 56px; margin: 0 auto 14px; border-radius: 50%; display: grid; place-items: center; background: #e8f4ec; color: #1d6b3a;
+  animation: cr-rond .45s cubic-bezier(.34, 1.56, .64, 1) both; }
+.cr-coche svg { width: 28px; height: 28px; }
+.cr-coche path { stroke-dasharray: 22; animation: cr-trait .35s ease-out .3s both; }
+@keyframes cr-rond { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes cr-trait { from { stroke-dashoffset: 22; } to { stroke-dashoffset: 0; } }
+@media (prefers-reduced-motion: reduce) { .cr-coche, .cr-coche path { animation: none; } } /* sous un champ : détachée du champ (le -6px ne vaut que pour une aide de section) */
 .ed-sec .hors-warn { margin: 0; }
 /* Prénom et nom : largeur réduite sur ordinateur, pleine largeur sur mobile */
 @media (min-width: 521px) { .row2.names { grid-template-columns: repeat(2, minmax(0, 15em)); } }
@@ -1065,18 +1089,21 @@ label.check .verifie { margin-left: -4px; }
 <div id="profil-view" class="view" hidden>
 <main class="wrap"><form class="pf" id="pf-form" novalidate aria-label="Mon profil"><p class="count" id="pf-charge" role="status">Chargement…</p></form></main>
 </div>
+<!-- Création du compte (adresse inconnue, vérifiée par code ou par Google) : profil obligatoire, puis bienvenue -->
+<div id="creation-view" class="view" hidden>
+<main class="wrap"><div class="login creation" id="creation"></div></main>
+</div>
 <div id="admin-view" class="view" hidden>
   <main class="wrap">
     <div id="admin-login" class="login" hidden>
-      <h2 id="login-title">Connexion</h2>
-      <p id="login-text">Seules les personnes explicitement désignées peuvent y accéder.</p>
+      <h2 id="login-title">Connexion ou création d'un compte</h2>
       <p id="login-error" class="login-error" role="alert" hidden></p>
       <p id="login-ok" class="login-ok" role="status" hidden></p>
       <!-- Connexion par code reçu par e-mail : adresse, puis code -->
       <form id="otp-email-form" class="otp" novalidate>
-        <div class="field"><label for="otp-email">Recevoir un code par e-mail</label>
+        <div class="field"><label for="otp-email">Votre adresse e-mail</label>
           <input type="email" id="otp-email" autocomplete="email" inputmode="email" spellcheck="false" placeholder="prenom.nom@exemple.fr"></div>
-        <button type="submit" class="btn btn-primary" id="otp-send">Recevoir un code</button>
+        <button type="submit" class="btn btn-primary" id="otp-send">Continuer</button>
       </form>
       <form id="otp-code-form" class="otp" novalidate hidden>
         <p class="otp-sent">Un code a été envoyé à <strong id="otp-to"></strong>. Il est valable 10 minutes. Vous ne le trouvez pas ? Pensez à regarder dans vos courriers indésirables (spams).</p>
@@ -1086,10 +1113,11 @@ label.check .verifie { margin-left: -4px; }
         <div class="otp-links"><button type="button" class="link-btn" id="otp-change">Changer d'adresse</button><button type="button" class="link-btn" id="otp-resend">Renvoyer le code</button></div>
       </form>
       <div class="login-or" id="login-or">ou</div>
-      <div id="gsi-btn" class="gsi-btn"></div>
-      <p id="gsi-error" class="login-error" hidden>Le bouton de connexion Google n'a pas pu se charger. Vérifiez votre connexion ou désactivez le bloqueur de publicités pour ce site, puis rechargez la page.</p>
-      <a href="#" class="back-link" id="login-back">← Retour à l'annuaire</a>
+      <div id="gsi-zone"><div id="gsi-btn" class="gsi-btn"></div>
+      <p id="gsi-error" class="login-error" hidden>Le bouton de connexion Google n'a pas pu se charger. Vérifiez votre connexion ou désactivez le bloqueur de publicités pour ce site, puis rechargez la page.</p></div>
     </div>
+    <!-- « Retour à l'annuaire » : sous la carte de connexion, hors du cadre blanc -->
+    <p class="login-dehors" id="login-dehors" hidden><a href="#" class="back-link" id="login-back">← Retour à l'annuaire</a></p>
     <div id="admin-denied" class="denied" hidden>
       <strong>Accès réservé.</strong> Le compte <span id="denied-email"></span> <span id="denied-what">n'est pas administrateur de l'annuaire.</span>
       <div class="account"><button type="button" class="link-btn" id="logout-2">Se déconnecter</button></div>

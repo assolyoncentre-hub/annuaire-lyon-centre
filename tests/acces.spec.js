@@ -26,12 +26,24 @@ test("prénom en capitales : affiché avec seulement les initiales en majuscule"
   await expect(page.locator("#admin-label")).toHaveText("Jean-Paul");
 });
 
-test("compte absent des contacts : déconnecté aussitôt, avec un message", async ({ open, page }) => {
+test("adresse vérifiée sans fiche : écran de création du compte, rien d'autre d'accessible", async ({ open, page }) => {
   await open({ user: { email: "inconnu@example.org" }, hash: "#admin" });
-  await expect(page.locator("#login-error")).toContainText("inconnu@example.org n'a pas accès à l'annuaire");
+  await expect(page.locator("#creation-view")).toBeVisible();
+  await expect(page.locator("#h1")).toHaveText("Créer un compte");
+  expect(await calls(page, "signOut")).toHaveLength(0);
+  await expect(page.locator("#switch")).toBeHidden();
+  await expect(page.locator("#admin-view")).toBeHidden();
+  await page.evaluate(() => { location.hash = "#leaders"; });
+  await expect(page.locator("#creation-view")).toBeVisible();
+  await expect(page.locator("#serv-view")).toBeHidden();
+});
+
+test("fiche existante sans aucun droit : déconnectée aussitôt, avec un message", async ({ open, page }) => {
+  const acces = [{ email: "magali@example.org", droit: "aucun", prenom: "", nom: "", entraide_voir: false, entraide_moderer: false }, { email: "admin@example.org", droit: "admin", prenom: "", nom: "" }];
+  await open({ user: { email: "magali@example.org" }, hash: "#admin", acces });
+  await expect(page.locator("#login-error")).toContainText("magali@example.org n'a pas accès à l'annuaire");
   expect(await calls(page, "signOut")).toHaveLength(1);
-  await expect(page.locator("#sw-admin")).toBeHidden();
-  await expect(page.locator("#sw-serv")).toBeHidden();
+  await expect(page.locator("#creation-view")).toBeHidden();
   await expect(page.locator("#admin-login")).toBeVisible();
 });
 

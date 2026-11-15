@@ -313,14 +313,20 @@ let profilOuvert = false, profilSeq = 0, profilPrenom = ""; // Mon profil : page
 let profilRetour = null, vueAvant = null;
 let isAdmin = false, canLeaders = false, canEntraide = false, isReferent = false, session = null, adminTab = "services", adminTerms = [], messages = [], acces = [], contactFilter = new Set();
 let authStarted = null, authLoaded = false, lastViewAdmin = null;
+// Création du compte : adresse vérifiée mais sans fiche (profil à remplir), puis écran de bienvenue (prénom) ;
+// otpNouveau : l'adresse saisie n'a pas encore de compte (code de création, et non de connexion)
+let compteACreer = false, bienvenue = null, otpNouveau = false;
+let creationAffichee = null; // "profil" ou "bienvenue" : écran déjà dessiné (pas redessiné à chaque route())
 
 async function onSession(s) {
   session = s;
   const droit = s ? await api.droit().catch(() => undefined) : null; // undefined : droits illisibles (réseau)
   // Droit Entraide ("voir" ou "moderer"), réglé sur la fiche contact, indépendant du droit sur l'annuaire
   const entraide = s ? await api.droitEntraide().catch(() => null) : null;
-  if (s && droit === null && !entraide) {
-    // Compte sans droit sur l'annuaire ni sur l'entraide : pas de connexion
+  // Adresse vérifiée sans fiche : le compte reste ouvert, le temps de remplir son profil (rien d'autre n'est accessible)
+  compteACreer = !!s && droit === null && !entraide && await api.etatCompte().catch(() => null) === "a_creer";
+  if (s && droit === null && !entraide && !compteACreer) {
+    // Compte désactivé, ou fiche sans aucun droit : pas de connexion
     await api.signOut().catch(() => {});
     $("login-error").textContent = "Le compte " + (s.user?.email || "") + " n'a pas accès à l'annuaire.";
     $("login-error").hidden = false;
@@ -388,7 +394,7 @@ function route() {
   $("entr-view").hidden = !entr;
   $("serv-view").hidden = !showServ;
   $("admin-view").hidden = !admin;
-  $("h1").textContent = home ? "Bienvenue" : profil ? "Mon profil" : entrHash ? "Entraide" : serv ? "Annuaire des leaders" : admin ? (session ? "Administration" : "Connexion") : "Annuaire des propositions";
+  $("h1").textContent = otpNouveau && !session && $("otp-email-form").hidden ? "Créer un compte" : home ? "Bienvenue" : profil ? "Mon profil" : entrHash ? "Entraide" : serv ? "Annuaire des leaders" : admin ? (session ? "Administration" : "Connexion") : "Annuaire des propositions";
   // En haut à droite : « Connexion », ou le prénom de la personne connectée (menu avec « Se déconnecter »)
   const label = session ? firstName() : "Connexion";
   $("admin-label").textContent = label;
@@ -406,13 +412,14 @@ function route() {
   $("switch").hidden = $("switch").querySelectorAll("a:not([hidden])").length < 2;
   const cur = profilHash ? null : home ? "sw-home" : entrHash ? "sw-entr" : serv ? "sw-serv" : adminHash ? (isAdmin ? "sw-admin" : null) : "sw-prop";
   if (cur) $(cur).setAttribute("aria-current", "page");
-  $("login-title").textContent = serv || entrHash ? "Accès réservé" : "Connexion";
+  $("login-title").textContent = otpNouveau && $("otp-email-form").hidden ? "Créer un compte" : "Connexion ou création d'un compte";
   if (admin || serv) ensureAuth();
   // Mon profil : rechargé à chaque arrivée sur la page
   if (profil && !profilOuvert) { profilRetour = vueAvant; chargerProfil(); }
   profilOuvert = profil;
   if (!profilHash) vueAvant = h;
   $("admin-login").hidden = !admin || !!session || !authLoaded;
+  $("login-dehors").hidden = $("admin-login").hidden;
   $("admin-denied").hidden = !admin || !session || (serv ? canLeaders : entrHash ? entr : isAdmin);
   $("denied-what").textContent = serv ? "n'a pas accès à l'annuaire des leaders." : entrMod ? "n'est pas modérateur de l'entraide." : entrHash ? "n'a pas accès à l'entraide." : "n'est pas administrateur de l'annuaire.";
   if (session) $("login-error").hidden = $("login-ok").hidden = true;
@@ -430,6 +437,16 @@ function route() {
   const view = home ? "home" : entrMod && isReferent ? "entr-mod" : entr ? "entr" : showServ ? "serv" : admin ? "admin" : "dir";
   if (view !== lastViewAdmin) window.scrollTo(0, 0);
   lastViewAdmin = view;
+  // Création du compte : seul écran accessible tant que le profil n'est pas rempli, puis la bienvenue
+  const creation = !!session && (compteACreer || !!bienvenue);
+  $("creation-view").hidden = !creation;
+  if (creation) {
+    for (const v of document.querySelectorAll(".view")) if (v.id !== "creation-view") v.hidden = true;
+    $("switch").hidden = true;
+    $("h1").textContent = bienvenue ? "Bienvenue" : "Créer un compte";
+    document.body.style.setProperty("--page", ""); // titres en bleu, quelle que soit la page demandée
+    afficherCreation();
+  } else creationAffichee = null;
 }
 // Quitter l'écran de connexion sans se connecter : la prochaine connexion n'est plus celle du bouton du haut
 window.addEventListener("hashchange", () => { if (location.hash !== "#admin") try { sessionStorage.removeItem("apres-connexion"); } catch { /* stockage indisponible */ } });
@@ -514,7 +531,7 @@ $("admin-link").addEventListener("click", () => {
 document.addEventListener("click", e => { if (!$("acct-menu").hidden && !e.target.closest(".acct")) closeAcct(); });
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("acct-menu").hidden) { closeAcct(); $("admin-link").focus(); } });
 $("acct-profil").addEventListener("click", () => { closeAcct(); if (location.hash === "#profil") { profilOuvert = false; route(); } });
-$("logout").onclick = $("logout-2").onclick = async () => { closeAcct(); resetOtp(); await api.signOut(); profilPrenom = ""; isAdmin = canLeaders = canEntraide = isReferent = false; session = null; acces = []; messages = []; contactsOf = {}; respOf = {}; contactRows = []; respRows = []; route(); render(); };
+$("logout").onclick = $("logout-2").onclick = async () => { closeAcct(); resetOtp(); await api.signOut(); profilPrenom = ""; compteACreer = false; bienvenue = null; isAdmin = canLeaders = canEntraide = isReferent = false; session = null; acces = []; messages = []; contactsOf = {}; respOf = {}; contactRows = []; respRows = []; route(); render(); };
 
 const poleNames = () => Object.keys(poles).sort(byPole);
 const isPoleTab = () => adminTab === "poles";
@@ -1302,6 +1319,85 @@ function afficherProfil(p) {
   };
 }
 
+// --- Création du compte : l'adresse est déjà vérifiée (code ou Google). Profil obligatoire (photo facultative,
+// civilité, prénom, nom, téléphone facultatif, accord), seule sortie « Annuler et se déconnecter » ; puis bienvenue.
+const CR_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+function afficherCreation() {
+  const ecran = bienvenue ? "bienvenue" : "profil", c = $("creation");
+  if (creationAffichee === ecran) return;
+  creationAffichee = ecran;
+  if (bienvenue) {
+    c.innerHTML = '<div class="cr-coche">' + CR_CHECK + '</div><h2 id="cr-titre" tabindex="-1">Bienvenue ' + esc(bienvenue) + " !</h2>" +
+      "<p>Votre compte est créé. Vous pourrez modifier vos informations à tout moment dans « Mon profil », depuis le menu en haut à droite.</p>" +
+      '<div class="otp"><button type="button" class="btn btn-primary" id="cr-continuer">Continuer</button></div>';
+    $("cr-continuer").onclick = () => { bienvenue = null; route(); render(); };
+    $("cr-titre").focus();
+    return;
+  }
+  const m = session?.user?.user_metadata || {}, email = session?.user?.email || "";
+  // Avec Google : prénom et nom pré-remplis
+  const prenom0 = m.given_name || "", nom0 = m.family_name || "";
+  c.innerHTML = '<h2 id="cr-titre" tabindex="-1">Créez votre profil</h2><p>Votre adresse est vérifiée. Dernière étape : présentez-vous pour accéder au site.</p>' +
+    '<form class="otp" id="cr-form" novalidate>' +
+      '<div class="cr-photo"><div class="ph-wrap"><button type="button" class="ph-btn" id="cr-photo-btn" aria-haspopup="menu" aria-expanded="false">' +
+        '<span class="ph-prev" id="cr-photo-prev"></span><span class="ph-cam" aria-hidden="true">' + CAMERA + "</span></button>" +
+        '<input type="file" id="cr-photo" accept="image/*" hidden>' +
+        '<div class="ph-menu" id="cr-photo-menu" role="menu" hidden><button type="button" role="menuitem" id="cr-photo-pick">Changer la photo</button>' +
+        '<button type="button" role="menuitem" class="danger" id="cr-photo-rm">Supprimer la photo</button></div></div>' +
+        '<div><b>Votre photo</b><span class="cr-fac">Facultative</span><button type="button" class="link-btn" id="cr-photo-add">Ajouter une photo</button></div></div>' +
+      '<div class="cr-mail"><span>' + esc(email) + '</span><span class="cr-ok-mini">' + CR_CHECK + "Vérifiée</span></div>" +
+      '<div class="field w-fit"><label for="cr-civ">Civilité</label>' + civSelect("cr-civ", "") + "</div>" +
+      '<div class="field"><label for="cr-prenom">Prénom</label><input id="cr-prenom" maxlength="60" autocomplete="given-name" value="' + esc(prenom0) + '"></div>' +
+      '<div class="field"><label for="cr-nom">Nom</label><input id="cr-nom" maxlength="60" autocomplete="family-name" value="' + esc(nom0) + '"></div>' +
+      '<div class="field w-tel"><label for="cr-tel">Téléphone <span class="opt">(facultatif, privé)</span></label><input id="cr-tel" class="tel-masque" type="tel" inputmode="tel" autocomplete="tel" placeholder="06 12 34 56 78"></div>' +
+      '<label class="cr-accord"><input type="checkbox" id="cr-accord"><span>J\'accepte que ces informations soient conservées pour le fonctionnement du site (<a href="confidentialite.html" target="_blank" rel="noopener">confidentialité</a>).</span></label>' +
+      '<button type="submit" class="btn btn-primary" id="cr-creer">Créer mon compte</button></form>' +
+    '<div class="otp-bas"><button type="button" class="link-btn" id="cr-annuler">Annuler et se déconnecter</button></div>';
+  const f = $("cr-form"), photo = { data: "", grand: "" };
+  const draw = () => {
+    $("cr-photo-prev").innerHTML = photo.data ? '<img src="' + esc(photo.data) + '" alt="">' : esc(initials({ prenom: $("cr-prenom").value, nom: $("cr-nom").value }).toUpperCase());
+    $("cr-photo-add").textContent = photo.data ? "Changer la photo" : "Ajouter une photo";
+    $("cr-photo-btn").setAttribute("aria-label", photo.data ? "Ma photo : changer ou supprimer" : "Ajouter ma photo");
+  };
+  draw();
+  const menu = $("cr-photo-menu"), btn = $("cr-photo-btn");
+  const ouvrir = o => { menu.hidden = !o; btn.setAttribute("aria-expanded", String(o)); if (o) menu.querySelector("button").focus(); };
+  const choisir = () => $("cr-photo").click();
+  btn.onclick = () => photo.data ? ouvrir(menu.hidden) : choisir();
+  $("cr-photo-add").onclick = choisir;
+  $("cr-photo-pick").onclick = () => { ouvrir(false); choisir(); };
+  $("cr-photo-rm").onclick = () => { ouvrir(false); photo.data = photo.grand = ""; draw(); btn.focus(); };
+  menu.addEventListener("keydown", e => { if (e.key === "Escape") { e.stopPropagation(); ouvrir(false); btn.focus(); } });
+  c.onclick = e => { if (!menu.hidden && !e.target.closest(".ph-wrap")) ouvrir(false); };
+  $("cr-photo").onchange = async e => {
+    const file = e.target.files[0]; e.target.value = "";
+    if (!file) return;
+    try { [photo.data, photo.grand] = await Promise.all([squarePhoto(file, 200), squarePhoto(file, 600)]); draw(); }
+    catch { toast("Cette image n'a pas pu être lue : choisissez une photo JPEG ou PNG."); }
+  };
+  for (const id of ["cr-prenom", "cr-nom"]) $(id).oninput = () => { if (!photo.data) draw(); };
+  $("cr-annuler").onclick = () => $("logout").click();
+  f.onsubmit = async e => {
+    e.preventDefault();
+    const prenom = $("cr-prenom").value.trim(), nom = $("cr-nom").value.trim(), tel = $("cr-tel"), telephone = tel.value.trim(), err = telErreur(telephone);
+    if (!prenom) return invalid(f, "#cr-prenom", "Indiquez votre prénom.");
+    if (!nom) return invalid(f, "#cr-nom", "Indiquez votre nom.");
+    if (err) { telMontrer(tel, err); return tel.focus(); }
+    if (!$("cr-accord").checked) { toast("Merci d'accepter la conservation de vos informations pour créer votre compte."); return $("cr-accord").focus(); }
+    const b = $("cr-creer");
+    b.disabled = true;
+    try {
+      await api.creerMonCompte({ civilite: $("cr-civ").value || null, prenom, nom, telephone: telephone || null, accord: true });
+      if (photo.data) await api.monProfilPhoto(photo.data, photo.grand).catch(() => toast("Votre compte est créé, mais la photo n'a pas pu être enregistrée : ajoutez-la depuis « Mon profil »."));
+    } catch (x) { b.disabled = false; return toast("Création impossible : " + (x?.message || "erreur inconnue")); }
+    profilPrenom = prenom;
+    bienvenue = prenom;
+    await onSession(session); // droits du nouveau compte (Voir l'entraide), puis l'écran de bienvenue
+    render();
+  };
+  $("cr-titre").focus();
+}
+
 function deletePerson(p) {
   const roles = personRoles(p), e = p.email.toLowerCase(), self = e && e === myEmail();
   openEditor("Supprimer le contact", fullName(p), '<p style="margin:0">Cette personne sera retirée' +
@@ -1571,6 +1667,12 @@ const loginMsg = (id, text) => {
 function otpStep(code) {
   $("otp-email-form").hidden = code;
   $("otp-code-form").hidden = !code;
+  if (!code) otpNouveau = false;
+  $("login-title").textContent = code && otpNouveau ? "Créer un compte" : "Connexion ou création d'un compte";
+  $("otp-verify").textContent = code && otpNouveau ? "Vérifier" : "Se connecter";
+  // Saisie du code : sans le choix Google (comme dans la maquette) ; création d'un compte : titre du haut aussi
+  $("login-or").hidden = code; $("gsi-zone").hidden = code;
+  if (code && otpNouveau) $("h1").textContent = "Créer un compte"; else if (!code) route();
   $("otp-code").classList.remove("bad");
   $("otp-email").classList.remove("bad");
   if (code) { $("otp-to").textContent = otpEmail; $("otp-code").value = ""; $("otp-code").focus(); }
@@ -1612,16 +1714,12 @@ $("otp-email-form").addEventListener("submit", async e => {
     loginMsg("login-error", "Saisissez une adresse e-mail complète, par exemple prenom.nom@exemple.fr.");
     return $("otp-email").focus();
   }
+  // Adresse connue : code de connexion ; inconnue : code de création du compte (profil à remplir ensuite)
   $("otp-send").disabled = true;
   let ok;
   try { ok = await api.canSignIn(email); }
   catch (err) { $("otp-send").disabled = false; return loginMsg("login-error", sendError(err)); }
-  if (!ok) {
-    $("otp-send").disabled = false;
-    $("otp-email").classList.add("bad");
-    loginMsg("login-error", "Vous n'êtes pas autorisé à accéder à cette page.");
-    return $("otp-email").focus();
-  }
+  otpNouveau = !ok;
   otpEmail = email;
   await sendCode(false);
 });
@@ -1649,7 +1747,7 @@ $("otp-code").addEventListener("input", () => {
 $("otp-change").addEventListener("click", () => { loginMsg(); otpStep(false); });
 $("otp-resend").addEventListener("click", () => sendCode(true));
 // Après une déconnexion, l'écran de connexion repart de l'adresse
-function resetOtp() { clearInterval(otpTimer); $("otp-email-form").hidden = false; $("otp-code-form").hidden = true; $("otp-code").value = ""; loginMsg(); }
+function resetOtp() { clearInterval(otpTimer); otpNouveau = false; $("login-or").hidden = $("gsi-zone").hidden = false; $("login-title").textContent = "Connexion ou création d'un compte"; $("otp-verify").textContent = "Se connecter"; $("otp-email-form").hidden = false; $("otp-code-form").hidden = true; $("otp-code").value = ""; loginMsg(); }
 
 // Bouton « Se connecter » de l'e-mail : ?connexion=<empreinte du code>, retirée aussitôt de l'adresse.
 // Une messagerie qui « visite » le lien pour l'analyser n'exécute pas la page : le code reste valable.
