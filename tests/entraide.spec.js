@@ -893,3 +893,31 @@ test("modération : déplier les propositions d'une demande et masquer un messag
   await page.goto(page.url().replace(/#.*/, "#entraide/mes-demandes"));
   await expect(page.locator("#entr-mes")).toContainText("Vers 18 h");
 });
+
+test("paroissiens vérifiés : badge à côté de leur prénom (fil, conversations, Mes demandes, modération), texte au survol @mobile", async ({ open, page }) => {
+  const MOI = [{ email: "admin@example.org", droit: "admin", prenom: "", nom: "", entraide_voir: true, entraide_moderer: true }];
+  await open({ user: ADMIN, hash: "#entraide", acces: MOI });
+  // Fil : Marie (vérifiée) a le badge, son message dans ma conversation aussi
+  const marie = page.locator("#entr-list .entr-msg", { has: page.locator(".who", { hasText: "Marie" }) });
+  const badge = marie.locator(".who .verifie");
+  await expect(badge).toBeVisible();
+  await expect(badge).toHaveAttribute("title", "Paroissien·ne vérifié·e");
+  await expect(badge).toHaveAttribute("aria-label", "Paroissien·ne vérifié·e");
+  await expect(page.locator('.entr-reps[data-prenom="Marie"] .entr-recue .who .verifie')).toBeVisible();
+  // Mes demandes : Damien (vérifié) a le badge, Claire non ; « Moi » jamais
+  await page.click("#entr-tab-mes");
+  const convs = page.locator(".entr-mienne:has-text('escabeau') + .entr-convs");
+  await expect(convs.locator('details:has(.entr-reps[data-prenom="Damien"]) summary .verifie')).toBeVisible();
+  await expect(convs.locator('.entr-reps[data-prenom="Damien"] .entr-recue .who .verifie').first()).toBeVisible();
+  await expect(convs.locator('details:has(.entr-reps[data-prenom="Claire"]) .verifie')).toHaveCount(0);
+  await expect(page.locator(".entr-mienne .who .verifie, .entr-moi .who .verifie")).toHaveCount(0);
+  // Modération : la demande de Marie et les messages de Damien
+  await page.click("#entr-tab-mod");
+  await page.click("[data-filter=publiee]");
+  await expect(row(page, "Marie").locator(".head strong .verifie")).toBeVisible();
+  await expect(row(page, "Paul").locator(".head strong .verifie")).toHaveCount(0);
+  await row(page, "Paul").locator(".entr-mod-convs summary").click();
+  await expect(row(page, "Paul").locator(".conv-t", { hasText: "Damien" }).locator(".verifie")).toBeVisible();
+  await expect(row(page, "Paul").locator(".msg .qui", { hasText: "Damien" }).first().locator(".verifie")).toBeVisible();
+  await expect(row(page, "Paul").locator(".conv-t", { hasText: "Claire" }).locator(".verifie")).toHaveCount(0);
+});

@@ -911,6 +911,10 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .pe-compte .btn-desact { border-color: #c62828; color: #c62828; }
 .ed-sec.droits.estompe { opacity: .55; }
 .ed-sec[hidden] { display: none; }
+/* Badge « Paroissien·ne vérifié·e » : à la taille du texte, collé au prénom ; texte au survol (title) */
+.verifie { display: inline-flex; flex: none; width: .9em; height: .9em; margin-left: .28em; vertical-align: -.1em; cursor: help; }
+.verifie svg { width: 100%; height: 100%; }
+label.check .verifie { margin-left: -4px; }
 /* Téléphone, quatre onglets (Entraide visible) : onglets resserrés, « Admin » réduit à son engrenage */
 @media (max-width: 520px) {
   .switch:has(#sw-entr:not([hidden])):has(#sw-admin:not([hidden])) a { padding: 12px 4px; letter-spacing: 0; }

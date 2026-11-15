@@ -54,6 +54,8 @@ module.exports = {
     { id: "e7", auteur: "admin@example.org", prenom: "Colette", telephone: "+33639980007", quartier: "Guillotière", besoin: "Réparer un robinet qui fuit dans la salle de bains.", quand: "Avant vendredi", statut: "a_valider", jours: 1 },
     { id: "e8", auteur: "admin@example.org", prenom: "Gérard", telephone: "+33639980008", quartier: "Ainay", besoin: "Transporter des cartons de livres jusqu'à la bibliothèque paroissiale.", quand: "Mardi", statut: "pourvue", jours: 8 },
   ],
+  // Paroissiens vérifiés (comme la table paroissiens_verifies) : badge à côté de leur prénom dans l'entraide
+  verifies: ["marie@example.org", "damien@example.org"],
   // Messagerie : une conversation par personne qui propose son aide (aidant : son e-mail), messages datés en heures
   entraideConversations: [
     { id: "c1", demande: "e2", aidant: "damien@example.org", prenom: "Damien", heures: 20 },

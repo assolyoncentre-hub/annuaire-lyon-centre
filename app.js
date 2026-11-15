@@ -149,6 +149,10 @@ function contact(s) {
 const EYE_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.7 5.1A10.9 10.9 0 0 1 12 5c6.5 0 10 7 10 7a17.6 17.6 0 0 1-2.2 3.2M6.6 6.6C3.9 8.4 2 12 2 12s3.5 7 10 7a10 10 0 0 0 5.4-1.6"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/><path d="M2 2l20 20"/></svg>';
 // Compte désactivé (cercle barré), réactivation (cercle coché) ; date courte « 14 nov. »
 const BAN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg>';
+// Badge « Paroissien·ne vérifié·e » (rosette bleue et coche blanche), à côté du prénom ; texte au survol
+const VERIFIE = '<span class="verifie" role="img" aria-label="Paroissien·ne vérifié·e" title="Paroissien·ne vérifié·e"><svg viewBox="0 0 24 24" aria-hidden="true">' +
+  '<path fill="#0095f6" stroke="#0095f6" stroke-width="1.6" stroke-linejoin="round" d="M12 1.4L13.78 3.07L16.06 2.21L17.06 4.43L19.5 4.5L19.57 6.94L21.79 7.94L20.93 10.22L22.6 12L20.93 13.78L21.79 16.06L19.57 17.06L19.5 19.5L17.06 19.57L16.06 21.79L13.78 20.93L12 22.6L10.22 20.93L7.94 21.79L6.94 19.57L4.5 19.5L4.43 17.06L2.21 16.06L3.07 13.78L1.4 12L3.07 10.22L2.21 7.94L4.43 6.94L4.5 4.5L6.94 4.43L7.94 2.21L10.22 3.07Z"/>' +
+  '<path fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" d="M7.6 12.3l3 2.9 5.8-6"/></svg></span>';
 const CHECK_ROND = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.6 2.5L16 9.5"/></svg>';
 const dateCourte = d => new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
 // Staffs visibles dans les annuaires (un staff masqué ne figure que dans l'administration)
@@ -340,11 +344,12 @@ async function loadAdmin() {
   respOf = group(responsables, "pole_id");
   contactRows = contacts; respRows = responsables;
 }
-// Comptes désactivés (e-mail → date) : connexion impossible, droits gardés
-let desactives = new Map();
+// Comptes désactivés (e-mail → date) : connexion impossible, droits gardés ; paroissiens vérifiés (e-mails)
+let desactives = new Map(), verifies = new Set();
 const loadAcces = () => Promise.all([
   api.acces().then(a => { acces = a; }, () => {}),
   (api.comptesDesactives ? api.comptesDesactives() : Promise.resolve([])).then(l => { desactives = new Map(l.map(d => [d.email, d.desactive_le])); }, () => {}),
+  api.paroissiensVerifies().then(l => { verifies = new Set(l.map(v => v.email)); }, () => {}),
 ]);
 // Après un enregistrement : annuaire et données d'administration rechargés en parallèle
 async function refresh() {
@@ -539,6 +544,7 @@ const CONTACT_FILTERS = [
   ["entr-mod", "Modérer l'entraide", "#9a4b00", p => p.entraide === "moderer"],
   ["hors", "Hors annuaire", "#6b4fbb", p => p.hors],
   ["desactives", "Comptes désactivés", "#c62828", p => !!p.desactive_le],
+  ["verifies", "Paroissiens vérifiés", "#0095f6", p => p.verifie],
 ];
 function renderAdmin() {
   if ($("admin-body").hidden) return;
@@ -563,7 +569,7 @@ function renderAdmin() {
     const badgeEntr = p => p.entraide === "moderer" ? ' <span class="badge entr">Entraide : modération</span>' : p.entraide === "voir" ? ' <span class="badge entr">Entraide</span>' : "";
     const row = p => {
       const roles = p.hors ? ["Ni staff ni pôle"] : personRoles(p);
-      return '<div class="row' + (p.desactive_le ? " is-off" : "") + '" data-id="' + esc(p.key) + '"><span></span><div><div class="title"><span class="nm">' + esc(nomPrenom(p) || p.email) + "</span>" +
+      return '<div class="row' + (p.desactive_le ? " is-off" : "") + '" data-id="' + esc(p.key) + '"><span></span><div><div class="title"><span class="nm">' + esc(nomPrenom(p) || p.email) + (p.verifie ? VERIFIE : "") + "</span>" +
         (p.desactive_le ? ' <span class="badge off">' + BAN + "Désactivé</span>" : "") + badge(p) + badgeEntr(p) + "</div>" +
         '<div class="meta"><span>' + (p.email ? esc(p.email) : "Pas d'e-mail") + "</span>" + (p.telephone ? "<span>" + esc(p.telephone) + "</span>" : "") + '<span class="ell" title="' + esc(roles.join(", ")) + '">' + esc(roles.join(", ")) + "</span></div></div>" +
         '<div class="ops"><button type="button" class="btn btn-ghost btn-sm" data-act="edit">Modifier</button>' +
@@ -972,11 +978,11 @@ function fiches() {
   const droits = new Map(acces.map(a => [a.email, a]));
   const list = persons().map(p => {
     const e = p.email.toLowerCase();
-    return { ...p, hors: false, droit: e ? droits.get(e)?.droit || "leaders" : null, entraide: entraideDe(droits.get(e)), desactive_le: e ? desactives.get(e) || null : null };
+    return { ...p, hors: false, droit: e ? droits.get(e)?.droit || "leaders" : null, entraide: entraideDe(droits.get(e)), desactive_le: e ? desactives.get(e) || null : null, verifie: !!e && verifies.has(e) };
   });
   const known = new Set(list.map(p => p.email.toLowerCase()).filter(Boolean));
   for (const a of acces) if (!known.has(a.email)) list.push({ key: "@" + a.email, civilite: a.civilite || "", prenom: a.prenom || "", nom: a.nom || "",
-    email: a.email, telephone: a.telephone || "", contacts: [], responsables: [], hors: true, droit: a.droit, entraide: entraideDe(a), desactive_le: desactives.get(a.email) || null });
+    email: a.email, telephone: a.telephone || "", contacts: [], responsables: [], hors: true, droit: a.droit, entraide: entraideDe(a), desactive_le: desactives.get(a.email) || null, verifie: verifies.has(a.email) });
   return list.sort((a, b) => byName(a.nom || "", b.nom || "") || byName(a.prenom || "", b.prenom || "") || byName(a.email, b.email));
 }
 const svcById = id => services.find(s => s._id === id);
@@ -1021,7 +1027,10 @@ function editPerson(p) {
     '<div class="row2 names"><div class="field"><label for="pe-prenom">Prénom</label><input id="pe-prenom" value="' + esc(p?.prenom || "") + '"></div>' +
     '<div class="field"><label for="pe-nom">Nom</label><input id="pe-nom" value="' + esc(p?.nom || "") + '"></div></div>' +
     '<div class="field"><label for="pe-email">E-mail <span class="opt">(privé : visible seulement des leaders)</span></label><input id="pe-email" type="email" value="' + esc(p?.email || "") + '"></div>' +
-    '<div class="field w-tel"><label for="pe-tel">Téléphone <span class="opt">(privé : visible seulement des leaders)</span></label><input id="pe-tel" class="tel-masque" type="tel" inputmode="tel" autocomplete="off" value="' + esc(telMasquer(p?.telephone || "")) + '"></div></section>' +
+    '<div class="field w-tel"><label for="pe-tel">Téléphone <span class="opt">(privé : visible seulement des leaders)</span></label><input id="pe-tel" class="tel-masque" type="tel" inputmode="tel" autocomplete="off" value="' + esc(telMasquer(p?.telephone || "")) + '"></div>' +
+    // Paroissien·ne vérifié·e : badge à côté de son prénom dans l'entraide (repéré par son e-mail)
+    '<div class="field"><label class="check" for="pe-verifie"><input type="checkbox" id="pe-verifie"' + (p?.verifie ? " checked" : "") + ">Paroissien·ne vérifié·e" + VERIFIE + "</label>" +
+    '<div class="hint" id="pe-verifie-hint">Badge à côté de son prénom dans l\'entraide.</div></div></section>' +
     '<section class="ed-sec"><h3 class="ed-sec-title">Responsabilités</h3><div class="row2">' + msel("pe-svc", "Leader des staffs…", "Aucun staff", svcBoxes) + msel("pe-pole", "Responsable des pôles…", "Aucun pôle", poleBoxes) + "</div>" +
     '<p class="hors-warn" id="pe-hors" hidden>Ni staff ni pôle : cette personne n\'apparaîtra pas dans l\'annuaire, elle pourra seulement se connecter.</p></section>' +
     '<section class="ed-sec droits" role="radiogroup" aria-labelledby="pe-droits-t"><h3 class="ed-sec-title" id="pe-droits-t">Droits</h3><div class="seg">' +
@@ -1076,6 +1085,10 @@ function editPerson(p) {
         await api.savePhoto(email, photo.data, photo.grand);
       }
       if (ancien && ancien !== email && photoFor(p)) await api.savePhoto(ancien, null);
+      // Paroissien·ne vérifié·e : enregistré sous l'e-mail ; si l'e-mail change, la vérification suit
+      const verifie = !!email && f.querySelector("#pe-verifie").checked;
+      if (ancien && ancien !== email && p?.verifie) await api.verifierParoissien(ancien, false);
+      if (email && verifie !== (!!p?.verifie && ancien === email)) await api.verifierParoissien(email, verifie);
       // Compte désactivé dont l'adresse change : la désactivation suit la nouvelle adresse
       if (p?.desactive_le && ancien && ancien !== email) {
         if (email) await api.desactiverCompte(email, true);
@@ -1119,6 +1132,9 @@ function editPerson(p) {
     const entrVoir = !f.querySelector('input[name="pe-entr"][value="aucun"]').checked;
     if (!self) aucun.disabled = hors && !entrVoir;
     if (hors && aucun.checked && !entrVoir) f.querySelector('input[name="pe-droit"][value="leaders"]').checked = true;
+    const verif = f.querySelector("#pe-verifie");
+    verif.disabled = noEmail;
+    f.querySelector("#pe-verifie-hint").textContent = noEmail ? "Ajoutez une adresse e-mail pour la vérifier : c'est elle qui la reconnaît dans l'entraide." : "Badge à côté de son prénom dans l'entraide.";
     f.querySelector("#pe-droit-hint").textContent = self ? "Vous ne pouvez pas modifier votre propre droit." :
       noEmail ? "Sans e-mail, cette personne ne peut pas se connecter : le droit ne s'applique qu'avec une adresse." :
       "";
@@ -1193,6 +1209,7 @@ function deletePerson(p) {
         await api.savePerson({}, { contacts: { del: p.contacts.map(r => r.id) }, responsables: { del: p.responsables.map(r => r.id) } });
       if (e && !self && acces.some(a => a.email === e)) await api.saveAcces(e, null);
       if (e && !self && desactives.has(e)) await api.desactiverCompte(e, false); // fiche supprimée : plus de désactivation en attente
+      if (e && verifies.has(e)) await api.verifierParoissien(e, false);
       await refresh();
       toast("Contact supprimé.");
     }, "Supprimer", true);

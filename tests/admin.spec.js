@@ -343,3 +343,31 @@ test("compte désactivé déjà connecté : déconnecté comme un compte sans ac
   await expect(page.locator("#login-error")).toContainText("n'a pas accès à l'annuaire");
   await expect(page.locator("#admin-body")).toBeHidden();
 });
+
+test("paroissien·ne vérifié·e : case de la fiche contact (avec e-mail) et badge dans la liste @mobile", async ({ open, page }) => {
+  await open({ user: ADMIN, hash: "#admin/contacts" });
+  // Déjà vérifié dans les données de test : Damien a le badge dans la liste
+  await expect(page.locator("#admin-list .row", { hasText: "Laforêt" }).locator(".nm .verifie")).toBeVisible();
+  await editRow(page, "Brunet");
+  const caseV = page.locator("#pe-verifie");
+  await expect(caseV).not.toBeChecked();
+  await expect(caseV).toBeEnabled();
+  // Sans e-mail : case désactivée, avec une explication
+  const email = await page.locator("#pe-email").inputValue();
+  await page.fill("#pe-email", "");
+  await expect(caseV).toBeDisabled();
+  await expect(page.locator("#pe-verifie-hint")).toContainText("Ajoutez une adresse e-mail");
+  await page.fill("#pe-email", email);
+  await caseV.check();
+  await save(page);
+  await expect(page.locator("#toast")).toHaveText("Contact enregistré.");
+  expect((await calls(page, "verifierParoissien"))[0].arg).toEqual({ email, oui: true });
+  await expect(page.locator("#admin-list .row", { hasText: "Brunet" }).locator(".nm .verifie")).toBeVisible();
+  // Rouvrir puis décocher : la vérification est retirée
+  await editRow(page, "Brunet");
+  await expect(page.locator("#pe-verifie")).toBeChecked();
+  await page.locator("#pe-verifie").uncheck();
+  await save(page);
+  expect((await calls(page, "verifierParoissien"))[1].arg).toEqual({ email, oui: false });
+  await expect(page.locator("#admin-list .row", { hasText: "Brunet" }).locator(".verifie")).toHaveCount(0);
+});

@@ -61,6 +61,7 @@ window.makeApi = function () {
     entraideSupprimer: id => sbRpc("entraide_supprimer", { p_id: id }),
     entraideMasquer: (id, masquee) => sbRpc("entraide_masquer", { p_id: id, p_masquee: masquee }),
     entraideModerationConversations: () => sbRpc("entraide_moderation_conversations"),
+    entraideModerationVerifiees: () => sbRpc("entraide_moderation_verifiees"), // demandes dont l'auteur est vérifié (identifiants)
     entraideMasquerMessage: (id, masque) => sbRpc("entraide_masquer_message", { p_id: id, p_masque: masque }),
     // Messagerie : mes demandes avec une conversation par personne qui a proposé son aide, et les conversations que
     // j'ai ouvertes en proposant la mienne (messages : { id, texte, le, moi, modifie }). Seuls les deux comptes concernés les voient.
@@ -173,5 +174,8 @@ window.makeApi = function () {
     // Comptes désactivés : connexion impossible (traités comme inconnus), droits gardés pour la réactivation
     comptesDesactives: () => sbRpc("admin_comptes_desactives"),
     desactiverCompte: (email, oui) => sbRpc("admin_desactiver_compte", { p_email: email, p_desactive: oui }),
+    // Paroissiens vérifiés (par e-mail) : badge à côté du prénom dans l'entraide
+    paroissiensVerifies: () => sbRpc("admin_paroissiens_verifies"),
+    verifierParoissien: (email, oui) => sbRpc("admin_verifier_paroissien", { p_email: email, p_verifie: oui }),
   };
 };

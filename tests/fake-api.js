@@ -21,6 +21,9 @@ module.exports = function installFakeApi({ data, user, acces, desactives }) {
   // Comptes désactivés (comme la table comptes_desactives) : plus aucun droit, donc plus de connexion
   S.desactives ||= (desactives || []).map(email => ({ email, desactive_le: new Date().toISOString() }));
   const desactive = e => S.desactives.some(d => d.email === e);
+  // Paroissiens vérifiés (comme la table paroissiens_verifies et _paroissien_verifie)
+  S.verifies = (S.verifies || []).map(v => typeof v === "string" ? { email: v, verifie_le: new Date().toISOString() } : v);
+  const verifie = e => !!e && S.verifies.some(v => v.email === String(e).trim().toLowerCase());
   const droitDe = e => {
     if (desactive(e)) return null;
     const a = S.acces.find(x => x.email === e);
@@ -86,13 +89,13 @@ module.exports = function installFakeApi({ data, user, acces, desactives }) {
     // Entraide : mêmes règles que les fonctions entraide_* de la base
     async entraide() {
       guardVoir(); log("entraide");
-      return S.entraide.filter(d => d.statut === "publiee" && !d.masquee).map(d => ({ id: d.id, prenom: d.prenom, quartier: d.quartier, besoin: d.besoin, quand: d.quand, publie_le: entrRow(d).publiee_le }))
+      return S.entraide.filter(d => d.statut === "publiee" && !d.masquee).map(d => ({ id: d.id, prenom: d.prenom, quartier: d.quartier, besoin: d.besoin, quand: d.quand, publie_le: entrRow(d).publiee_le, verifie: verifie(d.auteur) }))
         .sort((a, b) => b.publie_le.localeCompare(a.publie_le));
     },
     async entraidePourvues() {
       guardVoir(); log("entraidePourvues");
       return S.entraide.filter(d => d.statut === "pourvue" && !d.masquee).map(entrRow).filter(d => d.publiee_le && Date.now() - new Date(d.close_le) < 30 * 86400000)
-        .map(d => ({ id: d.id, prenom: d.prenom, quartier: d.quartier, besoin: d.besoin, quand: d.quand, publie_le: d.publiee_le, close_le: d.close_le }))
+        .map(d => ({ id: d.id, prenom: d.prenom, quartier: d.quartier, besoin: d.besoin, quand: d.quand, publie_le: d.publiee_le, close_le: d.close_le, verifie: verifie(S.entraide.find(x => x.id === d.id)?.auteur) }))
         .sort((a, b) => b.close_le.localeCompare(a.close_le));
     },
     async entraideDemander(d) {
@@ -151,7 +154,7 @@ module.exports = function installFakeApi({ data, user, acces, desactives }) {
       return S.entraide.filter(d => d.auteur === moi && !d.masquee).map(d => { const r = entrRow(d); return {
         id: d.id, prenom: d.prenom, besoin: d.besoin, quand: d.quand, quartier: d.quartier, statut: d.statut, created_at: r.created_at,
         conversations: S.entraideConversations.filter(c => c.demande === d.id).sort((a, b) => a.le.localeCompare(b.le))
-          .map(c => ({ id: c.id, prenom: c.prenom, declinee: !!c.declinee, messages: entrMsgs(c.id, moi) })) }; })
+          .map(c => ({ id: c.id, prenom: c.prenom, verifie: verifie(c.aidant), declinee: !!c.declinee, messages: entrMsgs(c.id, moi) })) }; })
         .sort((a, b) => b.created_at.localeCompare(a.created_at));
     },
     async entraideMesAides() {
@@ -203,6 +206,8 @@ module.exports = function installFakeApi({ data, user, acces, desactives }) {
       c.declinee = !!declinee; signal();
     },
     async entraideModeration() { guardRef(); return S.entraide.map(entrRow).sort((a, b) => b.created_at.localeCompare(a.created_at)); },
+    // Comme entraide_moderation_verifiees : identifiants des demandes dont l'auteur est vérifié
+    async entraideModerationVerifiees() { guardRef(); return S.entraide.filter(d => verifie(d.auteur)).map(d => d.id); },
     async entraideModifier(id, c) {
       guardRef(); log("entraideModifier", { id, ...c });
       const d = S.entraide.find(x => x.id === id);
@@ -223,9 +228,9 @@ module.exports = function installFakeApi({ data, user, acces, desactives }) {
       guardRef(); log("entraideModerationConversations");
       return [...S.entraideConversations].sort((a, b) => a.le.localeCompare(b.le)).map(c => {
         const d = S.entraide.find(x => x.id === c.demande);
-        return { id: c.id, demande_id: c.demande, prenom: c.prenom, declinee: !!c.declinee,
+        return { id: c.id, demande_id: c.demande, prenom: c.prenom, verifie: verifie(c.aidant), declinee: !!c.declinee,
           messages: S.entraideMessages.filter(m => m.conversation === c.id).sort((a, b) => a.le.localeCompare(b.le))
-            .map(m => ({ id: m.id, prenom: m.auteur === c.aidant ? c.prenom : d?.prenom || "", texte: m.texte, le: m.le, modifie: !!m.modifie, masque: !!m.masque })) };
+            .map(m => ({ id: m.id, prenom: m.auteur === c.aidant ? c.prenom : d?.prenom || "", verifie: verifie(m.auteur), texte: m.texte, le: m.le, modifie: !!m.modifie, masque: !!m.masque })) };
       });
     },
     // Comme entraide_masquer_message : la modération masque (ou réaffiche) un message
@@ -363,6 +368,15 @@ module.exports = function installFakeApi({ data, user, acces, desactives }) {
       if (e === session.user.email.toLowerCase()) throw new Error("Vous ne pouvez pas désactiver votre propre compte.");
       if (oui) { if (!desactive(e)) S.desactives.push({ email: e, desactive_le: new Date().toISOString() }); }
       else S.desactives = S.desactives.filter(d => d.email !== e);
+    },
+    // Comme admin_paroissiens_verifies / admin_verifier_paroissien
+    async paroissiensVerifies() { guard(); return clone(S.verifies).sort((a, b) => a.email.localeCompare(b.email)); },
+    async verifierParoissien(email, oui) {
+      guard(); log("verifierParoissien", { email, oui });
+      const e = (email || "").trim().toLowerCase();
+      if (!e) throw new Error("Ce contact n'a pas d'adresse e-mail.");
+      if (oui) { if (!verifie(e)) S.verifies.push({ email: e, verifie_le: new Date().toISOString() }); }
+      else S.verifies = S.verifies.filter(v => v.email !== e);
     },
     async reorder(kind, rows) { guard(); log("reorder", { kind, rows }); for (const r of rows) S[kind].find(x => x.id === r.id).ordre = r.ordre; },
   };

@@ -28,12 +28,14 @@ function entrJour(iso) {
 // Les plus récentes en haut : « en haut » = début du fil visible à l'écran
 const entrEnHaut = () => $("entr-list").getBoundingClientRect().top > -40;
 const entrVersLeHaut = () => $("entr-pub").scrollIntoView({ block: "start" });
+// Prénom suivi du badge « Paroissien·ne vérifié·e » si la personne est vérifiée (indiqué par la base)
+const entrNom = (prenom, verifie) => esc(prenom) + (verifie ? VERIFIE : "");
 // Demandes pourvues (section « Ils/elles ont déjà été aidés ») : les dernières pourvues en haut, sans bouton
 function renderAidees(list) {
   $("entr-aides-sec").hidden = !list.length;
   $("entr-aides").innerHTML = [...list].sort((a, b) => b.close_le.localeCompare(a.close_le)).map(d =>
     '<article class="entr-msg aidee" style="--c:' + entrCouleur(d.prenom) + '" data-id="' + esc(d.id) + '">' +
-    '<div class="who">' + esc(d.prenom) + (d.quartier ? ' <span class="where">· ' + esc(d.quartier) + "</span>" : "") + '<span class="aide-ok">✓ Aidé</span></div>' +
+    '<div class="who">' + entrNom(d.prenom, d.verifie) + (d.quartier ? ' <span class="where">· ' + esc(d.quartier) + "</span>" : "") + '<span class="aide-ok">✓ Aidé</span></div>' +
     '<p class="need">' + esc(d.besoin) + "</p>" +
     '<time class="time" datetime="' + esc(d.close_le) + '">Aidé ' + esc(entrJour(d.close_le).toLowerCase()) + "</time></article>").join("");
 }
@@ -47,12 +49,12 @@ function renderEntraide(tout) {
     const neuve = entrLoaded && !entrVus.has(d.id);
     if (neuve) nouvelles++;
     jour = j;
-    const fil = { ...(entrAidesListe.find(c => c.demande_id === d.id) || { messages: [] }), demande: d.id, auteur: false };
+    const fil = { ...(entrAidesListe.find(c => c.demande_id === d.id) || { messages: [] }), demande: d.id, auteur: false, verifie: !!d.verifie };
     entrFils.set(d.id, fil);
     // Déjà écrit sur cette demande : plus de « Je peux aider ! », la conversation continue en dessous
     const pied = fil.messages.length ? "" : '<button type="button" class="btn btn-ghost btn-sm entr-aider" data-aider>Je peux aider !</button>';
     return sep + '<article class="entr-msg' + (neuve ? " new" : "") + '" style="--c:' + entrCouleur(d.prenom) + '" data-id="' + esc(d.id) + '">' +
-      '<div class="who">' + esc(d.prenom) + (d.quartier ? ' <span class="where">· ' + esc(d.quartier) + "</span>" : "") + "</div>" +
+      '<div class="who">' + entrNom(d.prenom, d.verifie) + (d.quartier ? ' <span class="where">· ' + esc(d.quartier) + "</span>" : "") + "</div>" +
       '<p class="need">' + esc(d.besoin) + "</p>" + (d.quand ? '<div class="when">' + ENTR_CAL + "<span>" + esc(d.quand) + "</span></div>" : "") +
       '<div class="entr-pied">' + pied +
       '<time class="time" datetime="' + esc(d.publie_le) + '">' + entrHeure(d.publie_le) + "</time></div></article>" + entrRepsHtml(d.id, d.prenom);
@@ -93,14 +95,14 @@ function entrRepsHtml(id, prenom) {
   if (!f.auteur && !f.declinee && f.messages.length) entrAideVues.add(id);
   // Mes demandes : chaque proposition dans un repli « Proposition de X », ouvert tant que la conversation est en cours
   if (!f.declinee) return !f.auteur ? entrFilHtml(id, prenom)
-    : '<div class="entr-repli entr-repli-encours"><details' + entrRepliAttr(id, false, true) + "><summary>Proposition de " + esc(prenom) +
+    : '<div class="entr-repli entr-repli-encours"><details' + entrRepliAttr(id, false, true) + "><summary><span>Proposition de " + entrNom(prenom, f.verifie) + "</span>" +
       // pastille rouge : le dernier message vient de cette personne, il attend ma réponse
       (entrAttend(f) ? '<span class="entr-pastille" role="img" aria-label="message en attente de réponse"></span>' : "") +
       ' <span class="etat">en cours</span></summary>' + entrFilHtml(id, prenom) + "</details></div>";
   // Côté de la personne qui a proposé son aide : repliée sous « X a mis fin à la conversation. », sans Réactiver
   if (!f.auteur) return '<div class="entr-repli entr-repli-aide"><details' + entrRepliAttr(id, true, entrAideVues.has(id)) + "><summary>" +
-    esc(prenom) + " a mis fin à la conversation.</summary>" + entrFilHtml(id, prenom) + "</details></div>";
-  return '<div class="entr-repli"><details' + entrRepliAttr(id, true, false) + "><summary>Proposition de " + esc(prenom) +
+    "<span>" + entrNom(prenom, f.verifie) + " a mis fin à la conversation.</span></summary>" + entrFilHtml(id, prenom) + "</details></div>";
+  return '<div class="entr-repli"><details' + entrRepliAttr(id, true, false) + "><summary><span>Proposition de " + entrNom(prenom, f.verifie) + "</span>" +
     ' <span class="etat">déclinée</span></summary>' + entrFilHtml(id, prenom) +
     // « Réactiver » : seulement dans la conversation dépliée, en bas à droite
     '<div class="entr-repli-pied"><button type="button" class="entr-reprendre" data-reprendre data-pour="' + esc(id) + '" aria-label="Réactiver la conversation avec ' + esc(prenom) + '">Réactiver</button></div></details></div>';
@@ -110,7 +112,7 @@ function entrFilHtml(id, prenom) {
   return '<div class="entr-reps' + (fini ? " declinee" : "") + '" data-pour="' + esc(id) + '" data-prenom="' + esc(prenom) + '">' + (l.length ?
     (recues || f.auteur ? "" : '<p class="entr-rep-note">' + ENTR_CADENAS + "Vos messages ne sont visibles que par " + esc(prenom) + "</p>") +
     l.map(r => !r.moi
-      ? '<div class="entr-recue" tabindex="-1" data-msg="' + esc(r.id) + '" style="--c:' + entrCouleur(prenom) + '"><div class="who">' + esc(prenom) + "</div>" +
+      ? '<div class="entr-recue" tabindex="-1" data-msg="' + esc(r.id) + '" style="--c:' + entrCouleur(prenom) + '"><div class="who">' + entrNom(prenom, f.verifie) + "</div>" +
         '<p class="txt">' + esc(r.texte) + '</p><time class="time" datetime="' + esc(r.le) + '">' + (r.modifie ? "Modifié · " : "") + esc(entrJour(r.le)) + ", " + entrHeure(r.le) + "</time></div>"
       // mes messages : la poubelle et « Modifier » en haut à droite, à côté de « Moi »
       : r.masque // masqué par la modération : seule la mention reste, sans texte ni actions
@@ -466,7 +468,7 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 // --- Modération ---
 let entrDemandes = null, entrFiltre = "a_valider", entrBusy = false;
 // Conversations de toutes les demandes (modération), avec les messages masqués ; replis ouverts (ids des demandes)
-let entrModConvs = [], entrModOuverts = new Set();
+let entrModConvs = [], entrModOuverts = new Set(), entrModVerifiees = new Set();
 // « Masquées » : demandes (publiées ou terminées) retirées de la vue de tous, conversations comprises ; gélule affichée s'il y en a
 const ENTR_FILTRES = [["a_valider", "À valider"], ["publiee", "Publiées"], ["terminees", "Terminées"], ["masquees", "Masquées"]];
 const entrDans = (d, f) => f === "masquees" ? !!d.masquee_le
@@ -505,8 +507,9 @@ async function entrMajPastille() {
 
 async function loadModeration() {
   try {
-    const [demandes, convs] = await Promise.all([api.entraideModeration(), api.entraideModerationConversations().catch(() => [])]);
-    entrDemandes = demandes; entrModConvs = convs;
+    const [demandes, convs, verifiees] = await Promise.all([api.entraideModeration(), api.entraideModerationConversations().catch(() => []),
+      api.entraideModerationVerifiees().catch(() => [])]);
+    entrDemandes = demandes; entrModConvs = convs; entrModVerifiees = new Set(verifiees);
   } catch (err) { entrDemandes = []; toast("Impossible de charger les demandes : " + (err?.message || "erreur inconnue")); }
   renderModeration();
 }
@@ -542,7 +545,7 @@ function renderModeration() {
   })[d.statut];
   $("entr-mod-list").innerHTML = list.map(d => {
     const [label, cls] = d.masquee_le ? ["Masquée", "none"] : ENTR_STATUT[d.statut];
-    return '<div class="entr-mod-row" data-id="' + esc(d.id) + '"><div class="head"><strong>' + esc(d.prenom) + "</strong>" +
+    return '<div class="entr-mod-row" data-id="' + esc(d.id) + '"><div class="head"><strong>' + entrNom(d.prenom, entrModVerifiees.has(d.id)) + "</strong>" +
       (d.quartier ? '<span class="meta">' + esc(d.quartier) + "</span>" : "") +
       (d.telephone ? '<a href="' + esc(telHref(d.telephone)) + '">' + esc(entrTel(d.telephone)) + "</a>" : "") + // anciennes demandes seulement
       '<span class="meta">Reçue le ' + entrDate(d.created_at) + "</span>" + '<span class="badge ' + cls + '">' + label + "</span></div>" +
@@ -565,10 +568,10 @@ function entrModConvsHtml(d) {
   return '<details class="entr-mod-convs" data-convs="' + esc(d.id) + '"' + (entrModOuverts.has(d.id) ? " open" : "") + "><summary>" +
     entrPl(convs.length, "proposition") + ' <span class="nb">· ' + entrPl(nb, "message") + "</span>" +
     (nm ? '<span class="masq-nb">' + EYE_OFF + entrPl(nm, "masqué") + "</span>" : "") + "</summary>" +
-    convs.map(c => '<div class="entr-mod-conv"><p class="conv-t">Proposition de ' + esc(c.prenom) +
+    convs.map(c => '<div class="entr-mod-conv"><p class="conv-t"><span>Proposition de ' + entrNom(c.prenom, c.verifie) + "</span>" +
       ' <span class="etat' + (c.declinee ? " fin" : "") + '">' + (c.declinee ? "déclinée" : "en cours") + "</span></p>" +
       '<ul class="msgs">' + c.messages.map(m => '<li class="msg' + (m.masque ? " masque" : "") + '" style="--c:' + entrCouleur(m.prenom) + '">' +
-        '<span class="qui" title="' + esc(m.prenom) + '">' + esc(m.prenom) + "</span>" +
+        '<span class="qui" title="' + esc(m.prenom) + '">' + entrNom(m.prenom, m.verifie) + "</span>" +
         '<p class="txt">' + (m.masque ? '<span class="entr-tag-masque">' + EYE_OFF + "Ce message a été masqué par les modérateurs</span>" : "") + '<span class="t">' + esc(m.texte) + "</span>" +
         '<time datetime="' + esc(m.le) + '">' + (m.modifie ? "Modifié · " : "") + esc(entrJour(m.le)) + ", " + entrHeure(m.le) + "</time></p>" +
         '<button type="button" class="mini" data-msg-masquer="' + esc(m.id) + '" data-masque="' + (m.masque ? "0" : "1") + '"' + (entrBusy ? " disabled" : "") +
