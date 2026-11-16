@@ -52,7 +52,8 @@ test("import Enoria : analyse, vérification des comptes cochés, trace dans l'h
   await expect(page.locator("#en-sec-deja")).toBeFocused();
   await page.locator(".en-carte", { hasText: "À examiner" }).click();
   await expect(page.locator("#en-sec-examiner h2")).toBeInViewport();
-  await expect(page.locator("button.en-carte")).toHaveCount(6);
+  await expect(page.locator("button.en-carte")).toHaveCount(5);
+  await expect(page.locator(".en-carte", { hasText: "Absents" })).toHaveCount(0); // pas de liste des absents d'Enoria
 
   // Antoine décoché, Claire cochée : trois comptes
   await expect(page.locator('[data-en="valider"]')).toHaveText("Vérifier 3 comptes");

@@ -76,6 +76,6 @@ test("import Enoria @mobile", async ({ open, page }) => {
   expect(await audit(page)).toEqual([]);
   const csv = '"Nom";"Prénom";"mail";"isdefunt";"age"\n"de LAFORÊT";"Magali";"magali@example.org";"false";"41 ans"\n"ROUX-VANNIER";"Claire";"claire@example.org";"false";""\n"BRUNET";"Jean";"jean@example.org";"true";""';
   await page.setInputFiles("#en-fichier", { name: "personnes-enoria.csv", mimeType: "text/csv", buffer: Buffer.from(csv) });
-  await page.locator('[data-en-repli="absents"]').click();
+  await page.locator('[data-en-repli="deja"]').click();
   expect(await audit(page)).toEqual([]);
 });
