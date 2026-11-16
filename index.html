@@ -309,14 +309,15 @@ body { min-height: 100vh; display: flex; flex-direction: column; }
 .en-sec-t h2 { margin: 0; font: 700 15px/1.3 Montserrat, sans-serif; color: var(--text); text-transform: none; letter-spacing: 0; }
 .en-sec-t .c, .en-repli .c { color: var(--muted); font-weight: 600; }
 .en-sec-t p { margin: 2px 0 0; color: var(--muted); font-size: 13.5px; }
-.en-l { display: grid; grid-template-columns: 18px minmax(0, 1fr) minmax(0, 1fr) auto; gap: 6px 16px; align-items: center; padding: 12px 18px; border-top: 1px solid var(--border); }
+/* Colonnes de même largeur sur toutes les lignes (la raison, à droite, a une largeur fixe) */
+.en-l { display: grid; grid-template-columns: 18px minmax(0, 1fr) minmax(0, 1fr) 190px; gap: 6px 16px; align-items: center; padding: 12px 18px; border-top: 1px solid var(--border); }
 .en-l input[type=checkbox] { width: 18px; height: 18px; margin: 0; accent-color: var(--brand); }
 .en-l .qui { font-weight: 700; }
 .en-l .en-mail, .en-l .en-det { display: block; font-weight: 400; color: var(--muted); font-size: 13.5px; overflow-wrap: anywhere; }
 .en-l .eno { font-size: 14.5px; overflow-wrap: anywhere; }
 .en-src { display: inline-block; margin-right: 6px; padding: 1px 6px; border-radius: 4px; background: #f1ecfb; color: #5b3fa8; font: 700 10.5px/1.5 Montserrat, sans-serif; letter-spacing: .04em; text-transform: uppercase; vertical-align: 1px; }
 .en-l mark { background: #fff0c2; color: inherit; padding: 0 2px; border-radius: 3px; }
-.en-why { font: 600 12px/1.3 Montserrat, sans-serif; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+.en-why { justify-self: end; font: 600 12px/1.3 Montserrat, sans-serif; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
 .en-why.ok { background: #e3f4ea; color: #1d6b43; } .en-why.diff { background: #fff3e0; color: #9a4b00; }
 .en-why.bleu { background: var(--tint); color: var(--brand); } .en-why.gris { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
 .en-plus { padding: 12px 18px; border-top: 1px solid var(--border); text-align: center; }

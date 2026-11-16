@@ -38,6 +38,9 @@ test("import Enoria : analyse, vérification des comptes cochés, trace dans l'h
   await expect(ligne("quentin@example.org")).toContainText("Pas d'e-mail dans Enoria");
   await expect(ligne("jean@example.org")).toContainText("Indiqué comme décédé dans Enoria");
   await expect(ligne("jean@example.org").locator("input")).toHaveCount(0);
+  // Colonne Enoria alignée sur toutes les lignes, quelle que soit la longueur de la raison à droite
+  const gauches = await page.locator(".en-l .eno").evaluateAll(l => l.map(e => Math.round(e.getBoundingClientRect().left)));
+  expect(new Set(gauches).size).toBe(1);
   // Déjà vérifiés : repliés
   await expect(ligne("damien@example.org")).toHaveCount(0);
   await page.locator('[data-en-repli="deja"]').click();
