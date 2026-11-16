@@ -44,6 +44,7 @@ test("droit Voir : demandes publiées seulement, sans téléphone ni modération
   await expect(page.locator("#sw-entr")).toHaveAttribute("aria-current", "page");
   await expect(page.locator("#sw-serv")).toBeHidden(); // pas de droit sur l'annuaire des leaders : pas d'onglet Leaders
   await expect(page.locator("#entr-count")).toHaveText("5 demandes en cours");
+  await expect(page.locator("#entr-list .entr-msg .when").first()).toHaveText(/^Quand\u00a0\? \S/); // icône, puis « Quand ? » et le moment
   await expect(page.locator("#entr-list")).not.toContainText("Henri"); // à valider : pas encore publiée
   await expect(page.locator("#entr-view")).not.toContainText("39 98");
   await expect(page.locator("#entr-tab-mod")).toBeHidden();

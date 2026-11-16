@@ -58,7 +58,7 @@ function renderEntraide(tout) {
     const pied = fil.messages.length ? "" : '<button type="button" class="btn btn-ghost btn-sm entr-aider" data-aider>Je peux aider !</button>';
     return sep + '<article class="entr-msg' + (neuve ? " new" : "") + '" style="--c:' + entrCouleur(d.prenom) + '" data-id="' + esc(d.id) + '">' +
       '<div class="who">' + entrNom(d.prenom, d.verifie) + (d.quartier ? ' <span class="where">· ' + esc(d.quartier) + "</span>" : "") + "</div>" +
-      '<p class="need">' + esc(d.besoin) + "</p>" + (d.quand ? '<div class="when">' + ENTR_CAL + "<span>" + esc(d.quand) + "</span></div>" : "") +
+      '<p class="need">' + esc(d.besoin) + "</p>" + (d.quand ? '<div class="when">' + ENTR_CAL + "<span>Quand&nbsp;? " + esc(d.quand) + "</span></div>" : "") +
       '<div class="entr-pied">' + pied +
       '<time class="time" datetime="' + esc(d.publie_le) + '">' + entrHeure(d.publie_le) + "</time></div></article>" + entrRepsHtml(d.id, d.prenom);
   }).join("") : '<p class="empty">Aucune demande d\'aide en cours pour le moment.</p>';
@@ -699,7 +699,7 @@ function renderMesDemandes(list) {
     const convs = d.conversations.filter(c => c.messages.length).sort((a, b) => !!a.declinee - !!b.declinee), echanges = convs.length > 0;
     return '<article class="entr-msg entr-mienne" data-demande="' + esc(d.id) + '" tabindex="-1">' +
       '<div class="who">' + entrMoi() + (d.quartier ? ' <span class="where">· ' + esc(d.quartier) + "</span>" : "") + "</div>" +
-      '<p class="need">' + esc(d.besoin) + "</p>" + (d.quand ? '<div class="when">' + ENTR_CAL + "<span>" + esc(d.quand) + "</span></div>" : "") +
+      '<p class="need">' + esc(d.besoin) + "</p>" + (d.quand ? '<div class="when">' + ENTR_CAL + "<span>Quand&nbsp;? " + esc(d.quand) + "</span></div>" : "") +
       '<div class="entr-pied"><span class="entr-pied-g">' + (d.statut === "publiee" && echanges
         ? '<button type="button" class="btn btn-ok btn-sm" data-regler>' + CHECK_ICON + 'C\'est réglé</button>'
         // en attente de validation, ou publiée sans aucun message : on peut seulement la supprimer (poubelle rouge)
