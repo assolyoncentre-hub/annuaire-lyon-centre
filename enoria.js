@@ -4,18 +4,17 @@
 // Le fichier est lu ici, dans le navigateur : il n'est ni envoyé ni conservé. Seuls les comptes cochés partent au
 // serveur (admin_import_enoria), avec le motif, qui est inscrit dans l'historique du contact.
 
-let enoria = null;               // fichier analysé : { nom, exportDu, lignes, g: { prets, examiner, autre, ecartes, deja } }
+let enoria = null;               // fichier analysé : { nom, exportDu, lignes, g: { prets, examiner, autre, ecartes } }
 let enoriaCoches = new Set();    // e-mails cochés
 let enoriaDernier;               // dernier import (undefined : pas encore demandé)
 let enoriaFin = null;            // nombre de comptes vérifiés par la dernière validation
 let enoriaErreur = "";
 let enoriaEnCours = false;
-const enoriaOuverts = new Set(); // liste repliée ouverte (« deja ») et « prets » entière
+const enoriaOuverts = new Set(); // « prets » : liste entière affichée
 const EN_APERCU = 10;            // lignes des « Prêts à vérifier » affichées avant « Afficher les autres »
 
 const EN_UP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M20 16v3a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-3"/></svg>';
 const EN_BOUCLIER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6z"/><path d="m9 12 2 2 4-4"/></svg>';
-const EN_CHEV = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
 const EN_OK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
 
 // Comparaison des noms : sans majuscules, accents, tirets, apostrophes ni espaces en trop (« de Laforêt » = « de LAFORÊT »)
@@ -113,7 +112,7 @@ function enAnalyser(personnes) {
     (parNom.get(k) || parNom.set(k, []).get(k)).push(p);
   }
   const nomEno = p => [p.nom, p.prenom].filter(Boolean).join(" ");
-  const g = { prets: [], examiner: [], autre: [], ecartes: [], deja: [] };
+  const g = { prets: [], examiner: [], autre: [], ecartes: [] };
   for (const f of fiches()) {
     const e = (f.email || "").trim().toLowerCase();
     if (!e) continue;
@@ -124,7 +123,7 @@ function enAnalyser(personnes) {
     const x = { f, e, eno, details: [] };
     if (eno?.age) x.details.push(eno.age);
     if (autres.length) x.details.push("Même e-mail que " + autres.join(", "));
-    if (f.verifie) { g.deja.push(x); continue; }
+    if (f.verifie) continue; // déjà vérifié : rien à faire (l'import ne retire jamais le badge)
     if (!eno) continue; // absent d'Enoria : rien à faire (il y en aura toujours beaucoup)
     if (f.desactive_le) { Object.assign(x, { why: "Désactivé", cls: "gris", details: ["Compte désactivé sur le site"] }); g.ecartes.push(x); continue; }
     if (eno.defunt) { Object.assign(x, { why: "Décédé", cls: "gris", details: ["Indiqué comme décédé dans Enoria"] }); g.ecartes.push(x); continue; }
@@ -199,19 +198,17 @@ function renderEnoria() {
     return;
   }
   const { g } = enoria, n = enoriaCoches.size;
-  // Cartes du résumé : un clic mène à la liste correspondante (ouverte si elle est repliée) ; à zéro, rien à afficher
+  // Cartes du résumé : un clic mène à la liste correspondante ; à zéro, rien à afficher
   const carte = (k, nb, l, c = "") => "<li>" + (nb ? '<button type="button" class="en-carte ' + c + '" data-en-aller="' + k + '" aria-label="' + esc(l) + " : " + nb + ', voir la liste">'
     : '<div class="en-carte ' + c + '">') + '<span class="n">' + nb + '</span><span class="l">' + l + "</span>" + (nb ? "</button>" : "</div>") + "</li>";
   const sec = k => '<section class="en-sec" id="en-sec-' + k + '" tabindex="-1">';
   const titre = (t, nb, p, droite = "") => '<div class="en-sec-t"><div><h2>' + t + ' <span class="c">· ' + nb + "</span></h2><p>" + p + "</p></div>" + droite + "</div>";
   const tousCoches = g.prets.length && g.prets.every(x => enoriaCoches.has(x.e));
   const prets = enoriaOuverts.has("prets") ? g.prets : g.prets.slice(0, EN_APERCU);
-  const repli = (k, t, liste, p) => sec(k) + '<button type="button" class="en-repli" data-en-repli="' + k + '" aria-expanded="' + enoriaOuverts.has(k) + '"><span>' + t +
-    ' <span class="c">· ' + liste.length + "</span><small>" + p + "</small></span>" + EN_CHEV + "</button>" + (enoriaOuverts.has(k) ? liste.map(x => enLigne(x, false)).join("") : "") + "</section>";
   el.innerHTML = '<div class="en">' +
     '<p class="en-fichier"><span><b>' + esc(enoria.nom) + "</b> · " + enoria.lignes.toLocaleString("fr-FR") + " personnes · exporté le " + esc(enDate(enoria.date)) + " · colonnes lues : " + esc(enoria.lues.join(", ")) + '</span><button type="button" class="link-btn" data-en="autre">Changer de fichier</button></p>' +
     '<ul class="en-cartes" aria-label="Résumé">' + carte("prets", g.prets.length, "Prêts à être vérifiés", "vert") + carte("examiner", g.examiner.length, "À examiner", "orange") +
-      carte("autre", g.autre.length, "Même nom, autre e-mail", "bleu") + carte("ecartes", g.ecartes.length, "Écartés", "gris") + carte("deja", g.deja.length, "Déjà vérifiés") + "</ul>" +
+      carte("autre", g.autre.length, "Même nom, autre e-mail", "bleu") + carte("ecartes", g.ecartes.length, "Écartés", "gris") + "</ul>" +
     (g.prets.length ? sec("prets") + titre("Prêts à être vérifiés", g.prets.length, "Même e-mail, même nom et même prénom (majuscules et accents ignorés).",
         '<button type="button" class="link-btn" data-en="tous">' + (tousCoches ? "Tout décocher" : "Tout cocher") + "</button>") +
       prets.map(x => enLigne(x, true)).join("") +
@@ -219,15 +216,13 @@ function renderEnoria() {
     (g.examiner.length ? sec("examiner") + titre("À examiner", g.examiner.length, "L'e-mail est dans Enoria, mais le nom ou le prénom diffère : à cocher un par un.") + g.examiner.map(x => enLigne(x, true)).join("") + "</section>" : "") +
     (g.autre.length ? sec("autre") + titre("Même nom, autre e-mail", g.autre.length, "Trouvés par le nom et le prénom seulement : l'adresse d'Enoria est différente ou absente.") + g.autre.map(x => enLigne(x, true)).join("") + "</section>" : "") +
     (g.ecartes.length ? sec("ecartes") + titre("Écartés", g.ecartes.length, "Jamais vérifiés par l'import.") + g.ecartes.map(x => enLigne(x, false)).join("") + "</section>" : "") +
-    (g.deja.length ? repli("deja", "Déjà vérifiés", g.deja, "Rien à faire ; l'import ne retire jamais le badge.") : "") +
     '<div class="en-barre"><span><b>' + n + (n > 1 ? " comptes" : " compte") + "</b> " + (n > 1 ? "cochés recevront" : "coché recevra") + " le badge " + VERIFIE + "</span>" +
       '<div><button type="button" class="btn btn-ghost btn-sm" data-en="autre">Annuler</button><button type="button" class="btn btn-primary btn-sm" data-en="valider"' + (n && !enoriaEnCours ? "" : " disabled") + ">" +
       (enoriaEnCours ? "Vérification…" : "Vérifier " + n + (n > 1 ? " comptes" : " compte")) + "</button></div></div></div>";
 }
 
-// Carte du résumé : la liste est ouverte si elle est repliée, puis la page y défile (sans animation si l'utilisateur l'a demandé)
+// Carte du résumé : la page défile jusqu'à la liste (sans animation si l'utilisateur l'a demandé)
 function enAller(k) {
-  if (k === "deja" && !enoriaOuverts.has(k)) { enoriaOuverts.add(k); renderEnoria(); }
   const s = $("en-sec-" + k);
   if (!s) return;
   s.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });

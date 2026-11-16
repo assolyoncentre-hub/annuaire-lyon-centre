@@ -43,16 +43,14 @@ test("import Enoria : analyse, vérification des comptes cochés, trace dans l'h
   // Colonne Enoria alignée sur toutes les lignes, quelle que soit la longueur de la raison à droite
   const gauches = await page.locator(".en-l .eno").evaluateAll(l => l.map(e => Math.round(e.getBoundingClientRect().left)));
   expect(new Set(gauches).size).toBe(1);
-  // Déjà vérifiés : repliés
+  // Déjà vérifiés : ni carte ni liste
   await expect(ligne("damien@example.org")).toHaveCount(0);
-  // Cartes du résumé : un clic mène à la liste, ouverte si elle était repliée ; à zéro, pas de bouton
-  await page.locator(".en-carte", { hasText: "Déjà vérifiés" }).click();
-  await expect(page.locator('[data-en-repli="deja"]')).toHaveAttribute("aria-expanded", "true");
-  await expect(ligne("damien@example.org")).toBeInViewport();
-  await expect(page.locator("#en-sec-deja")).toBeFocused();
+  await expect(page.locator(".en-carte", { hasText: "Déjà" })).toHaveCount(0);
+  // Cartes du résumé : un clic mène à la liste ; à zéro, pas de bouton
   await page.locator(".en-carte", { hasText: "À examiner" }).click();
   await expect(page.locator("#en-sec-examiner h2")).toBeInViewport();
-  await expect(page.locator("button.en-carte")).toHaveCount(5);
+  await expect(page.locator("#en-sec-examiner")).toBeFocused();
+  await expect(page.locator("button.en-carte")).toHaveCount(4);
   await expect(page.locator(".en-carte", { hasText: "Absents" })).toHaveCount(0); // pas de liste des absents d'Enoria
 
   // Antoine décoché, Claire cochée : trois comptes
