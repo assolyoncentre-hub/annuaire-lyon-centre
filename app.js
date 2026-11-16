@@ -420,6 +420,8 @@ function route() {
   if (!profilHash) vueAvant = h;
   $("admin-login").hidden = !admin || !!session || !authLoaded;
   $("login-dehors").hidden = $("admin-login").hidden || !$("switch").hidden;
+  // Onglet Entraide sans être connecté : une accroche au-dessus de la connexion (pas pendant la saisie du code)
+  $("entr-accroche").hidden = $("admin-login").hidden || !entrHash || $("otp-email-form").hidden;
   $("admin-denied").hidden = !admin || !session || (serv ? canLeaders : entrHash ? entr : isAdmin);
   $("denied-what").textContent = serv ? "n'a pas accès à l'annuaire des leaders." : entrMod ? "n'est pas modérateur de l'entraide." : entrHash ? "n'a pas accès à l'entraide." : "n'est pas administrateur de l'annuaire.";
   if (session) $("login-error").hidden = $("login-ok").hidden = true;
@@ -1672,6 +1674,7 @@ function otpStep(code) {
   $("otp-verify").textContent = code && otpNouveau ? "Vérifier" : "Se connecter";
   // Saisie du code : sans le choix Google (comme dans la maquette) ; création d'un compte : titre du haut aussi
   $("login-or").hidden = code; $("gsi-zone").hidden = code;
+  if (code) $("entr-accroche").hidden = true; // l'accroche de l'Entraide laisse la place au code
   if (code && otpNouveau) $("h1").textContent = "Créer un compte"; else if (!code) route();
   $("otp-code").classList.remove("bad");
   $("otp-email").classList.remove("bad");

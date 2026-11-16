@@ -322,6 +322,11 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .card:has(.contact[open]) { position: relative; z-index: 3; border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
 
 /* Connexion et messages (site public) */
+.entr-accroche { max-width: 460px; margin: 32px auto -16px; padding: 20px 24px; border-radius: 16px; background: #fff1ee; display: grid; justify-items: center; gap: 8px; }
+.entr-accroche[hidden] { display: none; }
+.entr-accroche svg { width: 34px; height: 34px; color: #e8604f; }
+.entr-accroche h2 { margin: 0; font: 700 22px/1.2 Montserrat, sans-serif; color: var(--text); text-align: center; }
+.entr-accroche p { margin: 0; color: #5a4a48; justify-self: stretch; }
 .login { margin: 40px auto; max-width: 460px; padding: 28px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; text-align: center; }
 .login h2 { margin: 0 0 20px; font: 700 26px/1.1 Phudu, Montserrat, sans-serif; text-transform: uppercase; color: var(--brand); }
 .login p { margin: 0 0 20px; color: var(--muted); }
@@ -1095,6 +1100,12 @@ label.check .verifie { margin-left: -4px; }
 </div>
 <div id="admin-view" class="view" hidden>
   <main class="wrap">
+    <!-- Accroche de l'Entraide, au-dessus de la connexion d'une personne non connectée -->
+    <div id="entr-accroche" class="entr-accroche" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 14h2a2 2 0 1 0 0-4h-3c-.6 0-1.1.2-1.4.6L3 16"/><path d="m7 20 1.6-1.4c.3-.4.8-.6 1.4-.6h4c1.1 0 2.1-.4 2.8-1.2l4.6-4.4a2 2 0 0 0-2.75-2.91l-4.2 3.9"/><path d="m2 15 6 6"/><path d="M19.5 8.5c.7-.7 1.5-1.6 1.5-2.7A2.73 2.73 0 0 0 16 4a2.78 2.78 0 0 0-5 1.8c0 1.2.8 2 1.5 2.8L16 12Z"/></svg>
+      <h2>Besoin d'aide&nbsp;?<br>Prêt à aider&nbsp;?</h2>
+      <p>Ici, les paroissiens se rendent service&nbsp;: un repas, une course, un trajet… Rejoignez-nous pour demander ou proposer un coup de main&nbsp;!</p>
+    </div>
     <div id="admin-login" class="login" hidden>
       <h2 id="login-title">Connexion ou création d'un compte</h2>
       <p id="login-error" class="login-error" role="alert" hidden></p>

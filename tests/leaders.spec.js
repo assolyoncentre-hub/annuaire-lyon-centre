@@ -20,6 +20,7 @@ test("visiteur : pas d'onglet Leaders ; l'adresse #leaders demande de se connect
   await page.click("#admin-link");
   await expect(page.locator("#login-title")).toHaveText("Connexion ou création d'un compte");
   await expect(page.locator("#h1")).toHaveText("Connexion");
+  await expect(page.locator("#entr-accroche")).toBeHidden(); // accroche réservée à l'onglet Entraide
   await expect(page.locator(".switch a[aria-current]")).toHaveCount(0);
 });
 

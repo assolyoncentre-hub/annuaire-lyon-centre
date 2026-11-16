@@ -18,7 +18,16 @@ test("visiteur non connecté : onglet Entraide affiché, qui mène à la connexi
   await expect(page.locator("#sw-entr")).toHaveAttribute("aria-current", "page");
   await expect(page.locator("#h1")).toHaveText("Entraide");
   await expect(page.locator("#login-dehors")).toBeHidden(); // les onglets suffisent pour revenir
-  await expect(page.locator("#login-title")).toHaveText("Connexion ou création d'un compte");
+  // Accroche au-dessus de la connexion : titre centré, texte à gauche ; absente pendant la saisie du code
+  const accroche = page.locator("#entr-accroche");
+  await expect(accroche.locator("h2")).toHaveText("Besoin d'aide ?Prêt à aider ?".replace(/ \?/g, "\u00a0?"));
+  await expect(accroche.locator("h2")).toHaveCSS("text-align", "center");
+  await expect(accroche.locator("p")).toHaveCSS("text-align", "start");
+  await page.fill("#otp-email", "quelqu.un@example.org");
+  await page.locator("#otp-email-form [type=submit]").click();
+  await expect(page.locator("#otp-code-form")).toBeVisible();
+  await expect(accroche).toBeHidden();
+  await expect(page.locator("#login-title")).toHaveText("Créer un compte");
   await expect(page.locator("#entr-view")).toBeHidden();
   expect(await calls(page, "entraide")).toHaveLength(0);
 });
