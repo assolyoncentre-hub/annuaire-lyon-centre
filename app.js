@@ -580,9 +580,8 @@ const CONTACT_FILTERS = [
   ["aucun", "Paroissiens", "#9aa5b1", p => p.droit !== "admin" && p.droit !== "leaders"],
   ["entr-voir", "Voir l'entraide", "#e08a1e", p => p.entraide !== "aucun"],
   ["entr-mod", "Modérer l'entraide", "#9a4b00", p => p.entraide === "moderer"],
-  ["hors", "Hors annuaire", "#6b4fbb", p => p.hors],
   ["desactives", "Comptes désactivés", "#c62828", p => !!p.desactive_le],
-  ["verifies", "Paroissiens vérifiés", "#0095f6", p => p.verifie],
+  ["verifies", "Vérifiés", "#0095f6", p => p.verifie],
 ];
 function renderAdmin() {
   if ($("admin-body").hidden) return;
