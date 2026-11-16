@@ -275,6 +275,67 @@ body { min-height: 100vh; display: flex; flex-direction: column; }
   font: 600 13px/1 Montserrat, sans-serif; cursor: pointer; }
 .tab[aria-selected="true"] { background: var(--brand); border-color: var(--brand); color: #fff; }
 .admin-tools { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 12px 0 16px; }
+.admin-tools[hidden] { display: none; }
+/* Onglet Enoria : vérification des paroissiens à partir de l'export d'Enoria (enoria.js) */
+.list.en-vue { background: none; border: 0; border-radius: 0; overflow: visible; margin-top: 16px; }
+.en { display: grid; gap: 16px; }
+.en-depot { display: grid; justify-items: center; gap: 10px; padding: 40px 20px; border: 2px dashed #b9c7d6; border-radius: 12px; background: var(--surface); text-align: center; }
+.en-depot.survol { border-color: var(--brand); background: #eef5fc; }
+.en-ico { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; background: var(--tint); color: var(--brand); }
+.en-ico svg { width: 26px; height: 26px; }
+.en-depot h2 { margin: 0; font: 700 17px/1.3 Montserrat, sans-serif; color: var(--text); text-transform: none; letter-spacing: 0; }
+.en-depot p { margin: 0; color: var(--muted); font-size: 14px; max-width: 52ch; }
+.en-erreur { margin: 0; padding: 10px 14px; border-radius: 10px; background: #fdecea; color: #b42318; font-size: 14px; }
+.en-info { display: flex; gap: 10px; align-items: flex-start; margin: 0; padding: 12px 14px; border-radius: 10px; background: #e8f4fe; color: #0b4f86; font-size: 14px; }
+.en-info svg { width: 18px; height: 18px; flex: none; margin-top: 1px; }
+.en-dernier { margin: 0; color: var(--muted); font-size: 14px; }
+.en-dernier b { color: var(--text); font-weight: 500; }
+.en-fichier { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: 0; font-size: 14px; color: var(--muted); }
+.en-fichier b { color: var(--text); font-weight: 600; overflow-wrap: anywhere; }
+.en-cartes { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }
+@media (max-width: 900px) { .en-cartes { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .en-cartes { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; } }
+.en-carte { display: grid; gap: 4px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+.en-carte .n { font: 700 24px/1 Montserrat, sans-serif; }
+.en-carte .l { font: 600 12.5px/1.25 Montserrat, sans-serif; color: var(--muted); }
+.en-carte.vert { border-color: #1d6b3a; box-shadow: inset 0 0 0 1px #1d6b3a; } .en-carte.vert .n { color: #1d6b3a; }
+.en-carte.orange .n { color: #9a4b00; } .en-carte.bleu .n { color: var(--brand); } .en-carte.gris .n { color: var(--muted); }
+.en-sec { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.en-sec-t { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; padding: 14px 18px; }
+.en-sec-t h2 { margin: 0; font: 700 15px/1.3 Montserrat, sans-serif; color: var(--text); text-transform: none; letter-spacing: 0; }
+.en-sec-t .c, .en-repli .c { color: var(--muted); font-weight: 600; }
+.en-sec-t p { margin: 2px 0 0; color: var(--muted); font-size: 13.5px; }
+.en-l { display: grid; grid-template-columns: 18px minmax(0, 1fr) minmax(0, 1fr) auto; gap: 6px 16px; align-items: center; padding: 12px 18px; border-top: 1px solid var(--border); }
+.en-l input[type=checkbox] { width: 18px; height: 18px; margin: 0; accent-color: var(--brand); }
+.en-l .qui { font-weight: 700; }
+.en-l .en-mail, .en-l .en-det { display: block; font-weight: 400; color: var(--muted); font-size: 13.5px; overflow-wrap: anywhere; }
+.en-l .eno { font-size: 14.5px; overflow-wrap: anywhere; }
+.en-src { display: inline-block; margin-right: 6px; padding: 1px 6px; border-radius: 4px; background: #f1ecfb; color: #5b3fa8; font: 700 10.5px/1.5 Montserrat, sans-serif; letter-spacing: .04em; text-transform: uppercase; vertical-align: 1px; }
+.en-l mark { background: #fff0c2; color: inherit; padding: 0 2px; border-radius: 3px; }
+.en-why { font: 600 12px/1.3 Montserrat, sans-serif; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+.en-why.ok { background: #e3f4ea; color: #1d6b43; } .en-why.diff { background: #fff3e0; color: #9a4b00; }
+.en-why.bleu { background: var(--tint); color: var(--brand); } .en-why.gris { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
+.en-plus { padding: 12px 18px; border-top: 1px solid var(--border); text-align: center; }
+.en-repli { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; border: 0; background: none; text-align: left; font: 700 15px/1.3 Montserrat, sans-serif; color: var(--text); cursor: pointer; }
+.en-repli small { display: block; font: 400 13.5px/1.4 "DM Sans", sans-serif; color: var(--muted); }
+.en-repli svg { width: 18px; height: 18px; flex: none; color: var(--muted); transition: transform .15s; }
+.en-repli[aria-expanded="true"] svg { transform: rotate(180deg); }
+.en-repli:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+.en-barre { position: sticky; bottom: 12px; z-index: 3; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; padding: 14px 18px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); box-shadow: 0 -8px 24px -14px rgba(0, 40, 80, .35); }
+.en-barre > span { font-size: 14px; color: var(--muted); } .en-barre b { color: var(--text); }
+.en-barre > div { display: flex; gap: 8px; }
+.en-fin { display: grid; justify-items: center; gap: 10px; padding: 32px 20px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); text-align: center; }
+.en-fin .ok { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; background: #e8f4ec; color: #1d6b3a; }
+.en-fin .ok svg { width: 28px; height: 28px; }
+.en-fin h2 { margin: 0; font: 700 19px/1.3 Montserrat, sans-serif; color: var(--text); text-transform: none; letter-spacing: 0; }
+.en-fin p { margin: 0; color: var(--muted); max-width: 56ch; }
+.en-fin > div { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 16px; align-items: center; }
+@media (max-width: 720px) {
+  .en-l { grid-template-columns: 18px minmax(0, 1fr); padding: 12px 16px; }
+  .en-l .eno, .en-l .en-why { grid-column: 2; justify-self: start; }
+  .en-sec-t, .en-repli, .en-plus { padding-left: 16px; padding-right: 16px; }
+  .en-barre { padding: 12px 16px; }
+}
 .admin-tools .search-wrap { flex: 0 1 360px; width: auto; min-width: 0; }
 @media (max-width: 640px) { .admin-tools .search-wrap { flex-basis: 100%; } }
 .btn-sm { padding: 9px 14px; font-size: 13px; }
@@ -1177,11 +1238,12 @@ label.check .verifie { margin-left: -4px; }
           <button type="button" class="tab" role="tab" id="tab-poles" aria-selected="false">Pôles</button>
           <button type="button" class="tab" role="tab" id="tab-contacts" aria-selected="false">Contacts</button>
           <button type="button" class="tab" role="tab" id="tab-messages" aria-selected="false">Messages</button>
+          <button type="button" class="tab" role="tab" id="tab-enoria" aria-selected="false">Enoria</button>
         </div>
         <select class="accoles-sel" id="admin-nav-sel" aria-label="Administration : choisir la liste"></select>
         <button type="button" class="btn btn-primary btn-sm" id="add-btn">Ajouter un staff</button>
       </div>
-      <div class="admin-tools">
+      <div class="admin-tools" id="admin-tools">
         <input type="search" id="aq" class="search" placeholder="Filtrer" aria-label="Filtrer la liste" autocomplete="off">
         <div class="fgroup dd" id="admin-filters" data-multi="1" hidden><button type="button" class="filt-toggle" aria-expanded="false" aria-controls="cfilters"><span class="filt-lbl">Filtrer par droit</span><span class="filt-cur"></span><span class="filt-n"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button><div class="filters" id="cfilters" role="group" aria-label="Droits"></div></div>
       </div>
@@ -1272,5 +1334,6 @@ label.check .verifie { margin-left: -4px; }
 <script src="api.js?v=__VERSION__"></script>
 <script src="app.js?v=__VERSION__"></script>
 <script src="entraide.js?v=__VERSION__"></script>
+<script src="enoria.js?v=__VERSION__"></script>
 </body>
 </html>

@@ -372,8 +372,9 @@ async function refresh() {
 // Vues : annuaire des propositions (public), annuaire des leaders (droit « leaders » ou « admin » : sinon écran de connexion)
 // et administration
 // Chaque onglet a son adresse, pour qu'un rechargement rouvre le même onglet
-const HASH_OF = { services: "#admin", poles: "#admin/poles", contacts: "#admin/contacts", messages: "#admin/messages" };
-const TAB_OF = { staffs: "services", poles: "poles", contacts: "contacts", messages: "messages" };
+const HASH_OF = { services: "#admin", poles: "#admin/poles", contacts: "#admin/contacts", messages: "#admin/messages", enoria: "#admin/enoria" };
+const TAB_OF = { staffs: "services", poles: "poles", contacts: "contacts", messages: "messages", enoria: "enoria" };
+const ADMIN_ONGLETS = ["services", "poles", "contacts", "messages", "enoria"];
 function route() {
   // Ancienne adresse de la page (« serviteurs ») : redirigée
   if (location.hash === "#serviteurs") history.replaceState(null, "", "#leaders");
@@ -383,7 +384,7 @@ function route() {
   // sinon connexion ou refus
   const entrMod = h === "#entraide/moderation", entrHash = h === "#entraide" || h === "#entraide/mes-demandes" || entrMod;
   const entr = (entrHash && !entrMod && canEntraide) || (entrMod && isReferent);
-  // Administration : « #admin » (staffs), « #admin/poles », « #admin/contacts », « #admin/messages »
+  // Administration : « #admin » (staffs), « #admin/poles », « #admin/contacts », « #admin/messages », « #admin/enoria »
   const adminHash = h === "#admin" || h.startsWith("#admin/");
   if (adminHash) { const t = TAB_OF[h.slice(7)] || "services"; if (t !== adminTab) showTab(t); }
   // Mon profil (#profil) : toute personne connectée ; sinon connexion
@@ -542,9 +543,11 @@ const isPoleTab = () => adminTab === "poles";
 function showTab(t) {
   adminTab = t;
   $("sw-admin").setAttribute("href", HASH_OF[t]); // retour sur le même onglet depuis Propositions ou Leaders
-  for (const k of ["services", "poles", "contacts", "messages"]) $("tab-" + k).setAttribute("aria-selected", String(t === k));
+  for (const k of ADMIN_ONGLETS) $("tab-" + k).setAttribute("aria-selected", String(t === k));
   $("admin-nav-sel").value = t;
-  $("add-btn").hidden = t === "messages";
+  $("add-btn").hidden = t === "messages" || t === "enoria";
+  $("admin-tools").hidden = t === "enoria";
+  $("admin-list").classList.toggle("en-vue", t === "enoria");
   $("add-btn").textContent = { services: "Ajouter un staff", poles: "Ajouter un pôle", contacts: "Ajouter un contact" }[t] || "";
 }
 function setTab(t) {
@@ -556,10 +559,11 @@ $("tab-services").onclick = () => setTab("services");
 $("tab-poles").onclick = () => setTab("poles");
 $("tab-contacts").onclick = () => setTab("contacts");
 $("tab-messages").onclick = async () => { messages = await api.messages().catch(() => messages); setTab("messages"); };
+$("tab-enoria").onclick = () => setTab("enoria");
 // Téléphone : les onglets deviennent une liste déroulante (mêmes libellés, compteurs compris)
 function adminNavSel() {
   const sel = $("admin-nav-sel");
-  sel.innerHTML = ["services", "poles", "contacts", "messages"].map(k => '<option value="' + k + '">' + esc($("tab-" + k).textContent) + "</option>").join("");
+  sel.innerHTML = ADMIN_ONGLETS.map(k => '<option value="' + k + '">' + esc($("tab-" + k).textContent) + "</option>").join("");
   sel.value = adminTab;
 }
 $("admin-nav-sel").addEventListener("change", e => $("tab-" + e.target.value).click());
@@ -590,6 +594,7 @@ function renderAdmin() {
   $("tab-messages").textContent = "Messages (" + messages.length + ")";
   $("tab-contacts").textContent = "Contacts (" + fiches().length + ")";
   adminNavSel();
+  if (adminTab === "enoria") { if (typeof renderEnoria === "function") renderEnoria(); return; } // enoria.js, chargé après
   if (adminTab === "contacts") {
     const all = fiches();
     // Filtres par droit (choix multiple) : un contact s'affiche s'il correspond à l'un des droits cochés

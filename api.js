@@ -185,6 +185,9 @@ window.makeApi = function () {
     // Paroissiens vérifiés (par e-mail) : badge à côté du prénom dans l'entraide
     paroissiensVerifies: () => sbRpc("admin_paroissiens_verifies"),
     verifierParoissien: (email, oui) => sbRpc("admin_verifier_paroissien", { p_email: email, p_verifie: oui }),
+    // Import Enoria : comptes cochés [{ email, motif }] vérifiés, avec la date de l'export ; dernier import
+    importEnoria: (exportDu, lignes, comptes) => sbRpc("admin_import_enoria", { p_export_du: exportDu, p_lignes: lignes, p_comptes: comptes }),
+    dernierImportEnoria: () => sbRpc("admin_dernier_import_enoria"),
     adminHistorique: email => sbRpc("admin_historique", { p_email: email }), // historique d'un compte (2 ans)
   };
 };

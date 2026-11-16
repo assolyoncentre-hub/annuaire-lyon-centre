@@ -438,6 +438,32 @@ module.exports = function installFakeApi({ data, user, acces, desactives }) {
       if (oui) { if (!verifie(e)) S.verifies.push({ email: e, verifie_le: new Date().toISOString() }); }
       else S.verifies = S.verifies.filter(v => v.email !== e);
     },
+    // Comme admin_import_enoria : seuls les comptes connus, actifs et pas encore vérifiés sont vérifiés, avec une ligne d'historique
+    async importEnoria(exportDu, lignes, comptes) {
+      guard(); log("importEnoria", { exportDu, lignes, comptes });
+      if (!Array.isArray(comptes) || comptes.length > 5000) throw new Error("Liste de comptes invalide.");
+      const MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
+      const d = exportDu ? new Date(exportDu + "T12:00:00") : null;
+      const origine = "Import Enoria" + (d ? " (export du " + d.getDate() + " " + MOIS[d.getMonth()] + " " + d.getFullYear() + ")" : "");
+      let nb = 0;
+      for (const c of comptes) {
+        const e = String(c?.email || "").trim().toLowerCase(), m = String(c?.motif || "").trim().slice(0, 200);
+        if (!e.includes("@")) continue;
+        const connu = S.acces.some(a => a.email === e) || [...S.contacts, ...S.responsables].some(r => (r.email || "").toLowerCase() === e);
+        if (!connu || desactive(e) || verifie(e)) continue;
+        S.verifies.push({ email: e, verifie_le: new Date().toISOString() });
+        noter(e, "compte", "Paroissien·ne vérifié·e", "Non", "Oui", origine + (m ? " : " + m : "") + ".");
+        nb++;
+      }
+      (S.importsEnoria ||= []).push({ le: new Date().toISOString(), par: session.user.email.toLowerCase(), export_du: exportDu, lignes, verifies: nb });
+      return nb;
+    },
+    // Comme admin_dernier_import_enoria
+    async dernierImportEnoria() {
+      guard();
+      const i = (S.importsEnoria || []).at(-1);
+      return i ? { le: i.le, export_du: i.export_du, lignes: i.lignes, verifies: i.verifies, par_prenom: entrPrenom(i.par) || null } : null;
+    },
     async reorder(kind, rows) { guard(); log("reorder", { kind, rows }); for (const r of rows) S[kind].find(x => x.id === r.id).ordre = r.ordre; },
     // Comme admin_historique : historique d'une personne (2 ans), avec l'activité de l'entraide et ses connexions
     async adminHistorique(email) {

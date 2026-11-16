@@ -69,3 +69,13 @@ test("historique d'un compte @mobile", async ({ open, page }) => {
   await expect(page.locator("#ed-histo .hi-it").first()).toBeVisible();
   await audit(page);
 });
+
+test("import Enoria @mobile", async ({ open, page }) => {
+  await open({ user: ADMIN, hash: "#admin/enoria" });
+  await expect(page.locator(".en-depot")).toBeVisible();
+  expect(await audit(page)).toEqual([]);
+  const csv = '"Nom";"Prénom";"mail";"isdefunt";"age"\n"de LAFORÊT";"Magali";"magali@example.org";"false";"41 ans"\n"ROUX-VANNIER";"Claire";"claire@example.org";"false";""\n"BRUNET";"Jean";"jean@example.org";"true";""';
+  await page.setInputFiles("#en-fichier", { name: "personnes-enoria.csv", mimeType: "text/csv", buffer: Buffer.from(csv) });
+  await page.locator('[data-en-repli="absents"]').click();
+  expect(await audit(page)).toEqual([]);
+});
