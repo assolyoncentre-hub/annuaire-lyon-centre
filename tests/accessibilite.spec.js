@@ -61,3 +61,11 @@ test("création du compte et bienvenue @mobile", async ({ open, page }) => {
   await expect(page.locator(".cr-coche")).toBeVisible();
   expect(await audit(page)).toEqual([]);
 });
+
+test("historique d'un compte @mobile", async ({ open, page }) => {
+  await open({ user: ADMIN, hash: "#admin/contacts" });
+  await page.locator("#admin-list .row", { hasText: "admin@example.org" }).locator("[data-act=edit]").click();
+  await page.click("#ed-tab-histo");
+  await expect(page.locator("#ed-histo .hi-it").first()).toBeVisible();
+  await audit(page);
+});

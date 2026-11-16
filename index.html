@@ -314,6 +314,43 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .field .hint:empty { display: none; }
 .field .hint { margin-top: 4px; font-size: 13px; color: var(--muted); }
 #ed-form textarea { min-height: 70px; }
+#ed-form[hidden] { display: none; }
+/* Historique d'un compte (fiche contact) : frise par jour, valeur d'avant barrée en rouge, d'après en vert */
+.ed-onglets { display: flex; gap: 28px; padding: 0 24px; border-bottom: 1px solid var(--border); background: var(--surface); }
+.ed-onglets[hidden] { display: none; }
+.ed-onglets button { padding: 14px 2px 12px; margin-bottom: -1px; border: 0; border-bottom: 3px solid transparent; background: none; cursor: pointer;
+  font: 700 14px/1 Montserrat, sans-serif; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.ed-onglets button[aria-selected="true"] { color: var(--text); border-bottom-color: var(--brand); }
+.ed-onglets button:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+.hi { padding: 20px 24px 24px; display: grid; gap: 18px; }
+.hi[hidden] { display: none; }
+@media (max-width: 520px) { .hi { padding: 16px; } .ed-onglets { padding: 0 16px; } }
+.hi-resume { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0; font-size: 14px; color: var(--muted); }
+.hi-resume b { color: var(--text); font-weight: 500; }
+.hi-filtres { display: flex; flex-wrap: wrap; gap: 8px; }
+.hi-filtres button { padding: 7px 14px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); cursor: pointer; font: 600 13px/1 Montserrat, sans-serif; color: var(--text); }
+.hi-filtres button[aria-pressed="true"] { background: var(--text); border-color: var(--text); color: #fff; }
+.hi-filtres button:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.hi-jour { margin: 4px 0 -6px; font: 700 12px/1 Montserrat, sans-serif; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.hi-list { display: grid; margin: 0; padding: 0; list-style: none; }
+.hi-it { display: grid; grid-template-columns: 32px 1fr; gap: 12px; padding: 10px 0; position: relative; }
+.hi-it:not(:last-child)::before { content: ""; position: absolute; left: 15px; top: 42px; bottom: -10px; width: 2px; background: var(--border); }
+.hi-it > div { min-width: 0; }
+.hi-ico { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; }
+.hi-ico svg { width: 16px; height: 16px; }
+.hi-compte .hi-ico { background: #e8f4ec; color: #1d6b3a; } .hi-profil .hi-ico { background: #e8f1fa; color: #0060aa; }
+.hi-droits .hi-ico { background: #efeafa; color: #5b3fa8; } .hi-entraide .hi-ico { background: #ffe9e5; color: #c4473a; }
+.hi-t { font-weight: 500; color: var(--text); overflow-wrap: anywhere; }
+.hi-m { margin-top: 2px; font-size: 13px; color: var(--muted); }
+.hi-diff { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 6px; font-size: 14px; }
+.hi-av, .hi-ap { padding: 2px 8px; border-radius: 6px; overflow-wrap: anywhere; }
+.hi-av { background: #fdecec; color: #a12622; text-decoration: line-through; }
+.hi-ap { background: #e8f4ec; color: #1d6b3a; }
+.hi-fl { color: var(--muted); }
+.hi-cite { margin: 6px 0 0; padding: 8px 12px; border-left: 3px solid var(--border); color: var(--muted); font-size: 14px; overflow-wrap: anywhere; }
+.hi-note { margin: 0; padding-top: 12px; border-top: 1px solid var(--border); font-size: 13px; color: var(--muted); }
+.hi .actions { display: flex; justify-content: flex-end; }
+.hi-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .people { display: grid; gap: 8px; }
 .people-field { margin-top: 14px; }
 .add-person { justify-self: start; background: none; border: 0; padding: 4px 0; color: var(--brand); font: 600 13px/1 Montserrat, sans-serif; cursor: pointer; }
@@ -1186,7 +1223,13 @@ label.check .verifie { margin-left: -4px; }
       <div class="kicker" id="ed-kicker"></div>
       <h2 id="ed-title"></h2>
     </div>
+    <!-- Fiche d'une personne existante : onglets Contact / Historique -->
+    <div class="ed-onglets" id="ed-onglets" role="tablist" aria-label="Fiche du contact" hidden>
+      <button type="button" role="tab" id="ed-tab-contact" aria-controls="ed-form" aria-selected="true">Contact</button>
+      <button type="button" role="tab" id="ed-tab-histo" aria-controls="ed-histo" aria-selected="false" tabindex="-1">Historique</button>
+    </div>
     <form id="ed-form" novalidate></form>
+    <div class="hi" id="ed-histo" role="tabpanel" aria-labelledby="ed-tab-histo" hidden></div>
   </div>
 </div>
 <div class="modal-bg" id="entr-modal" hidden>

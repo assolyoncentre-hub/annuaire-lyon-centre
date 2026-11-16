@@ -185,5 +185,6 @@ window.makeApi = function () {
     // Paroissiens vérifiés (par e-mail) : badge à côté du prénom dans l'entraide
     paroissiensVerifies: () => sbRpc("admin_paroissiens_verifies"),
     verifierParoissien: (email, oui) => sbRpc("admin_verifier_paroissien", { p_email: email, p_verifie: oui }),
+    adminHistorique: email => sbRpc("admin_historique", { p_email: email }), // historique d'un compte (2 ans)
   };
 };

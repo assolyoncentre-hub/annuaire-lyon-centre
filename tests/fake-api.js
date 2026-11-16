@@ -439,5 +439,94 @@ module.exports = function installFakeApi({ data, user, acces, desactives }) {
       else S.verifies = S.verifies.filter(v => v.email !== e);
     },
     async reorder(kind, rows) { guard(); log("reorder", { kind, rows }); for (const r of rows) S[kind].find(x => x.id === r.id).ordre = r.ordre; },
+    // Comme admin_historique : historique d'une personne (2 ans), avec l'activité de l'entraide et ses connexions
+    async adminHistorique(email) {
+      guard(); log("adminHistorique", email);
+      const e = String(email || "").trim().toLowerCase(), moi = session.user.email.toLowerCase();
+      const d2 = d => d ? new Date(d).toISOString() : null;
+      const ev = S.historique.filter(h => h.email === e).map(h => ({ ...h }));
+      const ajouter = (le, evenement, avant, apres, details, auteur) => le && ev.push({ le: d2(le), famille: "entraide", evenement, avant, apres, details, auteur });
+      for (const d of S.entraide.filter(x => x.auteur === e)) {
+        const r = entrRow(d), b = "« " + d.besoin + " »";
+        ajouter(r.created_at, "Demande d'aide déposée", null, null, b + (d.quand ? " · Quand\u00a0? " + d.quand : ""), e);
+        ajouter(r.publiee_le, "Demande d'aide publiée", "À valider", "Publiée", b, null);
+        if (d.statut === "pourvue") ajouter(r.close_le, "Demande d'aide réglée", "Publiée", "C'est réglé", b, e);
+        ajouter(r.masquee_le, "Demande d'aide masquée par la modération", null, null, b, null);
+      }
+      for (const c of S.entraideConversations.filter(x => x.aidant === e)) {
+        const d = S.entraide.find(x => x.id === c.demande);
+        if (d) ajouter(c.le, "« Je peux aider » sur la demande de " + d.prenom, null, null, "« " + d.besoin + " »", e);
+      }
+      for (const m of S.entraideMessages.filter(x => x.auteur === e)) {
+        const c = S.entraideConversations.find(x => x.id === m.conversation), d = c && S.entraide.find(x => x.id === c.demande);
+        if (d) ajouter(m.le, "A écrit à " + (d.auteur === e ? c.prenom : d.prenom), null, null, (d.auteur === e ? "Dans sa demande « " : "Dans la demande de " + d.prenom + " « ") + d.besoin + " »", e);
+      }
+      const limite = Date.now() - 2 * 365.25 * 86400000;
+      return {
+        depuis: "2026-11-16", premiere_connexion: e === moi ? new Date(Date.now() - 30 * 86400000).toISOString() : null, derniere_connexion: e === moi ? new Date().toISOString() : null,
+        evenements: ev.filter(x => new Date(x.le) > limite).sort((a, b) => b.le.localeCompare(a.le) || (b.ordre ?? 0) - (a.ordre ?? 0)).slice(0, 500)
+          .map(({ le, famille, evenement, avant = null, apres = null, details = null, auteur }) => ({ le, famille, evenement, avant, apres, details,
+            auteur_prenom: auteur ? entrPrenom(auteur) : null, auteur_lui: auteur === e, auteur_admin: !!auteur && S.acces.some(a => a.email === auteur && a.droit === "admin") })),
+      };
+    },
   };
+
+  // Historique des comptes (comme la table historique_comptes et ses déclencheurs) : chaque enregistrement compare l'état
+  // des personnes avant et après, et note les différences, avec la personne connectée comme auteur
+  S.historique ||= [];
+  const LIB_DROIT = { admin: "Administrateur", leaders: "Leader", aucun: "Paroissien" };
+  const libEntr = a => a?.entraide_moderer ? "Modérer" : a?.entraide_voir ? "Voir" : "Aucun";
+  const vide = v => v == null || String(v).trim() === "" ? null : String(v).trim();
+  const etat = () => {
+    const m = new Map(), pers = e => { if (!m.has(e)) m.set(e, { staffs: [], poles: [] }); return m.get(e); };
+    for (const [liste, k, src, cle] of [[S.contacts, "staffs", S.services, "service_id"], [S.responsables, "poles", S.poles, "pole_id"]])
+      for (const r of liste) { const e = (r.email || "").trim().toLowerCase(); if (!e) continue; const p = pers(e); p[k].push(src.find(x => x.id === r[cle])?.name || ""); p.profil ||= r; }
+    for (const a of S.acces) { const p = pers(a.email); p.acces = a; p.profil = a; }
+    for (const e of Object.keys(S.photos || {})) pers(e).photo = S.photos[e];
+    for (const v of S.verifies) pers(v.email).verifie = true;
+    for (const d of S.desactives) pers(d.email).desactive = true;
+    return JSON.parse(JSON.stringify([...m]));
+  };
+  const noter = (email, famille, evenement, avant = null, apres = null, details = null) =>
+    S.historique.push({ email, le: new Date().toISOString(), ordre: n++, auteur: session?.user.email.toLowerCase() || null, famille, evenement, avant, apres, details });
+  const comparer = (av, ap) => {
+    av = new Map(av); ap = new Map(ap);
+    const existe = x => !!x && (!!x.acces || x.staffs.length > 0 || x.poles.length > 0);
+    const droitDeLui = x => existe(x) ? LIB_DROIT[x.acces?.droit || (x.staffs.length || x.poles.length ? "leaders" : "")] || null : null;
+    const PROFIL = [["civilite", "Civilité modifiée"], ["prenom", "Prénom modifié"], ["nom", "Nom modifié"], ["telephone", "Téléphone modifié"]];
+    for (const e of new Set([...av.keys(), ...ap.keys()])) {
+      const o = av.get(e), nv = ap.get(e), cree = !existe(o) && existe(nv);
+      if (cree) { if (nv.acces?.accord_donnees_le) noter(e, "compte", "Compte créé", null, null, "Conservation des données acceptée"); else if (!nv.staffs.length && !nv.poles.length) noter(e, "compte", "Contact créé"); }
+      if (existe(o) && !existe(nv)) { noter(e, "compte", "Contact supprimé"); continue; }
+      if (existe(o) && existe(nv)) for (const [k, l] of PROFIL) if (vide(o.profil?.[k]) !== vide(nv.profil?.[k])) noter(e, "profil", l, vide(o.profil?.[k]), vide(nv.profil?.[k]));
+      if (existe(nv) && !(cree && nv.acces?.accord_donnees_le)) {
+        if (droitDeLui(o) !== droitDeLui(nv)) noter(e, "droits", "Droit sur l'annuaire modifié", droitDeLui(o), droitDeLui(nv));
+        if (libEntr(o?.acces) !== libEntr(nv?.acces)) noter(e, "droits", "Droit Entraide modifié", libEntr(o?.acces), libEntr(nv?.acces));
+      }
+      for (const [k, quoi] of [["staffs", "Staff"], ["poles", "Responsable de pôle"]]) {
+        const a = o?.[k] || [], b = nv?.[k] || [];
+        for (const x of a.filter(x => !b.includes(x))) noter(e, "droits", quoi + " retiré", x, null);
+        for (const x of b.filter(x => !a.includes(x))) noter(e, "droits", quoi + " ajouté", null, x);
+      }
+      if (!o?.photo && nv?.photo) noter(e, "profil", "Photo ajoutée"); else if (o?.photo && !nv?.photo) noter(e, "profil", "Photo retirée"); else if (o?.photo !== nv?.photo) noter(e, "profil", "Photo modifiée");
+      if (!!o?.verifie !== !!nv?.verifie) noter(e, "compte", "Paroissien·ne vérifié·e", o?.verifie ? "Oui" : "Non", nv?.verifie ? "Oui" : "Non");
+      if (!!o?.desactive !== !!nv?.desactive) noter(e, "compte", nv?.desactive ? "Compte désactivé" : "Compte réactivé");
+    }
+  };
+  for (const k of ["savePerson", "saveAcces", "desactiverCompte", "verifierParoissien", "savePhoto", "creerMonCompte", "monProfilEnregistrer", "monProfilPhoto", "saveService", "savePole", "deleteService", "deletePole"]) {
+    const f = window.__api[k];
+    window.__api[k] = async function (...args) {
+      const av = etat(), r = await f.apply(this, args);
+      if (k === "savePerson") { // changement d'adresse : l'historique suit la personne
+        const a = vide(args[0]?.ancien_email)?.toLowerCase(), nv = vide(args[0]?.email)?.toLowerCase();
+        if (a && nv && a !== nv) {
+          for (const h of S.historique) if (h.email === a) h.email = nv;
+          noter(nv, "compte", "E-mail modifié", a, nv);
+          const i = av.findIndex(([x]) => x === a); if (i >= 0) av[i][0] = nv;
+        }
+      }
+      comparer(av, etat());
+      return r;
+    };
+  }
 };

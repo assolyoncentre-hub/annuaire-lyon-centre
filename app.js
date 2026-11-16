@@ -757,6 +757,10 @@ $("add-btn").onclick = () => adminTab === "contacts" ? editPerson(null) : isPole
 // --- Éditeur (fenêtre) ---
 // left : contenu facultatif placé à gauche des boutons (ex. case « Masquer ce staff »)
 function openEditor(kicker, title, html, onSave, saveLabel = "Enregistrer", danger = false, left = "") {
+  // Fiche d'une personne existante (avec e-mail) : onglets Contact / Historique ; sinon le formulaire seul
+  histoEmail = prochainHisto; prochainHisto = null; histoSeq++;
+  $("ed-onglets").hidden = !histoEmail; $("ed-histo").hidden = true; $("ed-histo").innerHTML = ""; $("ed-form").hidden = false;
+  edOnglet("contact", false);
   $("ed-kicker").textContent = kicker;
   $("ed-title").textContent = title;
   const f = $("ed-form");
@@ -776,6 +780,79 @@ function openEditor(kicker, title, html, onSave, saveLabel = "Enregistrer", dang
   setPageInert(true);
 }
 function closeEditor() { setPageInert(false); $("editor").hidden = true; document.body.classList.remove("locked"); }
+
+// --- Historique d'un compte (onglet de la fiche contact, administrateurs) : changements du compte, du profil et des
+// droits notés par la base depuis le 16 novembre 2026, et activité de l'entraide ; conservé 2 ans ---
+let prochainHisto = null, histoEmail = null, histoSeq = 0, histoDonnees = null, histoFiltre = "tout";
+const HI_FAMILLES = [["tout", "Tout"], ["compte", "Compte"], ["profil", "Profil"], ["droits", "Droits"], ["entraide", "Entraide"]];
+const HI_ICO = {
+  compte: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+  profil: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
+  droits: '<path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6z"/>',
+  entraide: '<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12Z"/>',
+};
+const hiJour = d => {
+  const j = new Date(d), auj = new Date(); auj.setHours(0, 0, 0, 0);
+  const ecart = Math.round((auj - new Date(j.getFullYear(), j.getMonth(), j.getDate())) / 86400000);
+  return ecart === 0 ? "Aujourd'hui" : ecart === 1 ? "Hier" : j.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+};
+const hiHeure = d => new Date(d).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+const hiQuand = d => { const j = hiJour(d); return (j === "Aujourd'hui" || j === "Hier" ? j.toLowerCase() : "le " + j) + ", " + hiHeure(d); };
+function edOnglet(quoi, charger = true) {
+  const histo = quoi === "histo";
+  for (const [id, on] of [["ed-tab-contact", !histo], ["ed-tab-histo", histo]]) { $(id).setAttribute("aria-selected", String(on)); $(id).tabIndex = on ? 0 : -1; }
+  $("ed-form").hidden = histo; $("ed-histo").hidden = !histo;
+  if (histo && charger) chargerHistorique();
+}
+for (const [id, quoi] of [["ed-tab-contact", "contact"], ["ed-tab-histo", "histo"]]) $(id).addEventListener("click", () => edOnglet(quoi));
+$("ed-onglets").addEventListener("keydown", e => { // flèches gauche / droite : onglet suivant
+  if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+  const histo = $("ed-tab-contact").getAttribute("aria-selected") === "true";
+  edOnglet(histo ? "histo" : "contact"); $(histo ? "ed-tab-histo" : "ed-tab-contact").focus(); e.preventDefault();
+});
+async function chargerHistorique() {
+  const seq = ++histoSeq, box = $("ed-histo");
+  histoFiltre = "tout";
+  box.innerHTML = '<p class="hi-note">Chargement de l\'historique…</p>';
+  try {
+    const h = await api.adminHistorique(histoEmail);
+    if (seq !== histoSeq) return;
+    histoDonnees = h; dessinerHistorique();
+  } catch (err) {
+    if (seq === histoSeq) box.innerHTML = '<p class="hi-note">Impossible de charger l\'historique : ' + esc(err?.message || "erreur inconnue") + "</p>" + HI_FERMER;
+  }
+}
+const HI_FERMER = '<div class="actions"><button type="button" class="btn btn-ghost" data-close>Fermer</button></div>';
+function dessinerHistorique() {
+  const h = histoDonnees, tous = h.evenements || [], ev = tous.filter(x => histoFiltre === "tout" || x.famille === histoFiltre);
+  const it = x => {
+    const par = x.auteur_prenom ? " · par " + esc(capitalize(x.auteur_prenom)) + (!x.auteur_lui && x.auteur_admin ? ", administrateur" : "") : "";
+    const diff = x.avant != null || x.apres != null ? '<div class="hi-diff">' +
+      (x.avant != null ? '<span class="hi-av"><span class="hi-sr">Avant : </span>' + esc(x.avant) + "</span>" : "") +
+      (x.avant != null && x.apres != null ? '<span class="hi-fl" aria-hidden="true">→</span>' : "") +
+      (x.apres != null ? '<span class="hi-ap"><span class="hi-sr">Après : </span>' + esc(x.apres) + "</span>" : "") + "</div>" : "";
+    return '<li class="hi-it hi-' + esc(x.famille) + '"><span class="hi-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+      (HI_ICO[x.famille] || HI_ICO.compte) + '</svg></span><div><div class="hi-t">' + esc(x.evenement) + '</div><div class="hi-m"><time datetime="' + esc(x.le) + '">' + hiHeure(x.le) + "</time>" + par + "</div>" + diff +
+      (x.details ? '<p class="hi-cite">' + esc(x.details) + "</p>" : "") + "</div></li>";
+  };
+  const jours = [];
+  for (const x of ev) { const j = hiJour(x.le); if (jours.at(-1)?.[0] !== j) jours.push([j, []]); jours.at(-1)[1].push(x); }
+  $("ed-histo").innerHTML =
+    '<p class="hi-resume">' + (h.premiere_connexion ? "<span>Première connexion <b>" + esc(hiQuand(h.premiere_connexion)) + "</b></span>" : "") +
+      (h.derniere_connexion ? "<span>Dernière connexion <b>" + esc(hiQuand(h.derniere_connexion)) + "</b></span>" : "<span>Jamais connecté·e</span>") + "</p>" +
+    '<div class="hi-filtres" role="group" aria-label="Filtrer l\'historique">' + HI_FAMILLES.map(([k, l]) =>
+      '<button type="button" data-hi-filtre="' + k + '" aria-pressed="' + (histoFiltre === k) + '">' + l + "</button>").join("") + "</div>" +
+    (jours.length ? jours.map(([j, l]) => '<h3 class="hi-jour">' + esc(j) + '</h3><ul class="hi-list">' + l.map(it).join("") + "</ul>").join("")
+      : '<p class="hi-note">' + (tous.length ? "Rien dans cette catégorie." : "Aucun événement pour l'instant.") + "</p>") +
+    '<p class="hi-note">Les modifications du profil et des droits sont enregistrées depuis le ' +
+      esc(new Date(h.depuis + "T12:00:00").toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })) +
+      " ; avant, seules la création du compte, la vérification, la désactivation et l'activité de l'entraide sont connues. L'historique est conservé 2 ans.</p>" + HI_FERMER;
+}
+$("ed-histo").addEventListener("click", e => {
+  const f = e.target.closest("[data-hi-filtre]");
+  if (f) { histoFiltre = f.dataset.hiFiltre; dessinerHistorique(); $("ed-histo").querySelector('[data-hi-filtre="' + histoFiltre + '"]').focus(); return; }
+  if (e.target.closest("[data-close]")) closeEditor();
+});
 // Le titre de la fenêtre suit le nom saisi (service, pôle ou contact)
 $("ed-form").addEventListener("input", e => {
   if (e.target.id === "ed-name") $("ed-title").textContent = e.target.value.trim() || e.target.dataset.empty;
@@ -1048,6 +1125,7 @@ function editPerson(p) {
   }).join("") + (services.some(s => !s.pole) ? '<div class="grp">Sans pôle</div>' + services.filter(s => !s.pole).map(s => box("svc", s._id, s.name, mine.has(s._id))).join("") : "");
   const poleBoxes = poleNames().map(n => box("pole", poles[n]._id, n, myPoles.has(poles[n]._id))).join("");
   const self = !!p?.email && p.email.toLowerCase() === myEmail(), droit = p?.droit || "leaders";
+  prochainHisto = p?.email || null; // onglet Historique (personne avec une adresse)
   openEditor(p ? "Modifier le contact" : "Ajouter un contact", p ? fullName(p) : "Nouveau contact",
     '<div id="pe-bandeau" hidden></div>' +
     // En haut : civilité à gauche, photo ronde à droite (clic : changer ou supprimer)
