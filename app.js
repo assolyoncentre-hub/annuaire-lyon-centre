@@ -401,14 +401,14 @@ function route() {
   $("admin-link").classList.toggle("signed-in", !!session);
   $("admin-link").setAttribute("aria-label", session ? "Compte de " + label : label);
   if (session) $("admin-link").setAttribute("aria-expanded", String(!$("acct-menu").hidden)); else { $("admin-link").removeAttribute("aria-expanded"); $("acct-menu").hidden = true; }
-  // Onglets : Propositions pour tous ; Leaders seulement pour une personne connectée qui en a le droit (un visiteur
-  // non connecté ne le voit pas : l'adresse #leaders mène toujours à la connexion) ; Administration seulement pour
-  // un administrateur connecté ; barre masquée s'il ne reste qu'un onglet (visiteur non connecté : l'écran de
+  // Onglets : Propositions et Entraide pour tous, pour inciter à créer un compte (un visiteur non connecté qui ouvre
+  // l'Entraide arrive sur l'écran de connexion) ; Leaders seulement pour une personne connectée qui en a le droit ;
+  // Administration seulement pour un administrateur connecté ; barre masquée s'il ne reste qu'un onglet (l'écran de
   // connexion a alors son lien « Retour à l'annuaire »)
   $("sw-serv").hidden = !canLeaders;
   $("sw-admin").hidden = !isAdmin;
   for (const k of ["sw-home", "sw-prop", "sw-serv", "sw-entr", "sw-admin"]) $(k).removeAttribute("aria-current");
-  $("sw-entr").hidden = !canEntraide;
+  $("sw-entr").hidden = !!session && !canEntraide;
   $("switch").hidden = $("switch").querySelectorAll("a:not([hidden])").length < 2;
   const cur = profilHash ? null : home ? "sw-home" : entrHash ? "sw-entr" : serv ? "sw-serv" : adminHash ? (isAdmin ? "sw-admin" : null) : "sw-prop";
   if (cur) $(cur).setAttribute("aria-current", "page");
@@ -419,7 +419,7 @@ function route() {
   profilOuvert = profil;
   if (!profilHash) vueAvant = h;
   $("admin-login").hidden = !admin || !!session || !authLoaded;
-  $("login-dehors").hidden = $("admin-login").hidden;
+  $("login-dehors").hidden = $("admin-login").hidden || !$("switch").hidden;
   $("admin-denied").hidden = !admin || !session || (serv ? canLeaders : entrHash ? entr : isAdmin);
   $("denied-what").textContent = serv ? "n'a pas accès à l'annuaire des leaders." : entrMod ? "n'est pas modérateur de l'entraide." : entrHash ? "n'a pas accès à l'entraide." : "n'est pas administrateur de l'annuaire.";
   if (session) $("login-error").hidden = $("login-ok").hidden = true;

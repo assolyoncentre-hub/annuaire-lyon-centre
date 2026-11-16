@@ -12,8 +12,9 @@ test("connexion : écran Google, retour à l'annuaire, compte non administrateur
   await expect(page.locator("#admin-login")).toBeVisible();
   await page.click("#gsi-btn button");
   expect(await calls(page, "signIn")).toHaveLength(1);
-  await expect(page.locator("#switch")).toBeHidden();
-  await page.click("#login-back"); // « Retour à l'annuaire »
+  await expect(page.locator("#switch")).toBeVisible();
+  await expect(page.locator("#login-dehors")).toBeHidden();
+  await page.click("#sw-prop");
   await expect(page.locator("#dir-view")).toBeVisible();
   await expect(page.locator("#admin-login")).toBeHidden();
 });

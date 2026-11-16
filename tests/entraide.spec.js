@@ -8,11 +8,16 @@ const MOD = { email: "mod@example.org" }, VOIR = { email: "voir@example.org" };
 const ACCES = [fiche("mod@example.org", true, true), fiche("voir@example.org", true, false), { email: "admin@example.org", droit: "admin", prenom: "", nom: "" }];
 const row = (page, prenom) => page.locator(".entr-mod-row", { has: page.locator("strong", { hasText: prenom }) });
 
-test("visiteur non connecté : pas d'onglet Entraide, le lien direct demande une connexion @mobile", async ({ open, page }) => {
+test("visiteur non connecté : onglet Entraide affiché, qui mène à la connexion ou à la création d'un compte @mobile", async ({ open, page }) => {
   await open();
-  await expect(page.locator("#sw-entr")).toBeHidden();
-  await open({ hash: "#entraide" });
+  await expect(page.locator("#switch")).toBeVisible();
+  await expect(page.locator("#sw-entr")).toBeVisible();
+  await expect(page.locator("#sw-serv")).toBeHidden();
+  await page.click("#sw-entr");
   await expect(page.locator("#admin-login")).toBeVisible();
+  await expect(page.locator("#sw-entr")).toHaveAttribute("aria-current", "page");
+  await expect(page.locator("#h1")).toHaveText("Entraide");
+  await expect(page.locator("#login-dehors")).toBeHidden(); // les onglets suffisent pour revenir
   await expect(page.locator("#login-title")).toHaveText("Connexion ou création d'un compte");
   await expect(page.locator("#entr-view")).toBeHidden();
   expect(await calls(page, "entraide")).toHaveLength(0);
