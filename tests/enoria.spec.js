@@ -78,7 +78,7 @@ test("import Enoria : analyse, vérification des comptes cochés, trace dans l'h
 test("import Enoria : fichier refusé, Annuler, Tout cocher", async ({ open, page }) => {
   await open({ user: ADMIN, hash: "#admin/enoria" });
   await page.setInputFiles("#en-fichier", fichier("nom;age\nDUPONT;3 ans", "autre.csv"));
-  await expect(page.locator(".en-erreur")).toHaveText("Ce fichier n'a pas les colonnes « Nom », « Prénom » et « mail » de l'export Enoria.");
+  await expect(page.locator(".en-erreur")).toContainText("Colonnes introuvables");
   await page.setInputFiles("#en-fichier", fichier(CSV));
   await expect(page.locator(".en-erreur")).toHaveCount(0);
   await page.locator('[data-en="tous"]').click();
@@ -92,4 +92,33 @@ test("import Enoria : fichier refusé, Annuler, Tout cocher", async ({ open, pag
   // Les autres onglets retrouvent leur barre de filtre
   await page.click("#tab-contacts");
   await expect(page.locator("#admin-tools")).toBeVisible();
+});
+
+test("import Enoria : format du fichier libre (titres, ordre, séparateur, nom et prénom ensemble, plusieurs e-mails) @mobile", async ({ open, page }) => {
+  await open({ user: ADMIN, hash: "#admin/enoria" });
+  const carte = l => page.locator(".en-carte", { hasText: l }).locator(".n");
+  // Export brut d'Enoria : « , », « NOM Prénom » dans une seule colonne, deux colonnes d'e-mail, colonnes en plus
+  await page.setInputFiles("#en-fichier", fichier([
+    "DT_RowId,sexe,nom,age,mail,mailPerso,emailValid,isdefunt",
+    '1,F,"de LAFORÊT Magali",41 ans,magali@example.org,,true,false',
+    '2,M,"GARNIER Antoine",29 ans,,antoine@example.org,true,false',
+    '3,M,"BRUNET Jean",,jean@example.org,,true,true',
+  ].join("\n")));
+  await expect(page.locator(".en-fichier")).toContainText("3 personnes");
+  await expect(page.locator(".en-fichier")).toContainText("colonnes lues : nom (coupé en nom et prénom), mail, mailPerso, isdefunt, age");
+  await expect(carte("Prêts à vérifier")).toHaveText("2");
+  await expect(carte("Écartés")).toHaveText("1");
+  await expect(page.locator(".en-l", { hasText: "magali@example.org" }).locator(".eno")).toContainText("de LAFORÊT Magali");
+
+  // Tabulations, titres en anglais dans un autre ordre, une ligne de titre du document avant les colonnes
+  await page.locator(".en-fichier [data-en=autre]").click();
+  await page.setInputFiles("#en-fichier", fichier([
+    "Export des personnes du 16/11/2026",
+    "E-mail\tFirst name\tLast name",
+    "claire@example.org\tClaire\tVANNIER",
+    "quentin@example.org\tQuentin\tBLANC",
+  ].join("\n")));
+  await expect(page.locator(".en-fichier")).toContainText("2 personnes");
+  await expect(page.locator(".en-fichier")).toContainText("colonnes lues : Last name, First name, E-mail");
+  await expect(carte("Prêts à vérifier")).toHaveText("2");
 });

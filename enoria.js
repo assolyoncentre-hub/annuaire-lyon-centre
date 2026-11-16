@@ -1,5 +1,6 @@
 // Onglet « Enoria » de l'administration : vérification des paroissiens à partir de l'export des personnes d'Enoria
-// (fichier CSV produit par le skill « Exporter les personnes d'Enoria » : colonnes Nom, Prénom, mail, isdefunt, age…).
+// (fichier CSV produit par le skill « Exporter les personnes d'Enoria » : colonnes Nom, Prénom, mail, isdefunt, age… ;
+// les colonnes sont reconnues par leur titre, et un « NOM Prénom » sans colonne Prénom est coupé en deux).
 // Le fichier est lu ici, dans le navigateur : il n'est ni envoyé ni conservé. Seuls les comptes cochés partent au
 // serveur (admin_import_enoria), avec le motif, qui est inscrit dans l'historique du contact.
 
@@ -21,11 +22,12 @@ const EN_OK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke
 const enNorm = s => norm(s).replace(/[\s'’-]+/g, " ").trim();
 const enDate = d => d.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
 
-// Lecture d'un CSV (séparateur « ; » ou « , », guillemets doublés, marque UTF-8 en tête)
+// Lecture d'un CSV : séparateur « ; », « , » ou tabulation (le plus fréquent dans les premières lignes),
+// guillemets doublés, marque UTF-8 en tête
 function enLireCsv(t) {
   t = t.replace(/^﻿/, "");
-  const tete = t.slice(0, t.search(/\r?\n|$/));
-  const sep = (tete.match(/;/g) || []).length >= (tete.match(/,/g) || []).length ? ";" : ",";
+  const debut = t.split(/\r?\n/).slice(0, 5).join("\n");
+  const sep = [";", ",", "\t"].map(c => [c, debut.split(c).length]).sort((x, y) => y[1] - x[1])[0][0];
   const lignes = [];
   let l = [], v = "", q = false;
   for (let i = 0; i < t.length; i++) {
@@ -40,16 +42,65 @@ function enLireCsv(t) {
   return lignes.filter(x => x.some(y => y.trim()));
 }
 
-// Personnes d'Enoria : { nom, prenom, mail, defunt, age }
+// Colonnes reconnues par leur titre, quel que soit l'ordre et l'écriture (majuscules, accents, ponctuation ignorés) :
+// le format de l'export peut changer sans toucher au code. Plus le rang est petit, plus le titre est sûr.
+const enTitre = h => norm(h).replace(/[^a-z0-9]+/g, "");
+const EN_COLONNES = {
+  prenom: h => ["prenom", "prenoms", "firstname", "givenname"].indexOf(h) + 1 || (h.startsWith("prenom") ? 10 : 0),
+  nom: h => /prenom|complet|jeunefille|naissance|^nomjf/.test(h) ? 0 : ["nom", "nomdefamille", "nomdusage", "nomusage", "lastname", "familyname", "surname"].indexOf(h) + 1,
+  complet: h => ["nomcomplet", "nometprenom", "nomprenom", "prenomnom", "identite", "fullname", "name", "personne"].indexOf(h) + 1,
+  defunt: h => /defunt|decede|deces|deceased|dead/.test(h) ? 1 : 0,
+  age: h => h === "age" ? 1 : 0,
+};
+const enColonneMail = h => /mail|courriel/.test(h) && !/valid|pref|newsletter|date|consent|accord|optin/.test(h);
+function enColonnes(tete) {
+  const t = tete.map(enTitre), c = { mails: t.flatMap((h, i) => enColonneMail(h) ? [i] : []) };
+  for (const [k, rang] of Object.entries(EN_COLONNES)) {
+    const r = t.map((h, i) => [rang(h), i]).filter(([x]) => x > 0).sort((x, y) => x[0] - y[0]);
+    c[k] = r.length ? r[0][1] : -1;
+  }
+  return c;
+}
+
+// « NOM Prénom » coupé comme dans l'export : nom en majuscules (avec ses particules en minuscules : de, du, d', van…),
+// puis prénom ; sinon premier mot = nom
+const EN_PARTICULES = /^(de|du|des|d'|d’|le|la|les|l'|l’|van|von|der|den|ten|ter|di|da|del|della|dos|das|y|e)$/i;
+function enCouper(s) {
+  const mots = s.split(/\s+/).filter(Boolean);
+  const maj = m => /\p{Lu}/u.test(m) && m === m.toLocaleUpperCase("fr"), part = m => EN_PARTICULES.test(m) && !maj(m);
+  let p = 0;
+  while (p < mots.length - 1 && part(mots[p])) p++;
+  if (mots.length - p < 2) return [mots.join(" "), ""];
+  let i = p;
+  if (maj(mots[p])) {
+    while (i < mots.length && maj(mots[i])) i++;
+    if (i < mots.length && !mots.slice(i).every(part)) return [mots.slice(0, i).join(" "), mots.slice(i).join(" ")];
+  } else if (p === 0) { // « Prénom NOM »
+    i = mots.length;
+    while (i > 0 && maj(mots[i - 1])) i--;
+    if (i > 0 && i < mots.length) { while (i > 1 && part(mots[i - 1])) i--; return [mots.slice(i).join(" "), mots.slice(0, i).join(" ")]; }
+  }
+  return [mots.slice(0, p + 1).join(" "), mots.slice(p + 1).join(" ")];
+}
+
+// Personnes d'Enoria : { nom, prenom, mails, defunt, age }, et les colonnes lues (pour les afficher)
 function enPersonnes(texte) {
-  const [tete, ...lignes] = enLireCsv(texte);
-  const col = (...noms) => (tete || []).findIndex(h => noms.includes(enNorm(h)));
-  const cNom = col("nom"), cPrenom = col("prenom"), cMail = col("mail", "email", "e mail", "courriel"), cDefunt = col("isdefunt", "defunt", "decede"), cAge = col("age");
-  if (cNom < 0 || cPrenom < 0 || cMail < 0) throw new Error("Ce fichier n'a pas les colonnes « Nom », « Prénom » et « mail » de l'export Enoria.");
-  return lignes.map(l => ({
-    nom: (l[cNom] || "").trim(), prenom: (l[cPrenom] || "").trim(), mail: (l[cMail] || "").trim().toLowerCase(),
-    defunt: cDefunt >= 0 && /^(true|vrai|oui|1)$/i.test((l[cDefunt] || "").trim()), age: cAge >= 0 ? (l[cAge] || "").trim() : "",
-  })).filter(p => p.nom || p.prenom);
+  const lignes = enLireCsv(texte);
+  // Ligne des titres : la première (parmi les 10 premières) qui a une colonne d'e-mail et une colonne de nom
+  const n = lignes.slice(0, 10).findIndex(l => { const c = enColonnes(l); return c.mails.length && (c.nom >= 0 || c.complet >= 0); });
+  if (n < 0) throw new Error("Colonnes introuvables : le fichier doit avoir au moins une colonne de nom (« Nom », « Nom complet »…) et une colonne d'e-mail (« mail », « E-mail »…).");
+  const tete = lignes[n], c = enColonnes(tete);
+  const separes = c.nom >= 0 && c.prenom >= 0, plein = c.complet >= 0 ? c.complet : c.nom;
+  const val = (l, i) => i >= 0 ? (l[i] || "").trim() : "";
+  const personnes = lignes.slice(n + 1).map(l => {
+    let [nom, prenom] = separes ? [val(l, c.nom), val(l, c.prenom)] : enCouper(val(l, plein));
+    if (!nom && !prenom && c.complet >= 0) [nom, prenom] = enCouper(val(l, c.complet)); // nom et prénom vides : le nom complet
+    const mails = [...new Set(c.mails.flatMap(i => val(l, i).toLowerCase().split(/[\s,;]+/)).filter(m => m.includes("@")))];
+    return { nom, prenom, mails, defunt: /^(true|vrai|oui|yes|1|x|d[ée]c[ée]d[ée]e?)$/i.test(val(l, c.defunt)), age: val(l, c.age) };
+  }).filter(p => p.nom || p.prenom);
+  const lues = [...(separes ? [tete[c.nom], tete[c.prenom]] : [tete[plein] + " (coupé en nom et prénom)"]), ...c.mails.map(i => tete[i]),
+    ...[c.defunt, c.age].filter(i => i >= 0).map(i => tete[i])].map(x => String(x).trim());
+  return { personnes, lues };
 }
 
 // Comparaison avec les fiches du site qui ont une adresse e-mail
@@ -57,7 +108,7 @@ function enAnalyser(personnes) {
   const parMail = new Map(), parNom = new Map();
   const cle = (nom, prenom) => enNorm(nom) + "|" + enNorm(prenom);
   for (const p of personnes) {
-    if (p.mail) (parMail.get(p.mail) || parMail.set(p.mail, []).get(p.mail)).push(p);
+    for (const m of p.mails) (parMail.get(m) || parMail.set(m, []).get(m)).push(p);
     const k = cle(p.nom, p.prenom);
     (parNom.get(k) || parNom.set(k, []).get(k)).push(p);
   }
@@ -89,7 +140,7 @@ function enAnalyser(personnes) {
       Object.assign(x, { cls: "diff", motif: "même e-mail, " + x.why.toLowerCase() + " (Enoria : " + nomEno(eno) + ")" });
       g.examiner.push(x); continue;
     }
-    Object.assign(x, eno.mail ? { why: "Autre e-mail", details: [eno.mail], motif: "même nom et prénom, autre e-mail dans Enoria" }
+    Object.assign(x, eno.mails.length ? { why: "Autre e-mail", details: [eno.mails.join(", ")], motif: "même nom et prénom, autre e-mail dans Enoria" }
       : { why: "Sans e-mail", details: ["Pas d'e-mail dans Enoria"], motif: "même nom et prénom, sans e-mail dans Enoria" }, { cls: "bleu" });
     g.autre.push(x);
   }
@@ -101,11 +152,11 @@ async function enOuvrirFichier(fichier) {
   try {
     if (!fichier) return;
     if (fichier.size > 20e6) throw new Error("Ce fichier est trop gros pour un export Enoria.");
-    const personnes = enPersonnes(await fichier.text());
+    const { personnes, lues } = enPersonnes(await fichier.text());
     if (!personnes.length) throw new Error("Ce fichier ne contient aucune personne.");
     const d = new Date(fichier.lastModified || Date.now());
     const g = enAnalyser(personnes);
-    enoria = { nom: fichier.name, exportDu: d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"), date: d, lignes: personnes.length, g };
+    enoria = { nom: fichier.name, exportDu: d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"), date: d, lignes: personnes.length, lues, g };
     enoriaCoches = new Set(g.prets.map(x => x.e));
     enoriaOuverts.clear(); enoriaFin = null;
   } catch (err) { enoriaErreur = err.message || "Ce fichier n'a pas pu être lu."; enoria = null; }
@@ -155,7 +206,7 @@ function renderEnoria() {
   const repli = (k, t, liste, p) => '<section class="en-sec"><button type="button" class="en-repli" data-en-repli="' + k + '" aria-expanded="' + enoriaOuverts.has(k) + '"><span>' + t +
     ' <span class="c">· ' + liste.length + "</span><small>" + p + "</small></span>" + EN_CHEV + "</button>" + (enoriaOuverts.has(k) ? liste.map(x => enLigne(x, false)).join("") : "") + "</section>";
   el.innerHTML = '<div class="en">' +
-    '<p class="en-fichier"><span><b>' + esc(enoria.nom) + "</b> · " + enoria.lignes.toLocaleString("fr-FR") + " personnes · exporté le " + esc(enDate(enoria.date)) + '</span><button type="button" class="link-btn" data-en="autre">Changer de fichier</button></p>' +
+    '<p class="en-fichier"><span><b>' + esc(enoria.nom) + "</b> · " + enoria.lignes.toLocaleString("fr-FR") + " personnes · exporté le " + esc(enDate(enoria.date)) + " · colonnes lues : " + esc(enoria.lues.join(", ")) + '</span><button type="button" class="link-btn" data-en="autre">Changer de fichier</button></p>' +
     '<ul class="en-cartes" aria-label="Résumé">' + carte(g.prets.length, "Prêts à vérifier", "vert") + carte(g.examiner.length, "À examiner", "orange") +
       carte(g.autre.length, "Même nom, autre e-mail", "bleu") + carte(g.ecartes.length, "Écartés", "gris") + carte(g.deja.length, "Déjà vérifiés") + carte(g.absents.length, "Absents d'Enoria") + "</ul>" +
     (g.prets.length ? '<section class="en-sec">' + titre("Prêts à vérifier", g.prets.length, "Même e-mail, même nom et même prénom (majuscules et accents ignorés).",
