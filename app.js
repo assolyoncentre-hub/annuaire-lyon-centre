@@ -588,9 +588,9 @@ function renderAdmin() {
   $("admin-filters").hidden = true;
   if (adminTab !== "contacts") ddOpen($("admin-filters"), false);
   if (drag) { renderPending = true; return; }
-  $("tab-services").textContent = "Staffs (" + services.length + ")";
-  $("tab-poles").textContent = "Pôles (" + Object.keys(poles).length + ")";
-  $("tab-contacts").textContent = "Contacts (" + fiches().length + ")";
+  $("tab-services").querySelector(".tab-lbl").textContent = "Staffs (" + services.length + ")"; // l'icône reste
+  $("tab-poles").querySelector(".tab-lbl").textContent = "Pôles (" + Object.keys(poles).length + ")"; // l'icône reste
+  $("tab-contacts").querySelector(".tab-lbl").textContent = "Contacts (" + fiches().length + ")"; // l'icône reste
   adminNavSel();
   if (adminTab === "enoria") { if (typeof renderEnoria === "function") renderEnoria(); return; } // enoria.js, chargé après
   if (adminTab === "contacts") {
