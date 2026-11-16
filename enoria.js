@@ -199,28 +199,41 @@ function renderEnoria() {
     return;
   }
   const { g } = enoria, n = enoriaCoches.size;
-  const carte = (nb, l, c = "") => '<li class="en-carte ' + c + '"><span class="n">' + nb + '</span><span class="l">' + l + "</span></li>";
+  // Cartes du résumé : un clic mène à la liste correspondante (ouverte si elle est repliée) ; à zéro, rien à afficher
+  const carte = (k, nb, l, c = "") => "<li>" + (nb ? '<button type="button" class="en-carte ' + c + '" data-en-aller="' + k + '" aria-label="' + esc(l) + " : " + nb + ', voir la liste">'
+    : '<div class="en-carte ' + c + '">') + '<span class="n">' + nb + '</span><span class="l">' + l + "</span>" + (nb ? "</button>" : "</div>") + "</li>";
+  const sec = k => '<section class="en-sec" id="en-sec-' + k + '" tabindex="-1">';
   const titre = (t, nb, p, droite = "") => '<div class="en-sec-t"><div><h2>' + t + ' <span class="c">· ' + nb + "</span></h2><p>" + p + "</p></div>" + droite + "</div>";
   const tousCoches = g.prets.length && g.prets.every(x => enoriaCoches.has(x.e));
   const prets = enoriaOuverts.has("prets") ? g.prets : g.prets.slice(0, EN_APERCU);
-  const repli = (k, t, liste, p) => '<section class="en-sec"><button type="button" class="en-repli" data-en-repli="' + k + '" aria-expanded="' + enoriaOuverts.has(k) + '"><span>' + t +
+  const repli = (k, t, liste, p) => sec(k) + '<button type="button" class="en-repli" data-en-repli="' + k + '" aria-expanded="' + enoriaOuverts.has(k) + '"><span>' + t +
     ' <span class="c">· ' + liste.length + "</span><small>" + p + "</small></span>" + EN_CHEV + "</button>" + (enoriaOuverts.has(k) ? liste.map(x => enLigne(x, false)).join("") : "") + "</section>";
   el.innerHTML = '<div class="en">' +
     '<p class="en-fichier"><span><b>' + esc(enoria.nom) + "</b> · " + enoria.lignes.toLocaleString("fr-FR") + " personnes · exporté le " + esc(enDate(enoria.date)) + " · colonnes lues : " + esc(enoria.lues.join(", ")) + '</span><button type="button" class="link-btn" data-en="autre">Changer de fichier</button></p>' +
-    '<ul class="en-cartes" aria-label="Résumé">' + carte(g.prets.length, "Prêts à vérifier", "vert") + carte(g.examiner.length, "À examiner", "orange") +
-      carte(g.autre.length, "Même nom, autre e-mail", "bleu") + carte(g.ecartes.length, "Écartés", "gris") + carte(g.deja.length, "Déjà vérifiés") + carte(g.absents.length, "Absents d'Enoria") + "</ul>" +
-    (g.prets.length ? '<section class="en-sec">' + titre("Prêts à vérifier", g.prets.length, "Même e-mail, même nom et même prénom (majuscules et accents ignorés).",
+    '<ul class="en-cartes" aria-label="Résumé">' + carte("prets", g.prets.length, "Prêts à être vérifiés", "vert") + carte("examiner", g.examiner.length, "À examiner", "orange") +
+      carte("autre", g.autre.length, "Même nom, autre e-mail", "bleu") + carte("ecartes", g.ecartes.length, "Écartés", "gris") + carte("deja", g.deja.length, "Déjà vérifiés") +
+      carte("absents", g.absents.length, "Absents d'Enoria") + "</ul>" +
+    (g.prets.length ? sec("prets") + titre("Prêts à être vérifiés", g.prets.length, "Même e-mail, même nom et même prénom (majuscules et accents ignorés).",
         '<button type="button" class="link-btn" data-en="tous">' + (tousCoches ? "Tout décocher" : "Tout cocher") + "</button>") +
       prets.map(x => enLigne(x, true)).join("") +
       (g.prets.length > prets.length ? '<div class="en-plus"><button type="button" class="link-btn" data-en-repli="prets">Afficher les ' + (g.prets.length - prets.length) + " autres</button></div>" : "") + "</section>" : "") +
-    (g.examiner.length ? '<section class="en-sec">' + titre("À examiner", g.examiner.length, "L'e-mail est dans Enoria, mais le nom ou le prénom diffère : à cocher un par un.") + g.examiner.map(x => enLigne(x, true)).join("") + "</section>" : "") +
-    (g.autre.length ? '<section class="en-sec">' + titre("Même nom, autre e-mail", g.autre.length, "Trouvés par le nom et le prénom seulement : l'adresse d'Enoria est différente ou absente.") + g.autre.map(x => enLigne(x, true)).join("") + "</section>" : "") +
-    (g.ecartes.length ? '<section class="en-sec">' + titre("Écartés", g.ecartes.length, "Jamais vérifiés par l'import.") + g.ecartes.map(x => enLigne(x, false)).join("") + "</section>" : "") +
+    (g.examiner.length ? sec("examiner") + titre("À examiner", g.examiner.length, "L'e-mail est dans Enoria, mais le nom ou le prénom diffère : à cocher un par un.") + g.examiner.map(x => enLigne(x, true)).join("") + "</section>" : "") +
+    (g.autre.length ? sec("autre") + titre("Même nom, autre e-mail", g.autre.length, "Trouvés par le nom et le prénom seulement : l'adresse d'Enoria est différente ou absente.") + g.autre.map(x => enLigne(x, true)).join("") + "</section>" : "") +
+    (g.ecartes.length ? sec("ecartes") + titre("Écartés", g.ecartes.length, "Jamais vérifiés par l'import.") + g.ecartes.map(x => enLigne(x, false)).join("") + "</section>" : "") +
     (g.deja.length ? repli("deja", "Déjà vérifiés", g.deja, "Rien à faire ; l'import ne retire jamais le badge.") : "") +
     (g.absents.length ? repli("absents", "Absents d'Enoria", g.absents, "Ni l'e-mail ni le nom n'ont été trouvés dans le fichier.") : "") +
     '<div class="en-barre"><span><b>' + n + (n > 1 ? " comptes" : " compte") + "</b> " + (n > 1 ? "cochés recevront" : "coché recevra") + " le badge " + VERIFIE + "</span>" +
       '<div><button type="button" class="btn btn-ghost btn-sm" data-en="autre">Annuler</button><button type="button" class="btn btn-primary btn-sm" data-en="valider"' + (n && !enoriaEnCours ? "" : " disabled") + ">" +
       (enoriaEnCours ? "Vérification…" : "Vérifier " + n + (n > 1 ? " comptes" : " compte")) + "</button></div></div></div>";
+}
+
+// Carte du résumé : la liste est ouverte si elle est repliée, puis la page y défile (sans animation si l'utilisateur l'a demandé)
+function enAller(k) {
+  if ((k === "deja" || k === "absents") && !enoriaOuverts.has(k)) { enoriaOuverts.add(k); renderEnoria(); }
+  const s = $("en-sec-" + k);
+  if (!s) return;
+  s.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+  s.focus({ preventScroll: true });
 }
 
 async function enValider() {
@@ -239,8 +252,9 @@ async function enValider() {
 
 $("admin-list").addEventListener("click", e => {
   if (adminTab !== "enoria") return;
-  const b = e.target.closest("[data-en], [data-en-repli]");
+  const b = e.target.closest("[data-en], [data-en-repli], [data-en-aller]");
   if (!b) return;
+  if (b.dataset.enAller) return enAller(b.dataset.enAller);
   const k = b.dataset.enRepli;
   if (k) { enoriaOuverts.has(k) ? enoriaOuverts.delete(k) : enoriaOuverts.add(k); renderEnoria(); $("admin-list").querySelector('[data-en-repli="' + k + '"]')?.focus(); return; }
   const a = b.dataset.en;

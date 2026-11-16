@@ -19,6 +19,8 @@ const fichier = (texte, name = "personnes-enoria.csv") => ({ name, mimeType: "te
 test("import Enoria : analyse, vérification des comptes cochés, trace dans l'historique @mobile", async ({ open, page }) => {
   await open({ user: ADMIN, hash: "#admin/enoria" });
   await expect(page.locator("#tab-enoria")).toHaveAttribute("aria-selected", "true");
+  // Onglets : Messages en dernier, sans nombre
+  await expect(page.locator(".admin-top .accoles .tab")).toHaveText(["Staffs (10)", "Pôles (4)", /Contacts \(\d+\)/, "Import Enoria", "Messages"]);
   await expect(page.locator("#admin-tools")).toBeHidden();
   await expect(page.locator(".en-depot h2")).toHaveText("Déposez ici l'export Enoria");
   await expect(page.locator(".en-dernier")).toHaveCount(0);
@@ -26,7 +28,7 @@ test("import Enoria : analyse, vérification des comptes cochés, trace dans l'h
   await page.setInputFiles("#en-fichier", fichier(CSV));
   await expect(page.locator(".en-fichier")).toContainText("personnes-enoria.csv · 8 personnes");
   const carte = l => page.locator(".en-carte", { hasText: l }).locator(".n");
-  await expect(carte("Prêts à vérifier")).toHaveText("3");
+  await expect(carte("Prêts à être vérifiés")).toHaveText("3");
   await expect(carte("À examiner")).toHaveText("1");
   await expect(carte("Même nom, autre e-mail")).toHaveText("2");
   await expect(carte("Écartés")).toHaveText("1");
@@ -43,8 +45,14 @@ test("import Enoria : analyse, vérification des comptes cochés, trace dans l'h
   expect(new Set(gauches).size).toBe(1);
   // Déjà vérifiés : repliés
   await expect(ligne("damien@example.org")).toHaveCount(0);
-  await page.locator('[data-en-repli="deja"]').click();
-  await expect(ligne("damien@example.org")).toBeVisible();
+  // Cartes du résumé : un clic mène à la liste, ouverte si elle était repliée ; à zéro, pas de bouton
+  await page.locator(".en-carte", { hasText: "Déjà vérifiés" }).click();
+  await expect(page.locator('[data-en-repli="deja"]')).toHaveAttribute("aria-expanded", "true");
+  await expect(ligne("damien@example.org")).toBeInViewport();
+  await expect(page.locator("#en-sec-deja")).toBeFocused();
+  await page.locator(".en-carte", { hasText: "À examiner" }).click();
+  await expect(page.locator("#en-sec-examiner h2")).toBeInViewport();
+  await expect(page.locator("button.en-carte")).toHaveCount(6);
 
   // Antoine décoché, Claire cochée : trois comptes
   await expect(page.locator('[data-en="valider"]')).toHaveText("Vérifier 3 comptes");
@@ -106,7 +114,7 @@ test("import Enoria : format du fichier libre (titres, ordre, séparateur, nom e
   ].join("\n")));
   await expect(page.locator(".en-fichier")).toContainText("3 personnes");
   await expect(page.locator(".en-fichier")).toContainText("colonnes lues : nom (coupé en nom et prénom), mail, mailPerso, isdefunt, age");
-  await expect(carte("Prêts à vérifier")).toHaveText("2");
+  await expect(carte("Prêts à être vérifiés")).toHaveText("2");
   await expect(carte("Écartés")).toHaveText("1");
   await expect(page.locator(".en-l", { hasText: "magali@example.org" }).locator(".eno")).toContainText("de LAFORÊT Magali");
 
@@ -120,5 +128,5 @@ test("import Enoria : format du fichier libre (titres, ordre, séparateur, nom e
   ].join("\n")));
   await expect(page.locator(".en-fichier")).toContainText("2 personnes");
   await expect(page.locator(".en-fichier")).toContainText("colonnes lues : Last name, First name, E-mail");
-  await expect(carte("Prêts à vérifier")).toHaveText("2");
+  await expect(carte("Prêts à être vérifiés")).toHaveText("2");
 });

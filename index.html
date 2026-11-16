@@ -299,7 +299,15 @@ body { min-height: 100vh; display: flex; flex-direction: column; }
 .en-cartes { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }
 @media (max-width: 900px) { .en-cartes { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 520px) { .en-cartes { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; } }
-.en-carte { display: grid; gap: 4px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+.en-cartes > li { display: grid; }
+.en-carte { display: grid; align-content: start; gap: 4px; width: 100%; margin: 0; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text); font: inherit; text-align: left; }
+button.en-carte { cursor: pointer; transition: border-color .15s, box-shadow .15s, transform .15s; }
+@media (hover: hover) { button.en-carte:hover { border-color: var(--brand); box-shadow: 0 6px 18px -10px rgba(0, 40, 80, .45); transform: translateY(-1px); } }
+@media (hover: hover) { button.en-carte.vert:hover { border-color: #1d6b3a; box-shadow: inset 0 0 0 1px #1d6b3a, 0 6px 18px -10px rgba(0, 40, 80, .45); } }
+button.en-carte:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { button.en-carte { transition: none; } button.en-carte:hover { transform: none; } }
+.en-sec { scroll-margin-top: 16px; }
+.en-sec:focus { outline: none; }
 .en-carte .n { font: 700 24px/1 Montserrat, sans-serif; }
 .en-carte .l { font: 600 12.5px/1.25 Montserrat, sans-serif; color: var(--muted); }
 .en-carte.vert { border-color: #1d6b3a; box-shadow: inset 0 0 0 1px #1d6b3a; } .en-carte.vert .n { color: #1d6b3a; }
@@ -1242,8 +1250,8 @@ label.check .verifie { margin-left: -4px; }
           <button type="button" class="tab" role="tab" id="tab-services" aria-selected="true">Staffs</button>
           <button type="button" class="tab" role="tab" id="tab-poles" aria-selected="false">Pôles</button>
           <button type="button" class="tab" role="tab" id="tab-contacts" aria-selected="false">Contacts</button>
-          <button type="button" class="tab" role="tab" id="tab-messages" aria-selected="false">Messages</button>
           <button type="button" class="tab" role="tab" id="tab-enoria" aria-selected="false">Import Enoria</button>
+          <button type="button" class="tab" role="tab" id="tab-messages" aria-selected="false">Messages</button>
         </div>
         <select class="accoles-sel" id="admin-nav-sel" aria-label="Administration : choisir la liste"></select>
         <button type="button" class="btn btn-primary btn-sm" id="add-btn">Ajouter un staff</button>

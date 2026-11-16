@@ -374,7 +374,7 @@ async function refresh() {
 // Chaque onglet a son adresse, pour qu'un rechargement rouvre le même onglet
 const HASH_OF = { services: "#admin", poles: "#admin/poles", contacts: "#admin/contacts", messages: "#admin/messages", enoria: "#admin/enoria" };
 const TAB_OF = { staffs: "services", poles: "poles", contacts: "contacts", messages: "messages", enoria: "enoria" };
-const ADMIN_ONGLETS = ["services", "poles", "contacts", "messages", "enoria"];
+const ADMIN_ONGLETS = ["services", "poles", "contacts", "enoria", "messages"];
 function route() {
   // Ancienne adresse de la page (« serviteurs ») : redirigée
   if (location.hash === "#serviteurs") history.replaceState(null, "", "#leaders");
@@ -590,7 +590,6 @@ function renderAdmin() {
   if (drag) { renderPending = true; return; }
   $("tab-services").textContent = "Staffs (" + services.length + ")";
   $("tab-poles").textContent = "Pôles (" + Object.keys(poles).length + ")";
-  $("tab-messages").textContent = "Messages (" + messages.length + ")";
   $("tab-contacts").textContent = "Contacts (" + fiches().length + ")";
   adminNavSel();
   if (adminTab === "enoria") { if (typeof renderEnoria === "function") renderEnoria(); return; } // enoria.js, chargé après
