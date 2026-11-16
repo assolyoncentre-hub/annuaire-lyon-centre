@@ -545,6 +545,9 @@ test("demander de l'aide connecté : prénom de ma fiche affiché, non modifiabl
   await page.click("#e-next");
   await expect(page.locator("#e-done-title")).toHaveText("Merci Damien !");
   expect((await calls(page, "entraideDemander"))[0].arg).toMatchObject({ p_prenom: "Damien", p_telephone: "" });
+  // Imposé aussi par le serveur : un autre prénom envoyé est ignoré au profit de celui de la fiche
+  await page.evaluate(() => api.entraideDemander({ p_besoin: "Un autre service", p_quand: "", p_quartier: "", p_prenom: "Quelqu'un", p_telephone: "", p_accord: true, p_site: "" }));
+  expect(await page.evaluate(() => window.__S.entraide.at(-1).prenom)).toBe("Damien");
 });
 
 test("zone de rédaction : la croix et le bouton d'envoi sont alignés sur le même axe vertical @mobile", async ({ open, page }) => {

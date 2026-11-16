@@ -109,7 +109,9 @@ module.exports = function installFakeApi({ data, user, acces, desactives }) {
       if (d.p_site) return null;
       if (!d.p_accord) throw new Error("Votre accord est nécessaire pour publier la demande.");
       if (String(d.p_besoin || "").trim().length < 3) throw new Error("Décrivez en quelques mots ce dont vous avez besoin.");
-      if (!String(d.p_prenom || "").trim()) throw new Error("Indiquez votre prénom.");
+      // Prénom : celui de ma fiche s'il y en a un (le prénom envoyé est alors ignoré), comme entraide_demander
+      const prenom = (await this.entraideMaFiche()).prenom || String(d.p_prenom || "").trim();
+      if (!prenom) throw new Error("Indiquez votre prénom.");
       // Téléphone facultatif (le formulaire ne le demande plus), vérifié s'il est donné
       let t = String(d.p_telephone || "").replace(/[\s.()\/-]/g, "") || null;
       if (t?.startsWith("00")) t = "+" + t.slice(2); else if (/^0[1-9]\d{8}$/.test(t || "")) t = "+33" + t.slice(1);
@@ -118,7 +120,7 @@ module.exports = function installFakeApi({ data, user, acces, desactives }) {
       if (S.entraide.filter(x => x.statut === "a_valider" && ((t && x.telephone === t) || x.auteur === moi)).length >= 3) throw new Error("Vous avez déjà plusieurs demandes en attente : un référent va les relire très vite.");
       const id = "e" + n++;
       signal();
-      S.entraide.push({ id, auteur: session.user.email.toLowerCase(), prenom: d.p_prenom.trim(), telephone: t, besoin: d.p_besoin.trim(), quand: (d.p_quand || "").trim(), quartier: (d.p_quartier || "").trim(), statut: "a_valider", jours: 0, cree: Date.now() });
+      S.entraide.push({ id, auteur: session.user.email.toLowerCase(), prenom, telephone: t, besoin: d.p_besoin.trim(), quand: (d.p_quand || "").trim(), quartier: (d.p_quartier || "").trim(), statut: "a_valider", jours: 0, cree: Date.now() });
       return id;
     },
     async droitEntraide() { return entrMoi(); },

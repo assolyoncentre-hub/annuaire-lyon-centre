@@ -158,3 +158,9 @@ test("fiche contact : staffs et pôles choisis dans des listes déroulantes à c
   await expect(page.locator("#editor")).toBeHidden();
   expect((await calls(page, "savePerson"))[0].arg.plan.contacts.add).toHaveLength(1);
 });
+
+test("bouton du compte : prénom de ma fiche, même pour un compte sans accès à l'annuaire", async ({ open, page }) => {
+  await open({ user: { email: "m.dupuis@example.org" }, hash: "#entraide",
+    acces: [{ email: "m.dupuis@example.org", droit: "aucun", prenom: "Margaux", nom: "Dupuis", entraide_voir: true, entraide_moderer: false }] });
+  await expect(page.locator("#admin-label")).toHaveText("Margaux");
+});

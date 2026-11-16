@@ -333,6 +333,8 @@ async function onSession(s) {
     s = null;
   }
   session = s;
+  // Prénom du bouton du compte : celui de ma fiche (fiche d'accès, staff ou pôle), même sans accès à la liste des contacts
+  if (s && !profilPrenom) profilPrenom = (await api.entraideMaFiche().catch(() => null))?.prenom || "";
   isAdmin = droit === "admin"; canLeaders = !!droit; canEntraide = !!s && !!entraide; isReferent = !!s && entraide === "moderer";
   let apres = null;
   try { apres = s && sessionStorage.getItem("apres-connexion"); if (apres) sessionStorage.removeItem("apres-connexion"); } catch { /* stockage indisponible */ }
