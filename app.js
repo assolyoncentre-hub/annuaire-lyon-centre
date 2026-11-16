@@ -571,7 +571,7 @@ let drag = null, renderPending = false;
 const CONTACT_FILTERS = [
   ["admin", "Administrateurs", "#1d2733", p => p.droit === "admin"],
   ["leaders", "Leaders", "#0a66c2", p => p.droit === "leaders"],
-  ["aucun", "Sans accès à l'annuaire", "#9aa5b1", p => p.droit !== "admin" && p.droit !== "leaders"],
+  ["aucun", "Paroissiens", "#9aa5b1", p => p.droit !== "admin" && p.droit !== "leaders"],
   ["entr-voir", "Voir l'entraide", "#e08a1e", p => p.entraide !== "aucun"],
   ["entr-mod", "Modérer l'entraide", "#9a4b00", p => p.entraide === "moderer"],
   ["hors", "Hors annuaire", "#6b4fbb", p => p.hors],
@@ -596,15 +596,12 @@ function renderAdmin() {
     const tests = kinds.filter(([k]) => contactFilter.has(k)).map(([, , , test]) => test);
     const list = all.filter(p => (!tests.length || tests.some(t => t(p))) &&
       adminMatch([p.prenom, p.nom, p.email, p.telephone, ...personRoles(p)].join(" ")));
-    const badge = p => p.droit === "admin" ? ' <span class="badge admin">Admin</span>' : p.droit === "aucun" ? ' <span class="badge none">Sans accès</span>' :
-      p.hors && p.droit !== "aucun" ? ' <span class="badge lead">Leader</span>' : "";
-    // « Voir l'entraide » est la règle (toutes les fiches l'ont) : badge seulement pour la modération, ou pour une fiche
-    // avec e-mail remise à « Aucun »
-    const badgeEntr = p => p.entraide === "moderer" ? ' <span class="badge entr">Entraide : modération</span>' : p.entraide === "aucun" && p.email ? ' <span class="badge none">Sans entraide</span>' : "";
+    // Un seul badge de droit par contact : Administrateur, Leader ou Paroissien (droit « aucun » sur l'annuaire)
+    const badge = p => p.droit === "admin" ? ' <span class="badge admin">Administrateur</span>' : p.droit === "leaders" ? ' <span class="badge lead">Leader</span>' : ' <span class="badge none">Paroissien</span>';
     const row = p => {
       const roles = p.hors ? ["Ni staff ni pôle"] : personRoles(p);
       return '<div class="row' + (p.desactive_le ? " is-off" : "") + '" data-id="' + esc(p.key) + '"><span></span><div><div class="title"><span class="nm">' + esc(nomPrenom(p) || p.email) + (p.verifie ? VERIFIE : "") + "</span>" +
-        (p.desactive_le ? ' <span class="badge off">' + BAN + "Désactivé</span>" : "") + badge(p) + badgeEntr(p) + "</div>" +
+        (p.desactive_le ? ' <span class="badge off">' + BAN + "Désactivé</span>" : "") + badge(p) + "</div>" +
         '<div class="meta"><span>' + (p.email ? esc(p.email) : "Pas d'e-mail") + "</span>" + (p.telephone ? "<span>" + esc(p.telephone) + "</span>" : "") + '<span class="ell" title="' + esc(roles.join(", ")) + '">' + esc(roles.join(", ")) + "</span></div></div>" +
         '<div class="ops"><button type="button" class="btn btn-ghost btn-sm" data-act="edit">Modifier</button>' +
         '<button type="button" class="btn btn-ghost btn-sm" data-act="del">Supprimer</button></div></div>';
@@ -1162,7 +1159,7 @@ function editPerson(p) {
     const noEmail = !f.querySelector("#pe-email").value.trim();
     f.querySelector("#pe-hors").hidden = !hors;
     const aucun = f.querySelector('input[name="pe-droit"][value="aucun"]');
-    // Hors annuaire, « Aucun » n'est possible qu'avec un droit Entraide (la personne ne peut alors que voir l'entraide)
+    // Hors annuaire, « Paroissien » n'est possible qu'avec un droit Entraide (la personne ne peut alors que voir l'entraide)
     const entrVoir = !f.querySelector('input[name="pe-entr"][value="aucun"]').checked;
     if (!self) aucun.disabled = hors && !entrVoir;
     if (hors && aucun.checked && !entrVoir) f.querySelector('input[name="pe-droit"][value="leaders"]').checked = true;
@@ -1232,7 +1229,7 @@ $("ed-form").addEventListener("keydown", e => {
 });
 $("editor").addEventListener("click", e => { if (!e.target.closest(".msel")) mselClose(); });
 const DROITS_ENTRAIDE = [["aucun", "Aucun", "Pas d'accès à l'entraide"], ["voir", "Voir", "Voit les demandes d'aide et peut en déposer une"], ["moderer", "Modérer", "Valide, publie et clôt les demandes, en plus de les voir"]];
-const DROITS = [["aucun", "Aucun", "Pas d'accès à l'annuaire des leaders"], ["leaders", "Leader", "Voit l'annuaire des leaders quand il ou elle est connecté·e"], ["admin", "Administrateur", "Peut modifier les staffs, les pôles, les contacts et les droits"]];
+const DROITS = [["aucun", "Paroissien", "Pas d'accès à l'annuaire des leaders"], ["leaders", "Leader", "Voit l'annuaire des leaders quand il ou elle est connecté·e"], ["admin", "Administrateur", "Peut modifier les staffs, les pôles, les contacts et les droits"]];
 // --- Mon profil (#profil) : mes informations, enregistrées sur toutes mes lignes (staffs, pôles, fiche hors annuaire).
 // E-mail et responsabilités en lecture seule ; prénom et nom aussi pour une personne vérifiée (choix des administrateurs).
 const PF_LOCK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';

@@ -287,7 +287,7 @@ test("fiche contact : droit Entraide Aucun / Voir / Modérer", async ({ open, pa
   await page.locator("#ed-form [type=submit]").click();
   await expect(page.locator("#editor")).toBeHidden();
   expect((await calls(page, "savePerson"))[0].arg.fields.entraide).toBe("moderer");
-  await expect(magali().locator(".badge.entr")).toHaveText("Entraide : modération");
+  await expect(magali().locator(".badge")).toHaveText("Leader"); // seul badge : le droit sur l'annuaire
   expect(await page.evaluate(() => window.__S.acces.find(a => a.email === "magali@example.org"))).toMatchObject({ droit: "leaders", entraide_voir: true, entraide_moderer: true });
 
   // Retour à Aucun : sans droit particulier, la ligne « acces » disparaît
@@ -295,8 +295,7 @@ test("fiche contact : droit Entraide Aucun / Voir / Modérer", async ({ open, pa
   await expect(page.locator('input[name="pe-entr"][value="moderer"]')).toBeChecked();
   await page.locator("#pe-entr-t + .seg label", { hasText: "Aucun" }).click();
   await page.locator("#ed-form [type=submit]").click();
-  await expect(magali().locator(".badge.entr")).toHaveCount(0);
-  await expect(magali().locator(".badge", { hasText: "Sans entraide" })).toBeVisible(); // l'exception est signalée
+  await expect(magali().locator(".badge")).toHaveText("Leader");
   expect(await page.evaluate(() => window.__S.acces.some(a => a.email === "magali@example.org"))).toBe(false);
 });
 
@@ -312,7 +311,7 @@ test("fiche hors annuaire avec seulement le droit Voir l'entraide", async ({ ope
   await expect(page.locator('input[name="pe-droit"][value="aucun"]')).toBeDisabled();
   await page.locator("#pe-entr-t + .seg label", { hasText: /^Voir/ }).click();
   await expect(page.locator('input[name="pe-droit"][value="aucun"]')).toBeEnabled();
-  await page.locator("#pe-droits-t + .seg label", { hasText: "Aucun" }).click();
+  await page.locator("#pe-droits-t + .seg label", { hasText: "Paroissien" }).click();
   await page.locator("#ed-form [type=submit]").click();
   await expect(page.locator("#editor")).toBeHidden();
   expect(await page.evaluate(() => window.__S.acces.find(a => a.email === "ines@example.org"))).toMatchObject({ droit: "aucun", entraide_voir: true, entraide_moderer: false });
