@@ -533,18 +533,18 @@ test("messagerie : côté personne qui aide, réponse de l'auteur et pastille su
   await expect(marie).toBeHidden();
 });
 
-test("demander de l'aide connecté : prénom de ma fiche prérempli, modifiable @mobile", async ({ open, page }) => {
+test("demander de l'aide connecté : prénom de ma fiche affiché, non modifiable @mobile", async ({ open, page }) => {
   // Damien : leader avec le droit Voir l'entraide ; son prénom vient de sa fiche de contact
   await open({ user: { email: "damien@example.org" }, hash: "#entraide", acces: [{ email: "damien@example.org", droit: "leaders", prenom: "", nom: "", entraide_voir: true, entraide_moderer: false }] });
   await page.click("#entr-ask");
   await page.fill("#e-besoin", "Monter une étagère");
   await page.click("#e-next");
   await expect(page.locator("#e-prenom")).toHaveValue("Damien");
-  await page.fill("#e-prenom", "Dam"); // modifiable
+  await expect(page.locator("#e-prenom")).not.toBeEditable();
   await page.check("#e-accord");
   await page.click("#e-next");
-  await expect(page.locator("#e-done-title")).toHaveText("Merci Dam !");
-  expect((await calls(page, "entraideDemander"))[0].arg).toMatchObject({ p_prenom: "Dam", p_telephone: "" });
+  await expect(page.locator("#e-done-title")).toHaveText("Merci Damien !");
+  expect((await calls(page, "entraideDemander"))[0].arg).toMatchObject({ p_prenom: "Damien", p_telephone: "" });
 });
 
 test("zone de rédaction : la croix et le bouton d'envoi sont alignés sur le même axe vertical @mobile", async ({ open, page }) => {
@@ -938,4 +938,21 @@ test("paroissiens vérifiés : badge à côté de leur prénom (fil, conversatio
   await expect(row(page, "Paul").locator(".conv-t", { hasText: "Damien" }).locator(".verifie")).toBeVisible();
   await expect(row(page, "Paul").locator(".msg .qui", { hasText: "Damien" }).first().locator(".verifie")).toBeVisible();
   await expect(row(page, "Paul").locator(".conv-t", { hasText: "Claire" }).locator(".verifie")).toHaveCount(0);
+});
+
+test("paroissien vérifié : le badge suit aussi « Moi » sur ses propres messages et demandes @mobile", async ({ open, page }) => {
+  // Damien est vérifié (données de test) ; il a proposé son aide à Paul
+  await open({ user: { email: "damien@example.org" }, hash: "#entraide", acces: [{ email: "damien@example.org", droit: "leaders", prenom: "", nom: "", entraide_voir: true, entraide_moderer: false }] });
+  const moi = page.locator(".entr-moi .who", { hasText: "Moi" }).first();
+  await expect(moi.locator(".verifie")).toBeVisible();
+  await expect(moi.locator(".verifie")).toHaveAttribute("title", "Paroissien·ne vérifié·e");
+  // Sa propre demande, une fois déposée et visible dans « Mes demandes »
+  await page.click("#entr-ask");
+  await page.fill("#e-besoin", "Monter une étagère");
+  await page.click("#e-next");
+  await page.check("#e-accord");
+  await page.click("#e-next");
+  await page.locator("#entr-modal [data-close], #e-done button").first().click();
+  await page.click("#entr-tab-mes");
+  await expect(page.locator(".entr-mienne .who").first().locator(".verifie")).toBeVisible();
 });

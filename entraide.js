@@ -30,6 +30,9 @@ const entrEnHaut = () => $("entr-list").getBoundingClientRect().top > -40;
 const entrVersLeHaut = () => $("entr-pub").scrollIntoView({ block: "start" });
 // Prénom suivi du badge « Paroissien·ne vérifié·e » si la personne est vérifiée (indiqué par la base)
 const entrNom = (prenom, verifie) => esc(prenom) + (verifie ? VERIFIE : "");
+// « Moi » : avec le badge si je suis moi-même vérifié·e (lu dans ma fiche au chargement de l'entraide)
+let entrMoiVerifie = false;
+const entrMoi = () => "Moi" + (entrMoiVerifie ? VERIFIE : "");
 // Demandes pourvues (section « Ils/elles ont déjà été aidés ») : les dernières pourvues en haut, sans bouton
 function renderAidees(list) {
   $("entr-aides-sec").hidden = !list.length;
@@ -116,9 +119,9 @@ function entrFilHtml(id, prenom) {
         '<p class="txt">' + esc(r.texte) + '</p><time class="time" datetime="' + esc(r.le) + '">' + (r.modifie ? "Modifié · " : "") + esc(entrJour(r.le)) + ", " + entrHeure(r.le) + "</time></div>"
       // mes messages : la poubelle et « Modifier » en haut à droite, à côté de « Moi »
       : r.masque // masqué par la modération : seule la mention reste, sans texte ni actions
-      ? '<div class="entr-moi entr-moi-masque" data-rep="' + esc(r.id) + '"><div class="entr-moi-tete"><div class="who">Moi</div></div>' +
+      ? '<div class="entr-moi entr-moi-masque" data-rep="' + esc(r.id) + '"><div class="entr-moi-tete"><div class="who">' + entrMoi() + '</div></div>' +
         '<p class="txt">Votre message a été masqué par les modérateurs.</p></div>'
-      : '<div class="entr-moi" data-rep="' + esc(r.id) + '"><div class="entr-moi-tete"><div class="who">Moi</div>' +
+      : '<div class="entr-moi" data-rep="' + esc(r.id) + '"><div class="entr-moi-tete"><div class="who">' + entrMoi() + '</div>' +
         (fini ? "" : '<span class="entr-moi-act"><button type="button" class="entr-moi-suppr" data-supprimer aria-label="Supprimer ce message" title="Supprimer ce message">' +
           TRASH + '</button><button type="button" data-modifier>Modifier</button></span>') + '</div><p class="txt">' + esc(r.texte) + "</p>" +
         '<div class="entr-moi-pied"><time class="time" datetime="' + esc(r.le) + '">' + (r.modifie ? "Modifié · " : "") + (recues ? esc(entrJour(r.le)) + ", " : "") + entrHeure(r.le) + "</time></div></div>").join("") +
@@ -411,17 +414,18 @@ async function loadEntraide() {
   const seq = ++entrSeq, premier = !entrLoaded;
   // Mes demandes et mes conversations d'aidant : pour reconnaître mes demandes et afficher mes fils (sans bloquer le fil si erreur)
   const pList = api.entraide(), pAidees = api.entraidePourvues(),
-    pMes = api.entraideMesDemandes().catch(() => null), pAides = api.entraideMesAides().catch(() => null);
+    pMes = api.entraideMesDemandes().catch(() => null), pAides = api.entraideMesAides().catch(() => null),
+    pFiche = api.entraideMaFiche().then(f => { entrMoiVerifie = !!f?.verifie; }, () => {});
   if (premier) {
     entrChargement();
-    pMes.then(mes => {
+    Promise.all([pMes, pFiche]).then(([mes]) => {
       if (seq !== entrSeq || entrLoaded) return;
       if (mes) { entrMajMes(mes); renderMesDemandes(mes); entrTronquer($("entr-mes")); } else $("entr-mes").hidden = true;
     });
     pAidees.then(aidees => { if (seq === entrSeq && !entrLoaded) { renderAidees(aidees); entrTronquer($("entr-aides-sec")); } }, () => {});
   }
   try {
-    const [list, aidees, mes, aides] = await Promise.all([pList, pAidees, pMes, pAides]);
+    const [list, aidees, mes, aides] = await Promise.all([pList, pAidees, pMes, pAides, pFiche]);
     if (seq !== entrSeq) return;
     if (aides) entrMajAides(aides);
     // La réponse en cours de rédaction survit au réaffichage : mise de côté, puis replacée dans son fil
@@ -694,7 +698,7 @@ function renderMesDemandes(list) {
     // conversations déclinées en bas de la liste (tri stable : l'ordre est gardé sinon)
     const convs = d.conversations.filter(c => c.messages.length).sort((a, b) => !!a.declinee - !!b.declinee), echanges = convs.length > 0;
     return '<article class="entr-msg entr-mienne" data-demande="' + esc(d.id) + '" tabindex="-1">' +
-      '<div class="who">Moi' + (d.quartier ? ' <span class="where">· ' + esc(d.quartier) + "</span>" : "") + "</div>" +
+      '<div class="who">' + entrMoi() + (d.quartier ? ' <span class="where">· ' + esc(d.quartier) + "</span>" : "") + "</div>" +
       '<p class="need">' + esc(d.besoin) + "</p>" + (d.quand ? '<div class="when">' + ENTR_CAL + "<span>" + esc(d.quand) + "</span></div>" : "") +
       '<div class="entr-pied"><span class="entr-pied-g">' + (d.statut === "publiee" && echanges
         ? '<button type="button" class="btn btn-ok btn-sm" data-regler>' + CHECK_ICON + 'C\'est réglé</button>'
@@ -745,12 +749,15 @@ function openEntraide() {
   $("e-besoin").focus();
   ePreremplir();
 }
-// Personne connectée : prénom de sa fiche, prérempli au 2e écran (modifiable ; un champ déjà saisi n'est pas touché)
+// Personne connectée : prénom de sa fiche, affiché au 2e écran sans pouvoir le changer (modifiable seulement si la
+// fiche n'a pas de prénom, ou si elle n'a pas pu être lue)
 async function ePreremplir() {
-  let f;
-  try { f = await api.entraideMaFiche(); } catch { return; }
-  if (!f || $("entr-modal").hidden) return;
-  if (f.prenom && !eForm.prenom.value) eForm.prenom.value = f.prenom;
+  eForm.prenom.readOnly = true;
+  let f = null;
+  try { f = await api.entraideMaFiche(); } catch { /* fiche illisible : prénom à saisir */ }
+  if ($("entr-modal").hidden) return;
+  if (f?.prenom) eForm.prenom.value = f.prenom;
+  else eForm.prenom.readOnly = false;
 }
 function closeEntraide() {
   setPageInert(false);

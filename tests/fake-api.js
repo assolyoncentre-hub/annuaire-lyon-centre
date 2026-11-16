@@ -151,7 +151,7 @@ module.exports = function installFakeApi({ data, user, acces, desactives }) {
       const e = entrEmail(), mien = r => (r.email || "").toLowerCase() === e, a = S.acces.find(mien) || {};
       const autres = [...S.contacts, ...S.responsables].filter(mien);
       const champ = k => (a[k] || "").trim() || autres.map(r => (r[k] || "").trim()).find(Boolean) || null;
-      return { prenom: champ("prenom"), nom: champ("nom"), telephone: champ("telephone") };
+      return { prenom: champ("prenom"), nom: champ("nom"), telephone: champ("telephone"), verifie: verifie(e) };
     },
     // Messagerie : mêmes règles que entraide_mes_demandes, entraide_mes_aides, entraide_ecrire… de la base
     async entraideMesDemandes() {
