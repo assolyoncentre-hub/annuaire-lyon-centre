@@ -960,3 +960,27 @@ test("paroissien vérifié : le badge suit aussi « Moi » sur ses propres messa
   await page.click("#entr-tab-mes");
   await expect(page.locator(".entr-mienne .who").first().locator(".verifie")).toBeVisible();
 });
+
+test("propositions d'aide en cours : le nombre sur chaque demande, sans dire qui, et « Vous » quand j'ai proposé @mobile", async ({ open, page }) => {
+  await open({ user: VOIR, hash: "#entraide", acces: ACCES });
+  const props = id => page.locator('#entr-list .entr-msg[data-id="' + id + '"] .entr-props');
+  await expect(props("e2")).toHaveText("2 personnes ont proposé leur aide");
+  await expect(props("e2").locator(".av > span")).toHaveCount(2);
+  await expect(props("e2")).not.toContainText("Damien"); // aucun prénom
+  await expect(props("e3")).toHaveText("1 personne a proposé son aide");
+  await expect(props("e1")).toHaveCount(0); // personne : rien
+  // Trois silhouettes au plus
+  await page.evaluate(() => { for (const p of ["a", "b", "c"]) window.__S.entraideConversations.push({ id: "x" + p, demande: "e2", aidant: p + "@example.org", prenom: p, le: new Date().toISOString() }); window.__entraideSignal(); });
+  await expect(props("e2")).toHaveText("5 personnes ont proposé leur aide");
+  await expect(props("e2").locator(".av > span")).toHaveCount(3);
+  // Une proposition déclinée par l'auteur ne compte plus
+  await page.evaluate(() => { window.__S.entraideConversations.find(c => c.id === "xa").declinee = true; window.__entraideSignal(); });
+  await expect(props("e2")).toHaveText("4 personnes ont proposé leur aide");
+  // Je propose mon aide à Jeanne, puis elle reçoit une autre proposition : « Vous… »
+  await page.locator('#entr-list .entr-msg[data-id="e1"] [data-aider]').click();
+  await page.fill("#entr-rep-txt", "Je peux vous conduire.");
+  await page.keyboard.press("Enter");
+  await expect(props("e1")).toHaveText("Vous proposez votre aide");
+  await page.evaluate(() => { window.__S.entraideConversations.push({ id: "xd", demande: "e1", aidant: "d@example.org", prenom: "D", le: new Date().toISOString() }); window.__entraideSignal(); });
+  await expect(props("e1")).toHaveText("Vous et 1 autre personne proposez votre aide");
+});

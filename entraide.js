@@ -33,6 +33,15 @@ const entrNom = (prenom, verifie) => esc(prenom) + (verifie ? VERIFIE : "");
 // « Moi » : avec le badge si je suis moi-même vérifié·e (lu dans ma fiche au chargement de l'entraide)
 let entrMoiVerifie = false;
 const entrMoi = () => "Moi" + (entrMoiVerifie ? VERIFIE : "");
+// Propositions d'aide en cours sur une demande : silhouettes anonymes (3 au plus) et le nombre, sans dire qui (les conversations
+// restent privées) ; « moi » : j'ai moi-même proposé mon aide (ma conversation est comptée)
+const ENTR_SILHOUETTE = '<span><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="8.5" r="4.2"/><path d="M3.5 21a8.5 8.5 0 0 1 17 0z"/></svg></span>';
+function entrPropositions(n, moi) {
+  if (!n) return "";
+  const autres = n - 1, txt = moi ? (autres ? "Vous et " + autres + (autres > 1 ? " autres personnes" : " autre personne") + " proposez votre aide" : "Vous proposez votre aide")
+    : n + (n > 1 ? " personnes ont proposé leur aide" : " personne a proposé son aide");
+  return '<div class="entr-props"><span class="av" aria-hidden="true">' + ENTR_SILHOUETTE.repeat(Math.min(n, 3)) + "</span><span>" + txt + "</span></div>";
+}
 // Demandes pourvues (section « Ils/elles ont déjà été aidés ») : les dernières pourvues en haut, sans bouton
 function renderAidees(list) {
   $("entr-aides-sec").hidden = !list.length;
@@ -59,6 +68,7 @@ function renderEntraide(tout) {
     return sep + '<article class="entr-msg' + (neuve ? " new" : "") + '" style="--c:' + entrCouleur(d.prenom) + '" data-id="' + esc(d.id) + '">' +
       '<div class="who">' + entrNom(d.prenom, d.verifie) + (d.quartier ? ' <span class="where">· ' + esc(d.quartier) + "</span>" : "") + "</div>" +
       '<p class="need">' + esc(d.besoin) + "</p>" + (d.quand ? '<div class="when">' + ENTR_CAL + "<span>Quand&nbsp;? " + esc(d.quand) + "</span></div>" : "") +
+      entrPropositions(d.propositions, fil.messages.length > 0 && !fil.declinee) + // ma conversation sur cette demande : « Vous… »
       '<div class="entr-pied">' + pied +
       '<time class="time" datetime="' + esc(d.publie_le) + '">' + entrHeure(d.publie_le) + "</time></div></article>" + entrRepsHtml(d.id, d.prenom);
   }).join("") : '<p class="empty">Aucune demande d\'aide en cours pour le moment.</p>';

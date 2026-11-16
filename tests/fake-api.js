@@ -95,7 +95,8 @@ module.exports = function installFakeApi({ data, user, acces, desactives }) {
     // Entraide : mêmes règles que les fonctions entraide_* de la base
     async entraide() {
       guardVoir(); log("entraide");
-      return S.entraide.filter(d => d.statut === "publiee" && !d.masquee).map(d => ({ id: d.id, prenom: d.prenom, quartier: d.quartier, besoin: d.besoin, quand: d.quand, publie_le: entrRow(d).publiee_le, verifie: verifie(d.auteur) }))
+      return S.entraide.filter(d => d.statut === "publiee" && !d.masquee).map(d => ({ id: d.id, prenom: d.prenom, quartier: d.quartier, besoin: d.besoin, quand: d.quand, publie_le: entrRow(d).publiee_le, verifie: verifie(d.auteur),
+        propositions: S.entraideConversations.filter(c => c.demande === d.id && !c.declinee).length })) // nombre seulement : les conversations restent privées
         .sort((a, b) => b.publie_le.localeCompare(a.publie_le));
     },
     async entraidePourvues() {
