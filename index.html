@@ -21,6 +21,10 @@
   color-scheme: light;
 }
 * { box-sizing: border-box; }
+/* Place de la barre de défilement toujours réservée : la page ne se décale plus quand on passe d'une liste longue
+   à une liste courte (onglets de l'administration, de l'entraide…) */
+html { scrollbar-gutter: stable; }
+@supports not (scrollbar-gutter: stable) { html { overflow-y: scroll; } }
 body { margin: 0; background: var(--bg); color: var(--text);
   font: 16px/1.55 "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif; }
 /* Anneau décoratif dessiné en fond (le bandeau ne masque plus ce qui dépasse : le menu du compte peut en sortir) */
