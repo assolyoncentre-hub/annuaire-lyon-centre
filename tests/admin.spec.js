@@ -130,7 +130,7 @@ test("téléphone : administration et fiche sans débordement @mobile", async ({
   if (page.viewportSize().width <= 520) {
     await expect(page.locator(".admin-top .tabs")).toBeHidden();
     const sel = page.locator("#admin-nav-sel");
-    await expect(sel.locator("option")).toHaveText(["Staffs (10)", "Pôles (4)", /Contacts \(\d+\)/, /Messages \(\d+\)/, "Enoria"]);
+    await expect(sel.locator("option")).toHaveText(["Staffs (10)", "Pôles (4)", /Contacts \(\d+\)/, /Messages \(\d+\)/, "Import Enoria"]);
     const h = await page.evaluate(() => ["admin-nav-sel", "add-btn"].map(id => document.getElementById(id).getBoundingClientRect().height));
     expect(h[0]).toBe(h[1]);
     await sel.selectOption("poles");
