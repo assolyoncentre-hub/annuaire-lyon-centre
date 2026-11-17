@@ -68,9 +68,10 @@ function renderEntraide(tout) {
     return sep + '<article class="entr-msg' + (neuve ? " new" : "") + '" style="--c:' + entrCouleur(d.prenom) + '" data-id="' + esc(d.id) + '">' +
       '<div class="who">' + entrNom(d.prenom, d.verifie) + (d.quartier ? ' <span class="where">· ' + esc(d.quartier) + "</span>" : "") + "</div>" +
       '<p class="need">' + esc(d.besoin) + "</p>" + (d.quand ? '<div class="when">' + ENTR_CAL + "<span>Quand&nbsp;? " + esc(d.quand) + "</span></div>" : "") +
+      // Pied : « Je peux aider ! » à gauche ; à droite, les propositions en cours puis l'heure, sur la même ligne
+      '<div class="entr-pied">' + pied + '<div class="entr-pied-d">' +
       entrPropositions(d.propositions, fil.messages.length > 0 && !fil.declinee) + // ma conversation sur cette demande : « Vous… »
-      '<div class="entr-pied">' + pied +
-      '<time class="time" datetime="' + esc(d.publie_le) + '">' + entrHeure(d.publie_le) + "</time></div></article>" + entrRepsHtml(d.id, d.prenom);
+      '<time class="time" datetime="' + esc(d.publie_le) + '">' + entrHeure(d.publie_le) + "</time></div></div></article>" + entrRepsHtml(d.id, d.prenom);
   }).join("") : '<p class="empty">Aucune demande d\'aide en cours pour le moment.</p>';
   entrVus = new Set(list.map(d => d.id));
   // Nouvelle demande en haut du fil : si on lisait plus bas, un bouton la signale
